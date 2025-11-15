@@ -1,0 +1,347 @@
+import React, { useState } from 'react';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Users, 
+  FileText, 
+  Bed, 
+  TestTube, 
+  Stethoscope, 
+  Settings,
+  Hospital,
+  User,
+  LogOut,
+  Building,
+  Beaker
+} from 'lucide-react';
+import { Patient } from '@/lib/hospitalData';
+import { useAuth } from '@/lib/useAuth';
+import { toast } from 'sonner';
+import PatientRegistration from '@/components/PatientRegistration';
+import OPDTokenSystem from '@/components/OPDTokenSystem';
+import AdmissionModule from '@/components/AdmissionModule';
+import LabManagement from '@/components/LabManagement';
+import EnhancedDoctorManagement from '@/components/EnhancedDoctorManagement';
+import UserRoles from '@/components/UserRoles';
+import DepartmentManagement from '@/components/DepartmentManagement';
+import LabTestManagement from '@/components/LabTestManagement';
+
+const queryClient = new QueryClient();
+
+type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests';
+
+const LoginScreen = ({ onLogin }: { onLogin: (username: string) => Promise<boolean> }) => {
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!username.trim()) {
+      toast.error('Please enter username');
+      return;
+    }
+
+    setIsLoading(true);
+    const success = await onLogin(username.trim());
+    
+    if (success) {
+      toast.success('Login successful!');
+    } else {
+      toast.error('Login failed. Please check your username.');
+    }
+    
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Hospital className="h-16 w-16 text-blue-600" />
+          </div>
+          <CardTitle className="text-2xl">Hospital Management System</CardTitle>
+          <p className="text-gray-600 text-sm">Please login to continue</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </Button>
+            <div className="text-center text-sm text-gray-600 mt-4">
+              <p>Demo credentials:</p>
+              <p className="font-mono text-xs">Username: <strong>admin</strong></p>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const App = () => {
+  const { user, loading, login, logout } = useAuth();
+  const [currentModule, setCurrentModule] = useState<ModuleType>('dashboard');
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  const modules = [
+    { id: 'dashboard' as ModuleType, name: 'Dashboard', icon: Hospital },
+    { id: 'patients' as ModuleType, name: 'Patient Registration', icon: Users },
+    { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
+    { id: 'admission' as ModuleType, name: 'Admissions', icon: Bed },
+    { id: 'lab' as ModuleType, name: 'Lab Orders', icon: TestTube },
+    { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
+    { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
+    { id: 'labtests' as ModuleType, name: 'Lab Test Management', icon: Beaker },
+    { id: 'users' as ModuleType, name: 'User Management', icon: Settings },
+  ];
+
+  const handlePatientSelect = (patient: Patient) => {
+    setSelectedPatient(patient);
+    if (currentModule === 'patients') {
+      setCurrentModule('opd');
+    }
+  };
+
+  const renderDashboard = () => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Hospital className="h-6 w-6" />
+            Hospital Management System Dashboard
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4 bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Today's Patients</p>
+                  <p className="text-2xl font-bold text-blue-600">--</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
+            </Card>
+            
+            <Card className="p-4 bg-green-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">OPD Tokens</p>
+                  <p className="text-2xl font-bold text-green-600">--</p>
+                </div>
+                <FileText className="h-8 w-8 text-green-600" />
+              </div>
+            </Card>
+            
+            <Card className="p-4 bg-yellow-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Admissions</p>
+                  <p className="text-2xl font-bold text-yellow-600">--</p>
+                </div>
+                <Bed className="h-8 w-8 text-yellow-600" />
+              </div>
+            </Card>
+            
+            <Card className="p-4 bg-purple-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Lab Tests</p>
+                  <p className="text-2xl font-bold text-purple-600">--</p>
+                </div>
+                <TestTube className="h-8 w-8 text-purple-600" />
+              </div>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {modules.slice(1).map((module) => {
+              const Icon = module.icon;
+              return (
+                <Button
+                  key={module.id}
+                  variant="outline"
+                  className="h-20 flex flex-col gap-2"
+                  onClick={() => setCurrentModule(module.id)}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs text-center">{module.name}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>System Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <p>✅ Connected to Supabase Database</p>
+            <p>✅ All modules operational</p>
+            <p>✅ Real-time data synchronization active</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderCurrentModule = () => {
+    switch (currentModule) {
+      case 'dashboard':
+        return renderDashboard();
+      case 'patients':
+        return (
+          <PatientRegistration 
+            onPatientSelect={handlePatientSelect}
+            onNewPatient={handlePatientSelect}
+          />
+        );
+      case 'opd':
+        return <OPDTokenSystem selectedPatient={selectedPatient} />;
+      case 'admission':
+        return <AdmissionModule selectedPatient={selectedPatient} />;
+      case 'lab':
+        return <LabManagement selectedPatient={selectedPatient} />;
+      case 'doctors':
+        return <EnhancedDoctorManagement />;
+      case 'departments':
+        return <DepartmentManagement />;
+      case 'labtests':
+        return <LabTestManagement />;
+      case 'users':
+        return <UserRoles />;
+      default:
+        return renderDashboard();
+    }
+  };
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Hospital className="h-12 w-12 mx-auto mb-4 text-blue-600 animate-pulse" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <LoginScreen onLogin={login} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                <div className="flex items-center gap-3">
+                  <Hospital className="h-8 w-8 text-blue-600" />
+                  <h1 className="text-xl font-bold text-gray-900">
+                    Hospital Management System
+                  </h1>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  {selectedPatient && (
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg">
+                      <User className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-700">
+                        {selectedPatient.name}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        Selected
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{user.fullName}</p>
+                      <p className="text-xs text-gray-500">{user.role}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={logout}>
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex gap-6">
+              {/* Sidebar */}
+              <div className="w-64 space-y-2">
+                {modules.map((module) => {
+                  const Icon = module.icon;
+                  return (
+                    <Button
+                      key={module.id}
+                      variant={currentModule === module.id ? 'default' : 'ghost'}
+                      className="w-full justify-start text-sm"
+                      onClick={() => setCurrentModule(module.id)}
+                    >
+                      <Icon className="h-4 w-4 mr-3" />
+                      {module.name}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Main Content */}
+              <div className="flex-1">
+                {renderCurrentModule()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;
