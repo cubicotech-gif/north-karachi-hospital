@@ -22,7 +22,7 @@ export const useAuth = () => {
     setLoading(false);
   }, []);
 
-  const login = async (username: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await db.users.getByUsername(username);
       
@@ -33,6 +33,16 @@ export const useAuth = () => {
 
       if (!data.active) {
         console.error('User is inactive');
+        return false;
+      }
+
+      // Check password
+      // For now, we'll use a simple password check
+      // In production, use proper password hashing
+      const storedPassword = data.password || 'password123'; // Default password if not set
+      
+      if (password !== storedPassword) {
+        console.error('Invalid password');
         return false;
       }
 
