@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,22 +7,75 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Building, Plus, MapPin, Phone, User, Edit, Trash2 } from 'lucide-react';
-import { Department, mockDepartments, mockDoctors, generateId } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+interface Department {
+  id: string;
+  name: string;
+  description: string;
+  head_of_department?: string;
+  location: string;
+  contact_extension: string;
+  active: boolean;
+  created_date: string;
+}
+
+interface Doctor {
+  id: string;
+  name: string;
+  department: string;
+}
+
 export default function DepartmentManagement() {
-  const [departments, setDepartments] = useState<Department[]>(mockDepartments);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [loading, setLoading] = useState(false);
   const [newDepartment, setNewDepartment] = useState<Partial<Department>>({
     name: '',
     description: '',
     location: '',
-    contactExtension: '',
+    contact_extension: '',
     active: true
   });
 
-  const handleAddDepartment = (e: React.FormEvent) => {
+  // Fetch departments and doctors from database
+  useEffect(() => {
+    fetchDepartments();
+    fetchDoctors();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const { data, error } = await db.departments.getAll();
+      if (error) {
+        console.error('Error fetching departments:', error);
+        toast.error('Failed to load departments');
+        return;
+      }
+      setDepartments(data || []);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to load departments');
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const { data, error } = await db.doctors.getAll();
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        return;
+      }
+      setDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+    }
+  };
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newDepartment.name || !newDepartment.description || !newDepartment.location) {
@@ -36,28 +89,44 @@ export default function DepartmentManagement() {
       return;
     }
 
-    const department: Department = {
-      id: generateId(),
-      name: newDepartment.name,
-      description: newDepartment.description,
-      location: newDepartment.location,
-      contactExtension: newDepartment.contactExtension || '',
-      active: true,
-      createdDate: new Date().toISOString().split('T')[0]
-    };
+    setLoading(true);
+    try {
+      const deptData = {
+        name: newDepartment.name,
+        description: newDepartment.description,
+        location: newDepartment.location,
+        contact_extension: newDepartment.contact_extension || '',
+        active: true,
+        created_date: new Date().toISOString().split('T')[0]
+      };
 
-    setDepartments([...departments, department]);
-    toast.success('Department added successfully!');
-    
-    // Reset form
-    setNewDepartment({
-      name: '',
-      description: '',
-      location: '',
-      contactExtension: '',
-      active: true
-    });
-    setShowAddForm(false);
+      const { data, error } = await db.departments.create(deptData);
+      
+      if (error) {
+        console.error('Error creating department:', error);
+        toast.error('Failed to add department');
+        setLoading(false);
+        return;
+      }
+
+      setDepartments([...departments, data]);
+      toast.success('Department added successfully!');
+      
+      // Reset form
+      setNewDepartment({
+        name: '',
+        description: '',
+        location: '',
+        contact_extension: '',
+        active: true
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Error creating department:', error);
+      toast.error('Failed to add department');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditDepartment = (department: Department) => {
@@ -66,7 +135,7 @@ export default function DepartmentManagement() {
     setShowAddForm(true);
   };
 
-  const handleUpdateDepartment = (e: React.FormEvent) => {
+  const handleUpdateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingDepartment || !newDepartment.name || !newDepartment.description || !newDepartment.location) {
@@ -74,63 +143,110 @@ export default function DepartmentManagement() {
       return;
     }
 
-    const updatedDepartments = departments.map(dept => 
-      dept.id === editingDepartment.id 
-        ? { ...dept, ...newDepartment }
-        : dept
-    );
+    setLoading(true);
+    try {
+      const updateData = {
+        name: newDepartment.name,
+        description: newDepartment.description,
+        location: newDepartment.location,
+        contact_extension: newDepartment.contact_extension || '',
+        head_of_department: newDepartment.head_of_department,
+        active: newDepartment.active
+      };
 
-    setDepartments(updatedDepartments);
-    toast.success('Department updated successfully!');
-    
-    // Reset form
-    setNewDepartment({
-      name: '',
-      description: '',
-      location: '',
-      contactExtension: '',
-      active: true
-    });
-    setShowAddForm(false);
-    setEditingDepartment(null);
-  };
+      const { data, error } = await db.departments.update(editingDepartment.id, updateData);
+      
+      if (error) {
+        console.error('Error updating department:', error);
+        toast.error('Failed to update department');
+        setLoading(false);
+        return;
+      }
 
-  const toggleDepartmentStatus = (departmentId: string) => {
-    const updatedDepartments = departments.map(dept => 
-      dept.id === departmentId 
-        ? { ...dept, active: !dept.active }
-        : dept
-    );
-    
-    setDepartments(updatedDepartments);
-    const department = departments.find(d => d.id === departmentId);
-    if (department) {
-      toast.success(`${department.name} ${!department.active ? 'activated' : 'deactivated'}`);
+      const updatedDepartments = departments.map(dept => 
+        dept.id === editingDepartment.id ? data : dept
+      );
+      setDepartments(updatedDepartments);
+      toast.success('Department updated successfully!');
+      
+      // Reset form
+      setNewDepartment({
+        name: '',
+        description: '',
+        location: '',
+        contact_extension: '',
+        active: true
+      });
+      setShowAddForm(false);
+      setEditingDepartment(null);
+    } catch (error) {
+      console.error('Error updating department:', error);
+      toast.error('Failed to update department');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteDepartment = (departmentId: string) => {
+  const toggleDepartmentStatus = async (departmentId: string) => {
+    const department = departments.find(d => d.id === departmentId);
+    if (!department) return;
+
+    try {
+      const { error } = await db.departments.update(departmentId, { active: !department.active });
+      
+      if (error) {
+        console.error('Error updating department status:', error);
+        toast.error('Failed to update department status');
+        return;
+      }
+
+      const updatedDepartments = departments.map(dept => 
+        dept.id === departmentId ? { ...dept, active: !dept.active } : dept
+      );
+      setDepartments(updatedDepartments);
+      toast.success(`${department.name} ${!department.active ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+      console.error('Error updating department status:', error);
+      toast.error('Failed to update department status');
+    }
+  };
+
+  const deleteDepartment = async (departmentId: string) => {
+    const department = departments.find(d => d.id === departmentId);
+    if (!department) return;
+
     // Check if any doctors are assigned to this department
-    const assignedDoctors = mockDoctors.filter(doctor => 
-      departments.find(dept => dept.id === departmentId)?.name === doctor.department
-    );
+    const assignedDoctors = doctors.filter(doctor => doctor.department === department.name);
 
     if (assignedDoctors.length > 0) {
       toast.error(`Cannot delete department. ${assignedDoctors.length} doctor(s) are assigned to this department.`);
       return;
     }
 
-    const updatedDepartments = departments.filter(dept => dept.id !== departmentId);
-    setDepartments(updatedDepartments);
-    toast.success('Department deleted successfully!');
+    try {
+      const { error } = await db.departments.delete(departmentId);
+      
+      if (error) {
+        console.error('Error deleting department:', error);
+        toast.error('Failed to delete department');
+        return;
+      }
+
+      const updatedDepartments = departments.filter(dept => dept.id !== departmentId);
+      setDepartments(updatedDepartments);
+      toast.success('Department deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting department:', error);
+      toast.error('Failed to delete department');
+    }
   };
 
   const getDoctorCount = (departmentName: string) => {
-    return mockDoctors.filter(doctor => doctor.department === departmentName).length;
+    return doctors.filter(doctor => doctor.department === departmentName).length;
   };
 
   const getHeadOfDepartment = (departmentName: string) => {
-    const hod = mockDoctors.find(doctor => 
+    const hod = doctors.find(doctor => 
       doctor.department === departmentName && doctor.name.includes('Dr.')
     );
     return hod?.name || 'Not Assigned';
@@ -173,8 +289,8 @@ export default function DepartmentManagement() {
                   <Label htmlFor="contactExtension">Contact Extension</Label>
                   <Input
                     id="contactExtension"
-                    value={newDepartment.contactExtension}
-                    onChange={(e) => setNewDepartment({ ...newDepartment, contactExtension: e.target.value })}
+                    value={newDepartment.contact_extension}
+                    onChange={(e) => setNewDepartment({ ...newDepartment, contact_extension: e.target.value })}
                     placeholder="e.g., 101"
                   />
                 </div>
@@ -203,8 +319,8 @@ export default function DepartmentManagement() {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">
-                  {editingDepartment ? 'Update Department' : 'Add Department'}
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : (editingDepartment ? 'Update Department' : 'Add Department')}
                 </Button>
                 <Button 
                   type="button" 
@@ -216,7 +332,7 @@ export default function DepartmentManagement() {
                       name: '',
                       description: '',
                       location: '',
-                      contactExtension: '',
+                      contact_extension: '',
                       active: true
                     });
                   }}
@@ -248,10 +364,10 @@ export default function DepartmentManagement() {
                     <span>{department.location}</span>
                   </div>
                   
-                  {department.contactExtension && (
+                  {department.contact_extension && (
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-gray-500" />
-                      <span>Ext: {department.contactExtension}</span>
+                      <span>Ext: {department.contact_extension}</span>
                     </div>
                   )}
                   
@@ -266,7 +382,7 @@ export default function DepartmentManagement() {
                   </div>
                   
                   <div className="text-xs text-gray-500">
-                    Created: {new Date(department.createdDate).toLocaleDateString()}
+                    Created: {new Date(department.created_date).toLocaleDateString()}
                   </div>
                 </div>
 
@@ -325,12 +441,12 @@ export default function DepartmentManagement() {
               <p className="text-sm text-gray-600">Active Departments</p>
             </div>
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-2xl font-bold text-yellow-600">{mockDoctors.length}</p>
+              <p className="text-2xl font-bold text-yellow-600">{doctors.length}</p>
               <p className="text-sm text-gray-600">Total Doctors</p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <p className="text-2xl font-bold text-purple-600">
-                {departments.filter(d => d.contactExtension).length}
+                {departments.filter(d => d.contact_extension).length}
               </p>
               <p className="text-sm text-gray-600">With Extensions</p>
             </div>
