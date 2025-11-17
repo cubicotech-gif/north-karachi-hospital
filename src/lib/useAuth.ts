@@ -7,7 +7,23 @@ interface User {
   fullName: string;
   role: string;
   email: string;
+  permissions: string[];
 }
+
+// Map module IDs to permission names that are stored in database
+const MODULE_PERMISSION_MAP: Record<string, string[]> = {
+  'dashboard': ['all'], // Everyone can see dashboard
+  'patients': ['Patient Registration'],
+  'opd': ['OPD Management', 'OPD Token Generation'],
+  'admission': ['Admission Management'],
+  'discharge': ['Discharge Patients', 'Admission Management'],
+  'lab': ['Lab Management', 'Lab Order Processing', 'Lab Order Creation'],
+  'doctors': ['Doctor Management'],
+  'rooms': ['System Settings', 'Admission Management'],
+  'departments': ['System Settings'],
+  'labtests': ['Lab Test Management', 'System Settings'],
+  'users': ['User Management']
+};
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -17,7 +33,12 @@ export const useAuth = () => {
     // Check if user is already logged in (stored in localStorage)
     const storedUser = localStorage.getItem('hospital_user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('hospital_user');
+      }
     }
     setLoading(false);
   }, []);
@@ -37,8 +58,6 @@ export const useAuth = () => {
       }
 
       // Check password
-      // For now, we'll use a simple password check
-      // In production, use proper password hashing
       const storedPassword = data.password || 'password123'; // Default password if not set
       
       if (password !== storedPassword) {
@@ -51,7 +70,8 @@ export const useAuth = () => {
         username: data.username,
         fullName: data.full_name,
         role: data.role,
-        email: data.email
+        email: data.email,
+        permissions: data.permissions || []
       };
 
       setUser(userData);
@@ -68,5 +88,23 @@ export const useAuth = () => {
     localStorage.removeItem('hospital_user');
   };
 
-  return { user, loading, login, logout };
+  const hasPermission = (moduleId: string): boolean => {
+    if (!user) return false;
+    
+    // Dashboard is accessible to everyone
+    if (moduleId === 'dashboard') return true;
+    
+    // Get required permissions for this module
+    const requiredPermissions = MODULE_PERMISSION_MAP[moduleId] || [];
+    
+    // If no permissions defined, deny access
+    if (requiredPermissions.length === 0) return false;
+    
+    // Check if user has ANY of the required permissions for this module
+    return requiredPermissions.some(reqPerm => 
+      user.permissions.includes(reqPerm)
+    );
+  };
+
+  return { user, loading, login, logout, hasPermission };
 };
