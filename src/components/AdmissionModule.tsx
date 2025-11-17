@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Bed, Building, User, Printer, CreditCard } from 'lucide-react';
-import { Patient, Doctor, Room, Admission, mockDoctors, mockRooms, generateId, formatCurrency } from '@/lib/hospitalData';
+import { Bed, Building, User, Printer } from 'lucide-react';
+import { Patient, formatCurrency } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+
+interface Doctor {
+  id: string;
+  name: string;
+  department: string;
+  specialization: string;
+}
+
+interface Room {
+  id: string;
+  room_number: string;
+  type: string;
+  bed_count: number;
+  occupied_beds: number;
+  price_per_day: number;
+  department: string;
+  active: boolean;
+}
+
+interface Admission {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  room_id: string;
+  bed_number: number;
+  admission_date: string;
+  admission_type: string;
+  deposit: number;
+  status: string;
+  notes: string;
+}
 
 interface AdmissionModuleProps {
   selectedPatient: Patient | null;
@@ -23,51 +55,107 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   const [deposit, setDeposit] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [generatedAdmission, setGeneratedAdmission] = useState<Admission | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const availableRooms = mockRooms.filter(room => room.occupiedBeds < room.bedCount);
+  // Fetch doctors and rooms from database
+  useEffect(() => {
+    fetchDoctors();
+    fetchRooms();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const { data, error } = await db.doctors.getAll();
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        return;
+      }
+      setDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const { data, error } = await db.rooms.getAvailable();
+      if (error) {
+        console.error('Error fetching rooms:', error);
+        toast.error('Failed to load rooms');
+        return;
+      }
+      setRooms(data || []);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      toast.error('Failed to load rooms');
+    }
+  };
 
   const handleDoctorSelect = (doctorId: string) => {
-    const doctor = mockDoctors.find(d => d.id === doctorId);
+    const doctor = doctors.find(d => d.id === doctorId);
     setSelectedDoctor(doctor || null);
   };
 
   const handleRoomSelect = (roomId: string) => {
-    const room = mockRooms.find(r => r.id === roomId);
+    const room = rooms.find(r => r.id === roomId);
     setSelectedRoom(room || null);
     if (room) {
-      setDeposit(room.pricePerDay * 3); // Default 3 days deposit
+      setDeposit(room.price_per_day * 3); // Default 3 days deposit
     }
   };
 
-  const createAdmission = () => {
+  const createAdmission = async () => {
     if (!selectedPatient || !selectedDoctor || !selectedRoom) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (bedNumber > selectedRoom.bedCount || bedNumber < 1) {
-      toast.error(`Bed number must be between 1 and ${selectedRoom.bedCount}`);
+    if (bedNumber > selectedRoom.bed_count || bedNumber < 1) {
+      toast.error(`Bed number must be between 1 and ${selectedRoom.bed_count}`);
       return;
     }
 
-    const admission: Admission = {
-      id: generateId(),
-      patientId: selectedPatient.id,
-      doctorId: selectedDoctor.id,
-      roomId: selectedRoom.id,
-      bedNumber: bedNumber,
-      admissionDate: new Date().toISOString().split('T')[0],
-      admissionType: admissionType,
-      deposit: deposit,
-      status: 'active',
-      notes: notes
-    };
+    setLoading(true);
+    try {
+      const admissionData = {
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor.id,
+        room_id: selectedRoom.id,
+        bed_number: bedNumber,
+        admission_date: new Date().toISOString().split('T')[0],
+        admission_type: admissionType,
+        deposit: deposit,
+        status: 'active',
+        notes: notes
+      };
 
-    // Update room occupancy
-    selectedRoom.occupiedBeds += 1;
-    
-    setGeneratedAdmission(admission);
-    toast.success('Patient admission created successfully!');
+      const { data, error } = await db.admissions.create(admissionData);
+      
+      if (error) {
+        console.error('Error creating admission:', error);
+        toast.error('Failed to create admission');
+        setLoading(false);
+        return;
+      }
+
+      // Update room occupancy
+      await db.rooms.update(selectedRoom.id, {
+        occupied_beds: selectedRoom.occupied_beds + 1
+      });
+
+      setGeneratedAdmission(data);
+      toast.success('Patient admission created successfully!');
+      
+      // Refresh rooms list
+      fetchRooms();
+    } catch (error) {
+      console.error('Error creating admission:', error);
+      toast.error('Failed to create admission');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const printAdmissionForm = () => {
@@ -84,11 +172,11 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           <div>
             <strong>Admission ID:</strong> ${generatedAdmission.id}<br>
             <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Type:</strong> ${generatedAdmission.admissionType}
+            <strong>Type:</strong> ${generatedAdmission.admission_type}
           </div>
           <div style="text-align: right;">
-            <strong>Room:</strong> ${selectedRoom.roomNumber}<br>
-            <strong>Bed:</strong> ${generatedAdmission.bedNumber}<br>
+            <strong>Room:</strong> ${selectedRoom.room_number}<br>
+            <strong>Bed:</strong> ${generatedAdmission.bed_number}<br>
             <strong>Type:</strong> ${selectedRoom.type}
           </div>
         </div>
@@ -111,9 +199,9 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
         
         <div style="margin-bottom: 20px;">
           <strong>Admission Details:</strong><br>
-          Room Number: ${selectedRoom.roomNumber} (${selectedRoom.type})<br>
-          Bed Number: ${generatedAdmission.bedNumber}<br>
-          Room Rate: ${formatCurrency(selectedRoom.pricePerDay)}/day<br>
+          Room Number: ${selectedRoom.room_number} (${selectedRoom.type})<br>
+          Bed Number: ${generatedAdmission.bed_number}<br>
+          Room Rate: ${formatCurrency(selectedRoom.price_per_day)}/day<br>
           Deposit Paid: ${formatCurrency(generatedAdmission.deposit)}
         </div>
         
@@ -222,7 +310,7 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 <SelectValue placeholder="Select attending doctor..." />
               </SelectTrigger>
               <SelectContent>
-                {mockDoctors.map((doctor) => (
+                {doctors.map((doctor) => (
                   <SelectItem key={doctor.id} value={doctor.id}>
                     Dr. {doctor.name} - {doctor.department}
                   </SelectItem>
@@ -238,9 +326,9 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 <SelectValue placeholder="Select room..." />
               </SelectTrigger>
               <SelectContent>
-                {availableRooms.map((room) => (
+                {rooms.map((room) => (
                   <SelectItem key={room.id} value={room.id}>
-                    {room.roomNumber} - {room.type} ({room.bedCount - room.occupiedBeds} beds available) - {formatCurrency(room.pricePerDay)}/day
+                    {room.room_number} - {room.type} ({room.bed_count - room.occupied_beds} beds available) - {formatCurrency(room.price_per_day)}/day
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -255,12 +343,12 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                   id="bedNumber"
                   type="number"
                   min="1"
-                  max={selectedRoom.bedCount}
+                  max={selectedRoom.bed_count}
                   value={bedNumber}
                   onChange={(e) => setBedNumber(parseInt(e.target.value))}
                 />
                 <p className="text-sm text-gray-600 mt-1">
-                  Available beds: 1 to {selectedRoom.bedCount}
+                  Available beds: 1 to {selectedRoom.bed_count}
                 </p>
               </div>
               <div>
@@ -272,7 +360,7 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                   onChange={(e) => setDeposit(parseInt(e.target.value))}
                 />
                 <p className="text-sm text-gray-600 mt-1">
-                  Suggested: {formatCurrency(selectedRoom.pricePerDay * 3)} (3 days)
+                  Suggested: {formatCurrency(selectedRoom.price_per_day * 3)} (3 days)
                 </p>
               </div>
             </div>
@@ -301,15 +389,15 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p><strong>Room:</strong> {selectedRoom.roomNumber}</p>
+                <p><strong>Room:</strong> {selectedRoom.room_number}</p>
                 <p><strong>Type:</strong> {selectedRoom.type}</p>
-                <p><strong>Total Beds:</strong> {selectedRoom.bedCount}</p>
+                <p><strong>Total Beds:</strong> {selectedRoom.bed_count}</p>
               </div>
               <div>
-                <p><strong>Rate:</strong> {formatCurrency(selectedRoom.pricePerDay)}/day</p>
-                <p><strong>Available:</strong> {selectedRoom.bedCount - selectedRoom.occupiedBeds} beds</p>
-                <Badge variant={selectedRoom.bedCount - selectedRoom.occupiedBeds > 0 ? 'default' : 'destructive'}>
-                  {selectedRoom.bedCount - selectedRoom.occupiedBeds > 0 ? 'Available' : 'Full'}
+                <p><strong>Rate:</strong> {formatCurrency(selectedRoom.price_per_day)}/day</p>
+                <p><strong>Available:</strong> {selectedRoom.bed_count - selectedRoom.occupied_beds} beds</p>
+                <Badge variant={selectedRoom.bed_count - selectedRoom.occupied_beds > 0 ? 'default' : 'destructive'}>
+                  {selectedRoom.bed_count - selectedRoom.occupied_beds > 0 ? 'Available' : 'Full'}
                 </Badge>
               </div>
             </div>
@@ -325,10 +413,10 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           <Button 
             onClick={createAdmission} 
             className="w-full"
-            disabled={!selectedDoctor || !selectedRoom}
+            disabled={!selectedDoctor || !selectedRoom || loading}
           >
             <Bed className="h-4 w-4 mr-2" />
-            Create Admission
+            {loading ? 'Creating Admission...' : 'Create Admission'}
           </Button>
         </CardContent>
       </Card>
@@ -353,12 +441,12 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">Room: {selectedRoom?.roomNumber}</p>
-                  <p className="text-sm text-gray-600">Bed: {generatedAdmission.bedNumber}</p>
+                  <p className="font-medium">Room: {selectedRoom?.room_number}</p>
+                  <p className="text-sm text-gray-600">Bed: {generatedAdmission.bed_number}</p>
                 </div>
                 <div>
                   <p className="font-medium">Deposit: {formatCurrency(generatedAdmission.deposit)}</p>
-                  <p className="text-sm text-gray-600">Type: {generatedAdmission.admissionType}</p>
+                  <p className="text-sm text-gray-600">Type: {generatedAdmission.admission_type}</p>
                 </div>
               </div>
 
