@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Users, Search, Plus, UserPlus } from 'lucide-react';
+import { Users, Search, Plus, UserPlus, Edit, Trash2, X } from 'lucide-react';
 import { Patient, validateCNIC, formatCNIC, calculateAge } from '@/lib/hospitalData';
-import { db, toSnakeCase, toCamelCase } from '@/lib/supabase';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface PatientRegistrationProps {
@@ -20,6 +20,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [newPatient, setNewPatient] = useState<Partial<Patient>>({
     name: '',
@@ -50,7 +51,6 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-  // Load patients on component mount
   useEffect(() => {
     loadPatients();
   }, []);
@@ -66,7 +66,6 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         return;
       }
 
-      // Convert snake_case from database to camelCase for TypeScript
       const patientsData = data?.map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -94,7 +93,51 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     }
   };
 
-  const handleRegisterPatient = async (e: React.FormEvent) => {
+  const handleEdit = (patient: Patient, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    setEditingPatient(patient);
+    setNewPatient({
+      name: patient.name,
+      age: patient.age,
+      dateOfBirth: patient.dateOfBirth,
+      cnicNumber: patient.cnicNumber,
+      gender: patient.gender,
+      contact: patient.contact,
+      problem: patient.problem,
+      department: patient.department,
+      emergencyContact: patient.emergencyContact,
+      address: patient.address,
+      bloodGroup: patient.bloodGroup,
+      maritalStatus: patient.maritalStatus
+    });
+    setShowRegisterForm(true);
+  };
+
+  const handleDelete = async (patientId: string, patientName: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    if (!confirm(`Are you sure you want to delete ${patientName}?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await db.patients.delete(patientId);
+      
+      if (error) {
+        console.error('Error deleting patient:', error);
+        toast.error('Failed to delete patient');
+        return;
+      }
+
+      setPatients(patients.filter(p => p.id !== patientId));
+      toast.success(`${patientName} deleted successfully!`);
+    } catch (error) {
+      console.error('Failed to delete patient:', error);
+      toast.error('Failed to delete patient');
+    }
+  };
+
+  const handleRegisterOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newPatient.name || !newPatient.contact || !newPatient.dateOfBirth) {
@@ -102,16 +145,13 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       return;
     }
 
-    // Validate CNIC if provided
     if (newPatient.cnicNumber && !validateCNIC(newPatient.cnicNumber)) {
       toast.error('Invalid CNIC format. Use: 12345-6789012-3');
       return;
     }
 
-    // Calculate age from date of birth
     const age = calculateAge(newPatient.dateOfBirth!);
 
-    // Prepare data for database (convert to snake_case)
     const patientData = {
       name: newPatient.name,
       age: age,
@@ -125,40 +165,77 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       address: newPatient.address,
       blood_group: newPatient.bloodGroup,
       marital_status: newPatient.maritalStatus,
-      registration_date: new Date().toISOString().split('T')[0]
     };
 
     try {
-      const { data, error } = await db.patients.create(patientData);
-      
-      if (error) {
-        console.error('Error creating patient:', error);
-        toast.error('Failed to register patient');
-        return;
+      if (editingPatient) {
+        // UPDATE existing patient
+        const { data, error } = await db.patients.update(editingPatient.id, patientData);
+        
+        if (error) {
+          console.error('Error updating patient:', error);
+          toast.error('Failed to update patient');
+          return;
+        }
+
+        const updatedPatient: Patient = {
+          id: data.id,
+          name: data.name,
+          age: data.age,
+          dateOfBirth: data.date_of_birth,
+          cnicNumber: data.cnic_number,
+          gender: data.gender,
+          contact: data.contact,
+          problem: data.problem,
+          department: data.department,
+          registrationDate: data.registration_date,
+          medicalHistory: data.medical_history,
+          emergencyContact: data.emergency_contact,
+          address: data.address,
+          bloodGroup: data.blood_group,
+          maritalStatus: data.marital_status
+        };
+
+        setPatients(patients.map(p => p.id === editingPatient.id ? updatedPatient : p));
+        toast.success('Patient updated successfully!');
+        setEditingPatient(null);
+      } else {
+        // CREATE new patient
+        const dataWithDate = {
+          ...patientData,
+          registration_date: new Date().toISOString().split('T')[0]
+        };
+
+        const { data, error } = await db.patients.create(dataWithDate);
+        
+        if (error) {
+          console.error('Error creating patient:', error);
+          toast.error('Failed to register patient');
+          return;
+        }
+
+        const createdPatient: Patient = {
+          id: data.id,
+          name: data.name,
+          age: data.age,
+          dateOfBirth: data.date_of_birth,
+          cnicNumber: data.cnic_number,
+          gender: data.gender,
+          contact: data.contact,
+          problem: data.problem,
+          department: data.department,
+          registrationDate: data.registration_date,
+          medicalHistory: data.medical_history,
+          emergencyContact: data.emergency_contact,
+          address: data.address,
+          bloodGroup: data.blood_group,
+          maritalStatus: data.marital_status
+        };
+
+        setPatients([createdPatient, ...patients]);
+        toast.success('Patient registered successfully!');
+        onNewPatient(createdPatient);
       }
-
-      // Convert back to camelCase
-      const createdPatient: Patient = {
-        id: data.id,
-        name: data.name,
-        age: data.age,
-        dateOfBirth: data.date_of_birth,
-        cnicNumber: data.cnic_number,
-        gender: data.gender,
-        contact: data.contact,
-        problem: data.problem,
-        department: data.department,
-        registrationDate: data.registration_date,
-        medicalHistory: data.medical_history,
-        emergencyContact: data.emergency_contact,
-        address: data.address,
-        bloodGroup: data.blood_group,
-        maritalStatus: data.marital_status
-      };
-
-      setPatients([createdPatient, ...patients]);
-      toast.success('Patient registered successfully!');
-      onNewPatient(createdPatient);
       
       // Reset form
       setNewPatient({
@@ -177,8 +254,8 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       });
       setShowRegisterForm(false);
     } catch (error) {
-      console.error('Failed to register patient:', error);
-      toast.error('Failed to register patient');
+      console.error('Failed to save patient:', error);
+      toast.error('Failed to save patient');
     }
   };
 
@@ -234,7 +311,24 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
               <Users className="h-5 w-5" />
               Patient Registration
             </div>
-            <Button onClick={() => setShowRegisterForm(!showRegisterForm)}>
+            <Button onClick={() => {
+              setShowRegisterForm(!showRegisterForm);
+              setEditingPatient(null);
+              setNewPatient({
+                name: '',
+                age: 0,
+                dateOfBirth: '',
+                cnicNumber: '',
+                gender: 'Male',
+                contact: '',
+                problem: '',
+                department: 'General Medicine',
+                emergencyContact: '',
+                address: '',
+                bloodGroup: '',
+                maritalStatus: 'Single'
+              });
+            }}>
               <UserPlus className="h-4 w-4 mr-2" />
               Register New Patient
             </Button>
@@ -242,8 +336,23 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         </CardHeader>
         <CardContent>
           {showRegisterForm && (
-            <form onSubmit={handleRegisterPatient} className="space-y-4 mb-6 p-4 border rounded-lg bg-gray-50">
-              <h3 className="font-semibold">New Patient Registration</h3>
+            <form onSubmit={handleRegisterOrUpdate} className="space-y-4 mb-6 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">
+                  {editingPatient ? 'Edit Patient' : 'New Patient Registration'}
+                </h3>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowRegisterForm(false);
+                    setEditingPatient(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -381,8 +490,13 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">Register Patient</Button>
-                <Button type="button" variant="outline" onClick={() => setShowRegisterForm(false)}>
+                <Button type="submit">
+                  {editingPatient ? 'Update Patient' : 'Register Patient'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => {
+                  setShowRegisterForm(false);
+                  setEditingPatient(null);
+                }}>
                   Cancel
                 </Button>
               </div>
@@ -416,25 +530,59 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                 <div className="text-center py-8 text-gray-600">
                   <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                   <p>No patients found</p>
+                  <p className="text-sm mt-2">Register a new patient to get started</p>
                 </div>
               ) : (
                 patients.map((patient) => (
-                  <Card key={patient.id} className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => onPatientSelect(patient)}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{patient.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {patient.age} years • {patient.gender} • {patient.contact}
-                        </p>
-                        {patient.cnicNumber && (
-                          <p className="text-xs text-gray-500">CNIC: {patient.cnicNumber}</p>
+                  <Card key={patient.id} className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div 
+                        className="flex-1 cursor-pointer" 
+                        onClick={() => onPatientSelect(patient)}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{patient.name}</h3>
+                          <Badge>{patient.department}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                          <p><strong>Age:</strong> {patient.age} years • {patient.gender}</p>
+                          <p><strong>Contact:</strong> {patient.contact}</p>
+                          {patient.cnicNumber && (
+                            <p><strong>CNIC:</strong> {patient.cnicNumber}</p>
+                          )}
+                          {patient.bloodGroup && (
+                            <p><strong>Blood Group:</strong> {patient.bloodGroup}</p>
+                          )}
+                          {patient.emergencyContact && (
+                            <p><strong>Emergency:</strong> {patient.emergencyContact}</p>
+                          )}
+                          <p><strong>Problem:</strong> {patient.problem}</p>
+                        </div>
+                        {patient.address && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            <strong>Address:</strong> {patient.address}
+                          </p>
                         )}
                       </div>
-                      <div className="text-right">
-                        <Badge>{patient.department}</Badge>
-                        {patient.bloodGroup && (
-                          <p className="text-sm text-gray-600 mt-1">{patient.bloodGroup}</p>
-                        )}
+                      <div className="flex gap-2 ml-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => handleEdit(patient, e)}
+                          className="hover:bg-blue-50"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => handleDelete(patient.id, patient.name, e)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   </Card>
