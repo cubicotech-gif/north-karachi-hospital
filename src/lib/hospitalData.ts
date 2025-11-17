@@ -424,7 +424,7 @@ export const generateId = (): string => {
 };
 
 export const formatCurrency = (amount: number): string => {
-  return `Rs${amount.toLocaleString('en-PK')}`;
+  return `Rs ${amount.toLocaleString('en-PK')}`;
 };
 
 export const formatDate = (date: string): string => {
