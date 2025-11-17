@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Stethoscope, Plus, TrendingUp, Users, DollarSign, Edit, Trash2, Calendar, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
-import { Doctor, mockDoctors, mockDepartments, generateId, formatCurrency, validateCNIC, formatCNIC, calculateAge } from '@/lib/hospitalData';
+import { Separator } from '@/components/ui/separator';
+import { Stethoscope, Plus, TrendingUp, Users, DollarSign, Edit, Trash2, X } from 'lucide-react';
+import { Doctor, formatCurrency, validateCNIC, formatCNIC, calculateAge } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function EnhancedDoctorManagement() {
-  const [doctors, setDoctors] = useState<Doctor[]>(mockDoctors);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
-  const [filterDepartment, setFilterDepartment] = useState<string>('All');
   const [newDoctor, setNewDoctor] = useState<Partial<Doctor>>({
     name: '',
     cnicNumber: '',
@@ -25,167 +25,288 @@ export default function EnhancedDoctorManagement() {
     contact: '',
     email: '',
     address: '',
-    department: '',
+    department: 'General Medicine',
     opdFee: 0,
     commissionType: 'percentage',
     commissionRate: 0,
     specialization: '',
     qualification: '',
     experience: 0,
-    joiningDate: '',
-    available: true,
     consultationHours: '',
-    roomNumber: ''
+    roomNumber: '',
+    available: true
   });
 
-  const handleAddDoctor = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newDoctor.name || !newDoctor.cnicNumber || !newDoctor.contact || !newDoctor.department || !newDoctor.opdFee) {
-      toast.error('Please fill in all required fields');
-      return;
+  const departments = [
+    'General Medicine',
+    'Pediatrics',
+    'Orthopedics',
+    'Gynecology',
+    'Cardiology',
+    'Dermatology',
+    'ENT',
+    'Ophthalmology',
+    'Neurology',
+    'Psychiatry'
+  ];
+
+  useEffect(() => {
+    loadDoctors();
+  }, []);
+
+  const loadDoctors = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await db.doctors.getAll();
+      
+      if (error) {
+        console.error('Error loading doctors:', error);
+        toast.error('Failed to load doctors');
+        return;
+      }
+
+      // Convert snake_case to camelCase
+      const doctorsData = data?.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        cnicNumber: d.cnic_number,
+        dateOfBirth: d.date_of_birth,
+        gender: d.gender,
+        contact: d.contact,
+        email: d.email,
+        address: d.address,
+        department: d.department,
+        opdFee: d.opd_fee,
+        commissionType: d.commission_type,
+        commissionRate: d.commission_rate,
+        specialization: d.specialization,
+        qualification: d.qualification,
+        experience: d.experience,
+        joiningDate: d.joining_date,
+        available: d.available,
+        consultationHours: d.consultation_hours,
+        roomNumber: d.room_number
+      })) || [];
+
+      setDoctors(doctorsData);
+    } catch (error) {
+      console.error('Failed to load doctors:', error);
+      toast.error('Failed to load doctors');
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!validateCNIC(newDoctor.cnicNumber)) {
-      toast.error('Please enter a valid CNIC number');
-      return;
-    }
-
-    // Check if CNIC already exists
-    if (doctors.some(doctor => doctor.cnicNumber === newDoctor.cnicNumber)) {
-      toast.error('A doctor with this CNIC already exists');
-      return;
-    }
-
-    const doctor: Doctor = {
-      id: generateId(),
-      name: newDoctor.name,
-      cnicNumber: newDoctor.cnicNumber,
-      dateOfBirth: newDoctor.dateOfBirth || '',
-      gender: newDoctor.gender as 'Male' | 'Female' | 'Other',
-      contact: newDoctor.contact,
-      email: newDoctor.email || '',
-      address: newDoctor.address || '',
-      department: newDoctor.department,
-      opdFee: newDoctor.opdFee,
-      commissionType: newDoctor.commissionType as 'percentage' | 'fixed',
-      commissionRate: newDoctor.commissionRate || 0,
-      specialization: newDoctor.specialization || '',
-      qualification: newDoctor.qualification || '',
-      experience: newDoctor.experience || 0,
-      joiningDate: newDoctor.joiningDate || new Date().toISOString().split('T')[0],
-      available: true,
-      consultationHours: newDoctor.consultationHours || '',
-      roomNumber: newDoctor.roomNumber || ''
-    };
-
-    setDoctors([...doctors, doctor]);
-    toast.success('Doctor added successfully!');
-    resetForm();
   };
 
-  const handleEditDoctor = (doctor: Doctor) => {
+  const handleEdit = (doctor: Doctor) => {
     setEditingDoctor(doctor);
-    setNewDoctor(doctor);
+    setNewDoctor({
+      name: doctor.name,
+      cnicNumber: doctor.cnicNumber,
+      dateOfBirth: doctor.dateOfBirth,
+      gender: doctor.gender,
+      contact: doctor.contact,
+      email: doctor.email,
+      address: doctor.address,
+      department: doctor.department,
+      opdFee: doctor.opdFee,
+      commissionType: doctor.commissionType,
+      commissionRate: doctor.commissionRate,
+      specialization: doctor.specialization,
+      qualification: doctor.qualification,
+      experience: doctor.experience,
+      consultationHours: doctor.consultationHours,
+      roomNumber: doctor.roomNumber,
+      available: doctor.available
+    });
     setShowAddForm(true);
   };
 
-  const handleUpdateDoctor = (e: React.FormEvent) => {
+  const handleDelete = async (doctorId: string, doctorName: string) => {
+    if (!confirm(`Are you sure you want to delete ${doctorName}?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await db.doctors.delete(doctorId);
+      
+      if (error) {
+        console.error('Error deleting doctor:', error);
+        toast.error('Failed to delete doctor');
+        return;
+      }
+
+      setDoctors(doctors.filter(d => d.id !== doctorId));
+      toast.success(`Dr. ${doctorName} deleted successfully!`);
+    } catch (error) {
+      console.error('Failed to delete doctor:', error);
+      toast.error('Failed to delete doctor');
+    }
+  };
+
+  const handleAddOrUpdateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!editingDoctor || !newDoctor.name || !newDoctor.cnicNumber || !newDoctor.contact || !newDoctor.department || !newDoctor.opdFee) {
+    if (!newDoctor.name || !newDoctor.department || !newDoctor.opdFee || !newDoctor.contact) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (!validateCNIC(newDoctor.cnicNumber)) {
-      toast.error('Please enter a valid CNIC number');
+    if (newDoctor.cnicNumber && !validateCNIC(newDoctor.cnicNumber)) {
+      toast.error('Invalid CNIC format. Use: 12345-6789012-3');
       return;
     }
 
-    const updatedDoctors = doctors.map(doctor => 
-      doctor.id === editingDoctor.id 
-        ? { ...doctor, ...newDoctor }
-        : doctor
-    );
+    // Convert to snake_case for database
+    const doctorData = {
+      name: newDoctor.name,
+      cnic_number: newDoctor.cnicNumber ? formatCNIC(newDoctor.cnicNumber) : null,
+      date_of_birth: newDoctor.dateOfBirth,
+      gender: newDoctor.gender,
+      contact: newDoctor.contact,
+      email: newDoctor.email,
+      address: newDoctor.address,
+      department: newDoctor.department,
+      opd_fee: newDoctor.opdFee,
+      commission_type: newDoctor.commissionType,
+      commission_rate: newDoctor.commissionRate || 0,
+      specialization: newDoctor.specialization || '',
+      qualification: newDoctor.qualification || '',
+      experience: newDoctor.experience || 0,
+      consultation_hours: newDoctor.consultationHours || '',
+      room_number: newDoctor.roomNumber || '',
+      available: newDoctor.available !== undefined ? newDoctor.available : true
+    };
 
-    setDoctors(updatedDoctors);
-    toast.success('Doctor updated successfully!');
-    resetForm();
-  };
+    try {
+      if (editingDoctor) {
+        // UPDATE existing doctor
+        const { data, error } = await db.doctors.update(editingDoctor.id, doctorData);
+        
+        if (error) {
+          console.error('Error updating doctor:', error);
+          toast.error('Failed to update doctor');
+          return;
+        }
 
-  const resetForm = () => {
-    setNewDoctor({
-      name: '',
-      cnicNumber: '',
-      dateOfBirth: '',
-      gender: 'Male',
-      contact: '',
-      email: '',
-      address: '',
-      department: '',
-      opdFee: 0,
-      commissionType: 'percentage',
-      commissionRate: 0,
-      specialization: '',
-      qualification: '',
-      experience: 0,
-      joiningDate: '',
-      available: true,
-      consultationHours: '',
-      roomNumber: ''
-    });
-    setShowAddForm(false);
-    setEditingDoctor(null);
-  };
+        // Convert back to camelCase
+        const updatedDoctor: Doctor = {
+          id: data.id,
+          name: data.name,
+          cnicNumber: data.cnic_number,
+          dateOfBirth: data.date_of_birth,
+          gender: data.gender,
+          contact: data.contact,
+          email: data.email,
+          address: data.address,
+          department: data.department,
+          opdFee: data.opd_fee,
+          commissionType: data.commission_type,
+          commissionRate: data.commission_rate,
+          specialization: data.specialization,
+          qualification: data.qualification,
+          experience: data.experience,
+          joiningDate: data.joining_date,
+          available: data.available,
+          consultationHours: data.consultation_hours,
+          roomNumber: data.room_number
+        };
 
-  const toggleDoctorAvailability = (doctorId: string) => {
-    const updatedDoctors = doctors.map(doctor => 
-      doctor.id === doctorId 
-        ? { ...doctor, available: !doctor.available }
-        : doctor
-    );
-    
-    setDoctors(updatedDoctors);
-    const doctor = doctors.find(d => d.id === doctorId);
-    if (doctor) {
-      toast.success(`Dr. ${doctor.name} marked as ${!doctor.available ? 'available' : 'unavailable'}`);
+        setDoctors(doctors.map(d => d.id === editingDoctor.id ? updatedDoctor : d));
+        toast.success('Doctor updated successfully!');
+        setEditingDoctor(null);
+      } else {
+        // CREATE new doctor
+        const dataWithDate = {
+          ...doctorData,
+          joining_date: new Date().toISOString().split('T')[0]
+        };
+
+        const { data, error } = await db.doctors.create(dataWithDate);
+        
+        if (error) {
+          console.error('Error creating doctor:', error);
+          toast.error('Failed to add doctor');
+          return;
+        }
+
+        const createdDoctor: Doctor = {
+          id: data.id,
+          name: data.name,
+          cnicNumber: data.cnic_number,
+          dateOfBirth: data.date_of_birth,
+          gender: data.gender,
+          contact: data.contact,
+          email: data.email,
+          address: data.address,
+          department: data.department,
+          opdFee: data.opd_fee,
+          commissionType: data.commission_type,
+          commissionRate: data.commission_rate,
+          specialization: data.specialization,
+          qualification: data.qualification,
+          experience: data.experience,
+          joiningDate: data.joining_date,
+          available: data.available,
+          consultationHours: data.consultation_hours,
+          roomNumber: data.room_number
+        };
+
+        setDoctors([createdDoctor, ...doctors]);
+        toast.success('Doctor added successfully!');
+      }
+      
+      // Reset form
+      setNewDoctor({
+        name: '',
+        cnicNumber: '',
+        dateOfBirth: '',
+        gender: 'Male',
+        contact: '',
+        email: '',
+        address: '',
+        department: 'General Medicine',
+        opdFee: 0,
+        commissionType: 'percentage',
+        commissionRate: 0,
+        specialization: '',
+        qualification: '',
+        experience: 0,
+        consultationHours: '',
+        roomNumber: '',
+        available: true
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Failed to save doctor:', error);
+      toast.error('Failed to save doctor');
     }
   };
 
-  const deleteDoctor = (doctorId: string) => {
-    const updatedDoctors = doctors.filter(doctor => doctor.id !== doctorId);
-    setDoctors(updatedDoctors);
-    toast.success('Doctor deleted successfully!');
+  const toggleDoctorAvailability = async (doctorId: string) => {
+    const doctor = doctors.find(d => d.id === doctorId);
+    if (!doctor) return;
+
+    try {
+      const { error } = await db.doctors.update(doctorId, {
+        available: !doctor.available
+      });
+
+      if (error) {
+        console.error('Error updating availability:', error);
+        toast.error('Failed to update availability');
+        return;
+      }
+
+      setDoctors(doctors.map(d => 
+        d.id === doctorId ? { ...d, available: !d.available } : d
+      ));
+      
+      toast.success(`Dr. ${doctor.name} marked as ${!doctor.available ? 'available' : 'unavailable'}`);
+    } catch (error) {
+      console.error('Failed to update availability:', error);
+      toast.error('Failed to update availability');
+    }
   };
-
-  const handleCNICChange = (cnic: string) => {
-    const formatted = formatCNIC(cnic);
-    setNewDoctor({ ...newDoctor, cnicNumber: formatted });
-  };
-
-  // Mock data for commission calculations
-  const calculateDailyStats = (doctor: Doctor) => {
-    const dailyPatients = Math.floor(Math.random() * 15) + 5;
-    const totalCollection = dailyPatients * doctor.opdFee;
-    const commission = doctor.commissionType === 'percentage' 
-      ? (totalCollection * doctor.commissionRate) / 100
-      : dailyPatients * doctor.commissionRate;
-    const hospitalShare = totalCollection - commission;
-
-    return {
-      patients: dailyPatients,
-      totalCollection,
-      commission,
-      hospitalShare
-    };
-  };
-
-  const filteredDoctors = filterDepartment === 'All' 
-    ? doctors 
-    : doctors.filter(doctor => doctor.department === filterDepartment);
-
-  const activeDepartments = mockDepartments.filter(dept => dept.active);
 
   return (
     <div className="space-y-6">
@@ -194,9 +315,31 @@ export default function EnhancedDoctorManagement() {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Stethoscope className="h-5 w-5" />
-              Enhanced Doctor Management
+              Doctor Management
             </div>
-            <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <Button onClick={() => {
+              setShowAddForm(!showAddForm);
+              setEditingDoctor(null);
+              setNewDoctor({
+                name: '',
+                cnicNumber: '',
+                dateOfBirth: '',
+                gender: 'Male',
+                contact: '',
+                email: '',
+                address: '',
+                department: 'General Medicine',
+                opdFee: 0,
+                commissionType: 'percentage',
+                commissionRate: 0,
+                specialization: '',
+                qualification: '',
+                experience: 0,
+                consultationHours: '',
+                roomNumber: '',
+                available: true
+              });
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Doctor
             </Button>
@@ -204,221 +347,209 @@ export default function EnhancedDoctorManagement() {
         </CardHeader>
         <CardContent>
           {showAddForm && (
-            <form onSubmit={editingDoctor ? handleUpdateDoctor : handleAddDoctor} className="space-y-6 mb-6 p-6 border rounded-lg bg-gray-50">
-              <h3 className="text-lg font-semibold">
-                {editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}
-              </h3>
-              
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Personal Information</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="doctorName">Full Name *</Label>
-                    <Input
-                      id="doctorName"
-                      value={newDoctor.name}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                      placeholder="Dr. John Doe"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cnic">CNIC Number *</Label>
-                    <Input
-                      id="cnic"
-                      value={newDoctor.cnicNumber}
-                      onChange={(e) => handleCNICChange(e.target.value)}
-                      placeholder="12345-6789012-3"
-                      maxLength={15}
-                      required
-                    />
-                  </div>
-                </div>
+            <form onSubmit={handleAddOrUpdateDoctor} className="space-y-4 mb-6 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">
+                  {editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}
+                </h3>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingDoctor(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={newDoctor.dateOfBirth}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, dateOfBirth: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={newDoctor.gender} onValueChange={(value) => setNewDoctor({ ...newDoctor, gender: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="joiningDate">Joining Date</Label>
-                    <Input
-                      id="joiningDate"
-                      type="date"
-                      value={newDoctor.joiningDate}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, joiningDate: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="contact">Contact Number *</Label>
-                    <Input
-                      id="contact"
-                      value={newDoctor.contact}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, contact: e.target.value })}
-                      placeholder="0300-1234567"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newDoctor.email}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
-                      placeholder="doctor@hospital.com"
-                    />
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={newDoctor.address}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, address: e.target.value })}
-                    placeholder="Complete address..."
-                    rows={2}
+                  <Label htmlFor="doctorName">Doctor Name *</Label>
+                  <Input
+                    id="doctorName"
+                    value={newDoctor.name}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
+                    placeholder="Dr. John Doe"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact">Contact Number *</Label>
+                  <Input
+                    id="contact"
+                    value={newDoctor.contact}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, contact: e.target.value })}
+                    placeholder="0300-1234567"
+                    required
                   />
                 </div>
               </div>
 
-              {/* Professional Information */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Professional Information</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="department">Department *</Label>
-                    <Select value={newDoctor.department} onValueChange={(value) => setNewDoctor({ ...newDoctor, department: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeDepartments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="specialization">Specialization</Label>
-                    <Input
-                      id="specialization"
-                      value={newDoctor.specialization}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
-                      placeholder="e.g., Internal Medicine"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newDoctor.email}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
+                    placeholder="doctor@hospital.com"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="qualification">Qualification</Label>
-                    <Input
-                      id="qualification"
-                      value={newDoctor.qualification}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, qualification: e.target.value })}
-                      placeholder="e.g., MBBS, MD"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="experience">Experience (Years)</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      value={newDoctor.experience}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, experience: parseInt(e.target.value) })}
-                      placeholder="5"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="consultationHours">Consultation Hours</Label>
-                    <Input
-                      id="consultationHours"
-                      value={newDoctor.consultationHours}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, consultationHours: e.target.value })}
-                      placeholder="9:00 AM - 1:00 PM"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="roomNumber">Room Number</Label>
-                    <Input
-                      id="roomNumber"
-                      value={newDoctor.roomNumber}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, roomNumber: e.target.value })}
-                      placeholder="R-101"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="cnicNumber">CNIC Number</Label>
+                  <Input
+                    id="cnicNumber"
+                    value={newDoctor.cnicNumber}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, cnicNumber: e.target.value })}
+                    placeholder="12345-6789012-3"
+                  />
                 </div>
               </div>
 
-              {/* Financial Information */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-700 border-b pb-2">Financial Information</h4>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="opdFee">OPD Fee (₹) *</Label>
-                    <Input
-                      id="opdFee"
-                      type="number"
-                      value={newDoctor.opdFee}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, opdFee: parseInt(e.target.value) })}
-                      placeholder="500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="commissionType">Commission Type</Label>
-                    <Select value={newDoctor.commissionType} onValueChange={(value) => setNewDoctor({ ...newDoctor, commissionType: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="commissionRate">
-                      Commission {newDoctor.commissionType === 'percentage' ? 'Percentage' : 'Amount'}
-                    </Label>
-                    <Input
-                      id="commissionRate"
-                      type="number"
-                      value={newDoctor.commissionRate}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, commissionRate: parseInt(e.target.value) })}
-                      placeholder={newDoctor.commissionType === 'percentage' ? '30' : '200'}
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={newDoctor.dateOfBirth}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, dateOfBirth: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={newDoctor.gender} onValueChange={(value) => setNewDoctor({ ...newDoctor, gender: value as any })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="department">Department *</Label>
+                  <Select value={newDoctor.department} onValueChange={(value) => setNewDoctor({ ...newDoctor, department: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="specialization">Specialization</Label>
+                  <Input
+                    id="specialization"
+                    value={newDoctor.specialization}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
+                    placeholder="e.g., Internal Medicine"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="qualification">Qualification</Label>
+                  <Input
+                    id="qualification"
+                    value={newDoctor.qualification}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, qualification: e.target.value })}
+                    placeholder="e.g., MBBS, MD"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="experience">Experience (years)</Label>
+                  <Input
+                    id="experience"
+                    type="number"
+                    value={newDoctor.experience}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, experience: parseInt(e.target.value) || 0 })}
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="opdFee">OPD Fee *</Label>
+                  <Input
+                    id="opdFee"
+                    type="number"
+                    value={newDoctor.opdFee}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, opdFee: parseInt(e.target.value) || 0 })}
+                    placeholder="500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="roomNumber">Room Number</Label>
+                  <Input
+                    id="roomNumber"
+                    value={newDoctor.roomNumber}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, roomNumber: e.target.value })}
+                    placeholder="R-101"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="commissionType">Commission Type</Label>
+                  <Select value={newDoctor.commissionType} onValueChange={(value) => setNewDoctor({ ...newDoctor, commissionType: value as any })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="commissionRate">
+                    Commission {newDoctor.commissionType === 'percentage' ? 'Percentage (%)' : 'Amount (Rs)'}
+                  </Label>
+                  <Input
+                    id="commissionRate"
+                    type="number"
+                    value={newDoctor.commissionRate}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, commissionRate: parseInt(e.target.value) || 0 })}
+                    placeholder={newDoctor.commissionType === 'percentage' ? '30' : '200'}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="consultationHours">Consultation Hours</Label>
+                  <Input
+                    id="consultationHours"
+                    value={newDoctor.consultationHours}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, consultationHours: e.target.value })}
+                    placeholder="9:00 AM - 1:00 PM"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={newDoctor.address}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, address: e.target.value })}
+                    placeholder="House 123, Street 45..."
+                  />
                 </div>
               </div>
 
@@ -426,131 +557,103 @@ export default function EnhancedDoctorManagement() {
                 <Button type="submit">
                   {editingDoctor ? 'Update Doctor' : 'Add Doctor'}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setShowAddForm(false);
+                  setEditingDoctor(null);
+                }}>
                   Cancel
                 </Button>
               </div>
             </form>
           )}
 
-          {/* Filter */}
-          <div className="mb-4">
-            <Label htmlFor="departmentFilter">Filter by Department</Label>
-            <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Departments</SelectItem>
-                {activeDepartments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Doctors List */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredDoctors.map((doctor) => {
-              const stats = calculateDailyStats(doctor);
-              return (
-                <Card key={doctor.id} className="p-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">{doctor.name}</h3>
-                        <Badge variant={doctor.available ? 'default' : 'secondary'}>
-                          {doctor.available ? 'Available' : 'Unavailable'}
-                        </Badge>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading doctors...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {doctors.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-gray-600">
+                  <Stethoscope className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                  <p>No doctors found</p>
+                  <p className="text-sm mt-2">Add a doctor to get started</p>
+                </div>
+              ) : (
+                doctors.map((doctor) => (
+                  <Card key={doctor.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{doctor.name}</h3>
+                        <p className="text-sm text-gray-600">{doctor.department}</p>
+                        <p className="text-xs text-gray-500">{doctor.specialization}</p>
                       </div>
-                      <p className="text-sm text-gray-600">{doctor.department}</p>
-                      <p className="text-xs text-gray-500">{doctor.specialization}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex items-center gap-1 mb-1">
-                          <CreditCard className="h-3 w-3 text-gray-500" />
-                          <span className="text-xs text-gray-600">CNIC: {doctor.cnicNumber}</span>
-                        </div>
-                        <div className="flex items-center gap-1 mb-1">
-                          <Phone className="h-3 w-3 text-gray-500" />
-                          <span className="text-xs text-gray-600">{doctor.contact}</span>
-                        </div>
-                        {doctor.email && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <Mail className="h-3 w-3 text-gray-500" />
-                            <span className="text-xs text-gray-600">{doctor.email}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        {doctor.roomNumber && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <MapPin className="h-3 w-3 text-gray-500" />
-                            <span className="text-xs text-gray-600">Room: {doctor.roomNumber}</span>
-                          </div>
-                        )}
-                        {doctor.consultationHours && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <Calendar className="h-3 w-3 text-gray-500" />
-                            <span className="text-xs text-gray-600">{doctor.consultationHours}</span>
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-600">
-                          Experience: {doctor.experience} years
-                        </div>
-                      </div>
+                      <Badge variant={doctor.available ? 'default' : 'secondary'}>
+                        {doctor.available ? 'Available' : 'Unavailable'}
+                      </Badge>
                     </div>
 
-                    <Separator />
+                    <Separator className="my-3" />
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>OPD Fee:</span>
+                        <span className="font-medium">{formatCurrency(doctor.opdFee)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Commission:</span>
+                        <span className="font-medium">
+                          {doctor.commissionType === 'percentage' 
+                            ? `${doctor.commissionRate}%` 
+                            : formatCurrency(doctor.commissionRate)}
+                        </span>
+                      </div>
+                      {doctor.qualification && (
                         <div className="flex justify-between">
-                          <span>OPD Fee:</span>
-                          <span className="font-medium">{formatCurrency(doctor.opdFee)}</span>
+                          <span>Qualification:</span>
+                          <span className="font-medium text-xs">{doctor.qualification}</span>
                         </div>
+                      )}
+                      {doctor.experience > 0 && (
                         <div className="flex justify-between">
-                          <span>Commission:</span>
-                          <span className="font-medium">
-                            {doctor.commissionType === 'percentage' 
-                              ? `${doctor.commissionRate}%` 
-                              : formatCurrency(doctor.commissionRate)}
-                          </span>
+                          <span>Experience:</span>
+                          <span className="font-medium">{doctor.experience} years</span>
                         </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-600 mb-2">Today's Stats:</div>
-                        <div className="flex justify-between text-xs">
-                          <span>Patients:</span>
-                          <span className="font-medium">{stats.patients}</span>
+                      )}
+                      {doctor.roomNumber && (
+                        <div className="flex justify-between">
+                          <span>Room:</span>
+                          <span className="font-medium">{doctor.roomNumber}</span>
                         </div>
-                        <div className="flex justify-between text-xs">
-                          <span>Collection:</span>
-                          <span className="font-medium text-green-600">{formatCurrency(stats.totalCollection)}</span>
+                      )}
+                      {doctor.consultationHours && (
+                        <div className="text-xs text-gray-500 mt-2">
+                          Hours: {doctor.consultationHours}
                         </div>
-                      </div>
+                      )}
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={doctor.available}
-                        onCheckedChange={() => toggleDoctorAvailability(doctor.id)}
-                        size="sm"
-                      />
-                      <span className="text-xs">{doctor.available ? 'Available' : 'Unavailable'}</span>
+                    <Separator className="my-3" />
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`available-${doctor.id}`} className="text-xs">
+                          {doctor.available ? 'Active' : 'Inactive'}
+                        </Label>
+                        <Switch
+                          id={`available-${doctor.id}`}
+                          checked={doctor.available}
+                          onCheckedChange={() => toggleDoctorAvailability(doctor.id)}
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-2 mt-3">
                       <Button 
                         variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditDoctor(doctor)}
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEdit(doctor)}
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Edit
@@ -558,18 +661,18 @@ export default function EnhancedDoctorManagement() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteDoctor(doctor.id)}
+                        onClick={() => handleDelete(doctor.id, doctor.name)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-3 w-3 mr-1" />
                         Delete
                       </Button>
                     </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -577,47 +680,33 @@ export default function EnhancedDoctorManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Daily Revenue Summary
+            Doctor Statistics
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(() => {
-              const totalStats = filteredDoctors.reduce((acc, doctor) => {
-                const stats = calculateDailyStats(doctor);
-                return {
-                  totalPatients: acc.totalPatients + stats.patients,
-                  totalCollection: acc.totalCollection + stats.totalCollection,
-                  totalCommission: acc.totalCommission + stats.commission,
-                  hospitalRevenue: acc.hospitalRevenue + stats.hospitalShare
-                };
-              }, { totalPatients: 0, totalCollection: 0, totalCommission: 0, hospitalRevenue: 0 });
-
-              return (
-                <>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                    <p className="text-2xl font-bold text-blue-600">{totalStats.totalPatients}</p>
-                    <p className="text-sm text-gray-600">Total Patients</p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.totalCollection)}</p>
-                    <p className="text-sm text-gray-600">Total Collection</p>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <TrendingUp className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-                    <p className="text-2xl font-bold text-yellow-600">{formatCurrency(totalStats.totalCommission)}</p>
-                    <p className="text-sm text-gray-600">Doctor Commission</p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <DollarSign className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                    <p className="text-2xl font-bold text-purple-600">{formatCurrency(totalStats.hospitalRevenue)}</p>
-                    <p className="text-sm text-gray-600">Hospital Revenue</p>
-                  </div>
-                </>
-              );
-            })()}
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-2xl font-bold text-blue-600">{doctors.length}</p>
+              <p className="text-sm text-gray-600">Total Doctors</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-2xl font-bold text-green-600">
+                {doctors.filter(d => d.available).length}
+              </p>
+              <p className="text-sm text-gray-600">Available</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <p className="text-2xl font-bold text-yellow-600">
+                {new Set(doctors.map(d => d.department)).size}
+              </p>
+              <p className="text-sm text-gray-600">Departments</p>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <p className="text-2xl font-bold text-purple-600">
+                {doctors.reduce((sum, d) => sum + d.experience, 0)}
+              </p>
+              <p className="text-sm text-gray-600">Total Experience</p>
+            </div>
           </div>
         </CardContent>
       </Card>
