@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -121,11 +121,11 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
 };
 
 const App = () => {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, login, logout, hasPermission } = useAuth();
   const [currentModule, setCurrentModule] = useState<ModuleType>('dashboard');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  const modules = [
+  const allModules = [
     { id: 'dashboard' as ModuleType, name: 'Dashboard', icon: Hospital },
     { id: 'patients' as ModuleType, name: 'Patient Registration', icon: Users },
     { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
@@ -139,9 +139,20 @@ const App = () => {
     { id: 'users' as ModuleType, name: 'User Management', icon: Settings },
   ];
 
+  // ✅ FILTER MODULES BASED ON USER PERMISSIONS
+  const modules = allModules.filter(module => hasPermission(module.id));
+
+  // ✅ REDIRECT IF USER TRIES TO ACCESS UNAUTHORIZED MODULE
+  useEffect(() => {
+    if (user && !hasPermission(currentModule)) {
+      setCurrentModule('dashboard');
+      toast.error('You do not have permission to access that module');
+    }
+  }, [currentModule, user, hasPermission]);
+
   const handlePatientSelect = (patient: Patient) => {
     setSelectedPatient(patient);
-    if (currentModule === 'patients') {
+    if (currentModule === 'patients' && hasPermission('opd')) {
       setCurrentModule('opd');
     }
   };
@@ -233,6 +244,8 @@ const App = () => {
             <p>✅ Connected to Supabase Database</p>
             <p>✅ All modules operational</p>
             <p>✅ Real-time data synchronization active</p>
+            <p>🔐 Role: <strong>{user?.role}</strong></p>
+            <p>👤 User: <strong>{user?.fullName}</strong></p>
           </div>
         </CardContent>
       </Card>
@@ -240,6 +253,22 @@ const App = () => {
   );
 
   const renderCurrentModule = () => {
+    // ✅ CHECK PERMISSION BEFORE RENDERING MODULE
+    if (!hasPermission(currentModule)) {
+      return (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-red-600 text-lg mb-2">⛔ Access Denied</p>
+            <p className="text-gray-600">You do not have permission to access this module.</p>
+            <p className="text-sm text-gray-500 mt-2">Contact your administrator for access.</p>
+            <Button onClick={() => setCurrentModule('dashboard')} className="mt-4">
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
     switch (currentModule) {
       case 'dashboard':
         return renderDashboard();
