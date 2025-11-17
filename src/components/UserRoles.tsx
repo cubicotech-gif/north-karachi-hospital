@@ -18,6 +18,7 @@ interface User {
   email: string;
   contact: string;
   cnic_number: string;
+  password: string;
   active: boolean;
   created_date: string;
   permissions: string[];
@@ -85,6 +86,7 @@ export default function UserRoles() {
     email: '',
     contact: '',
     cnic_number: '',
+    password: '',
     active: true
   });
 
@@ -111,8 +113,13 @@ export default function UserRoles() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newUser.username || !newUser.full_name || !newUser.email) {
+    if (!newUser.username || !newUser.full_name || !newUser.email || !newUser.password) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -131,6 +138,7 @@ export default function UserRoles() {
         email: newUser.email,
         contact: newUser.contact || '',
         cnic_number: newUser.cnic_number || '',
+        password: newUser.password,
         active: true,
         created_date: new Date().toISOString().split('T')[0],
         permissions: rolePermissions[newUser.role as keyof typeof rolePermissions] || []
@@ -156,6 +164,7 @@ export default function UserRoles() {
         email: '',
         contact: '',
         cnic_number: '',
+        password: '',
         active: true
       });
       setShowAddForm(false);
@@ -256,6 +265,20 @@ export default function UserRoles() {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="Min 6 characters"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="role">Role *</Label>
                   <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value as any })}>
