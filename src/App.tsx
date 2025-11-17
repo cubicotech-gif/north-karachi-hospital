@@ -28,7 +28,7 @@ import PatientRegistration from '@/components/PatientRegistration';
 import OPDTokenSystem from '@/components/OPDTokenSystem';
 import AdmissionModule from '@/components/AdmissionModule';
 import LabManagement from '@/components/LabManagement';
-import EnhancedDoctorManagement from '@/components/EnhancedDoctorManagement';
+import DoctorManagement from '@/components/DoctorManagement';
 import UserRoles from '@/components/UserRoles';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import LabTestManagement from '@/components/LabTestManagement';
@@ -259,7 +259,7 @@ const App = () => {
       case 'lab':
         return <LabManagement selectedPatient={selectedPatient} />;
       case 'doctors':
-        return <EnhancedDoctorManagement />;
+        return <DoctorManagement />;
       case 'rooms':
         return <RoomManagement />;
       case 'departments':
