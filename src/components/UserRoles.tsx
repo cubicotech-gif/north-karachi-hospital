@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Users, Shield, UserPlus, Settings } from 'lucide-react';
-import { generateId } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface User {
   id: string;
   username: string;
-  fullName: string;
-  role: 'Admin' | 'Doctor' | 'Nurse' | 'Receptionist';
+  full_name: string;
+  role: 'Admin' | 'Doctor' | 'Nurse' | 'Receptionist' | 'Lab Technician' | 'Pharmacist';
   email: string;
+  contact: string;
+  cnic_number: string;
   active: boolean;
-  createdDate: string;
+  created_date: string;
   permissions: string[];
 }
 
@@ -57,46 +58,60 @@ const rolePermissions = {
     'Billing & Payments',
     'Lab Order Creation',
     'Print Reports'
+  ],
+  'Lab Technician': [
+    'Lab Test Management',
+    'Lab Order Processing',
+    'Result Entry',
+    'Report Generation',
+    'Sample Collection'
+  ],
+  Pharmacist: [
+    'Medicine Dispensing',
+    'Inventory Management',
+    'Prescription Verification',
+    'Stock Management'
   ]
 };
 
 export default function UserRoles() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      username: 'admin',
-      fullName: 'System Administrator',
-      role: 'Admin',
-      email: 'admin@hospital.com',
-      active: true,
-      createdDate: '2024-01-01',
-      permissions: rolePermissions.Admin
-    },
-    {
-      id: '2',
-      username: 'reception1',
-      fullName: 'Priya Sharma',
-      role: 'Receptionist',
-      email: 'priya@hospital.com',
-      active: true,
-      createdDate: '2024-01-05',
-      permissions: rolePermissions.Receptionist
-    }
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [newUser, setNewUser] = useState<Partial<User>>({
     username: '',
-    fullName: '',
+    full_name: '',
     role: 'Receptionist',
     email: '',
+    contact: '',
+    cnic_number: '',
     active: true
   });
 
-  const handleAddUser = (e: React.FormEvent) => {
+  // Fetch users from database
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await db.users.getAll();
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
+        return;
+      }
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newUser.username || !newUser.fullName || !newUser.email) {
+    if (!newUser.username || !newUser.full_name || !newUser.email) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -107,40 +122,72 @@ export default function UserRoles() {
       return;
     }
 
-    const user: User = {
-      id: generateId(),
-      username: newUser.username,
-      fullName: newUser.fullName,
-      role: newUser.role as 'Admin' | 'Doctor' | 'Nurse' | 'Receptionist',
-      email: newUser.email,
-      active: true,
-      createdDate: new Date().toISOString().split('T')[0],
-      permissions: rolePermissions[newUser.role as keyof typeof rolePermissions] || []
-    };
+    setLoading(true);
+    try {
+      const userData = {
+        username: newUser.username,
+        full_name: newUser.full_name,
+        role: newUser.role as string,
+        email: newUser.email,
+        contact: newUser.contact || '',
+        cnic_number: newUser.cnic_number || '',
+        active: true,
+        created_date: new Date().toISOString().split('T')[0],
+        permissions: rolePermissions[newUser.role as keyof typeof rolePermissions] || []
+      };
 
-    setUsers([...users, user]);
-    toast.success('User created successfully!');
-    
-    // Reset form
-    setNewUser({
-      username: '',
-      fullName: '',
-      role: 'Receptionist',
-      email: '',
-      active: true
-    });
-    setShowAddForm(false);
+      const { data, error } = await db.users.create(userData);
+      
+      if (error) {
+        console.error('Error creating user:', error);
+        toast.error('Failed to create user');
+        setLoading(false);
+        return;
+      }
+
+      setUsers([...users, data]);
+      toast.success('User created successfully!');
+      
+      // Reset form
+      setNewUser({
+        username: '',
+        full_name: '',
+        role: 'Receptionist',
+        email: '',
+        contact: '',
+        cnic_number: '',
+        active: true
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, active: !user.active }
-        : user
-    ));
+  const toggleUserStatus = async (userId: string) => {
     const user = users.find(u => u.id === userId);
-    if (user) {
-      toast.success(`${user.fullName} ${!user.active ? 'activated' : 'deactivated'}`);
+    if (!user) return;
+
+    try {
+      const { error } = await db.users.update(userId, { active: !user.active });
+      
+      if (error) {
+        console.error('Error updating user status:', error);
+        toast.error('Failed to update user status');
+        return;
+      }
+
+      const updatedUsers = users.map(u => 
+        u.id === userId ? { ...u, active: !u.active } : u
+      );
+      setUsers(updatedUsers);
+      toast.success(`${user.full_name} ${!user.active ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
     }
   };
 
@@ -150,6 +197,8 @@ export default function UserRoles() {
       case 'Doctor': return 'bg-blue-100 text-blue-800';
       case 'Nurse': return 'bg-green-100 text-green-800';
       case 'Receptionist': return 'bg-yellow-100 text-yellow-800';
+      case 'Lab Technician': return 'bg-purple-100 text-purple-800';
+      case 'Pharmacist': return 'bg-pink-100 text-pink-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -187,8 +236,8 @@ export default function UserRoles() {
                   <Label htmlFor="fullName">Full Name *</Label>
                   <Input
                     id="fullName"
-                    value={newUser.fullName}
-                    onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                    value={newUser.full_name}
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
                     placeholder="John Doe"
                     required
                   />
@@ -209,7 +258,7 @@ export default function UserRoles() {
                 </div>
                 <div>
                   <Label htmlFor="role">Role *</Label>
-                  <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                  <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value as any })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -218,13 +267,38 @@ export default function UserRoles() {
                       <SelectItem value="Doctor">Doctor</SelectItem>
                       <SelectItem value="Nurse">Nurse</SelectItem>
                       <SelectItem value="Receptionist">Receptionist</SelectItem>
+                      <SelectItem value="Lab Technician">Lab Technician</SelectItem>
+                      <SelectItem value="Pharmacist">Pharmacist</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contact">Contact</Label>
+                  <Input
+                    id="contact"
+                    value={newUser.contact}
+                    onChange={(e) => setNewUser({ ...newUser, contact: e.target.value })}
+                    placeholder="0300-1234567"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cnic">CNIC Number</Label>
+                  <Input
+                    id="cnic"
+                    value={newUser.cnic_number}
+                    onChange={(e) => setNewUser({ ...newUser, cnic_number: e.target.value })}
+                    placeholder="12345-6789012-3"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2">
-                <Button type="submit">Create User</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Creating...' : 'Create User'}
+                </Button>
                 <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
                   Cancel
                 </Button>
@@ -238,7 +312,7 @@ export default function UserRoles() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{user.fullName}</h3>
+                      <h3 className="font-semibold">{user.full_name}</h3>
                       <Badge className={getRoleBadgeColor(user.role)}>
                         {user.role}
                       </Badge>
@@ -250,7 +324,9 @@ export default function UserRoles() {
                     <div className="text-sm text-gray-600 mb-3">
                       <p><strong>Username:</strong> {user.username}</p>
                       <p><strong>Email:</strong> {user.email}</p>
-                      <p><strong>Created:</strong> {new Date(user.createdDate).toLocaleDateString()}</p>
+                      {user.contact && <p><strong>Contact:</strong> {user.contact}</p>}
+                      {user.cnic_number && <p><strong>CNIC:</strong> {user.cnic_number}</p>}
+                      <p><strong>Created:</strong> {new Date(user.created_date).toLocaleDateString()}</p>
                     </div>
 
                     <div>
@@ -296,7 +372,7 @@ export default function UserRoles() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.entries(rolePermissions).map(([role, permissions]) => (
               <Card key={role} className="p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -339,6 +415,14 @@ export default function UserRoles() {
             <div>
               <h4 className="font-medium text-yellow-600">Receptionist Access:</h4>
               <p>Patient registration, OPD tokens, appointments, billing, and basic lab orders. No medical record editing.</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-purple-600">Lab Technician Access:</h4>
+              <p>Lab test management, order processing, result entry, and report generation.</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-pink-600">Pharmacist Access:</h4>
+              <p>Medicine dispensing, inventory management, and prescription verification.</p>
             </div>
           </div>
         </CardContent>
