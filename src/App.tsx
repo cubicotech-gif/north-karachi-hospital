@@ -18,7 +18,8 @@ import {
   User,
   LogOut,
   Building,
-  Beaker
+  Beaker,
+  DoorOpen
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
@@ -31,13 +32,16 @@ import EnhancedDoctorManagement from '@/components/EnhancedDoctorManagement';
 import UserRoles from '@/components/UserRoles';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import LabTestManagement from '@/components/LabTestManagement';
+import RoomManagement from '@/components/RoomManagement';
+import DischargeModule from '@/components/DischargeModule';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests';
+type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms';
 
-const LoginScreen = ({ onLogin }: { onLogin: (username: string) => Promise<boolean> }) => {
+const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -48,13 +52,18 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string) => Promise<boole
       return;
     }
 
+    if (!password.trim()) {
+      toast.error('Please enter password');
+      return;
+    }
+
     setIsLoading(true);
-    const success = await onLogin(username.trim());
+    const success = await onLogin(username.trim(), password.trim());
     
     if (success) {
       toast.success('Login successful!');
     } else {
-      toast.error('Login failed. Please check your username.');
+      toast.error('Invalid username or password');
     }
     
     setIsLoading(false);
@@ -84,12 +93,25 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string) => Promise<boole
                 autoFocus
               />
             </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={isLoading}
+              />
+            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
             <div className="text-center text-sm text-gray-600 mt-4">
               <p>Demo credentials:</p>
-              <p className="font-mono text-xs">Username: <strong>admin</strong></p>
+              <p className="font-mono text-xs">
+                Username: <strong>admin</strong> | Password: <strong>password123</strong>
+              </p>
             </div>
           </form>
         </CardContent>
@@ -108,8 +130,10 @@ const App = () => {
     { id: 'patients' as ModuleType, name: 'Patient Registration', icon: Users },
     { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
     { id: 'admission' as ModuleType, name: 'Admissions', icon: Bed },
+    { id: 'discharge' as ModuleType, name: 'Discharge', icon: DoorOpen },
     { id: 'lab' as ModuleType, name: 'Lab Orders', icon: TestTube },
     { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
+    { id: 'rooms' as ModuleType, name: 'Room Management', icon: Building },
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
     { id: 'labtests' as ModuleType, name: 'Lab Test Management', icon: Beaker },
     { id: 'users' as ModuleType, name: 'User Management', icon: Settings },
@@ -230,10 +254,14 @@ const App = () => {
         return <OPDTokenSystem selectedPatient={selectedPatient} />;
       case 'admission':
         return <AdmissionModule selectedPatient={selectedPatient} />;
+      case 'discharge':
+        return <DischargeModule />;
       case 'lab':
         return <LabManagement selectedPatient={selectedPatient} />;
       case 'doctors':
         return <EnhancedDoctorManagement />;
+      case 'rooms':
+        return <RoomManagement />;
       case 'departments':
         return <DepartmentManagement />;
       case 'labtests':
