@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,29 +8,63 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { TestTube, Plus, Edit, Trash2, Clock, Beaker } from 'lucide-react';
-import { LabTest, mockLabTests, mockDepartments, generateId, formatCurrency } from '@/lib/hospitalData';
+import { formatCurrency } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+interface LabTest {
+  id: string;
+  name: string;
+  price: number;
+  department: string;
+  normal_range?: string;
+  description?: string;
+  sample_type: string;
+  report_time: string;
+  active: boolean;
+}
+
 export default function LabTestManagement() {
-  const [labTests, setLabTests] = useState<LabTest[]>(mockLabTests);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTest, setEditingTest] = useState<LabTest | null>(null);
   const [filterDepartment, setFilterDepartment] = useState<string>('All');
+  const [loading, setLoading] = useState(false);
   const [newTest, setNewTest] = useState<Partial<LabTest>>({
     name: '',
     price: 0,
     department: 'Pathology',
-    normalRange: '',
+    normal_range: '',
     description: '',
-    sampleType: 'Blood',
-    reportTime: '2-4 hours',
+    sample_type: 'Blood',
+    report_time: '2-4 hours',
     active: true
   });
 
   const sampleTypes = ['Blood', 'Urine', 'Stool', 'Imaging', 'Cardiac Test', 'Biopsy', 'Culture'];
   const reportTimes = ['15 minutes', '30 minutes', '1-2 hours', '2-4 hours', '4-6 hours', '6-8 hours', '24 hours', '2-3 days'];
 
-  const handleAddTest = (e: React.FormEvent) => {
+  // Fetch lab tests from database
+  useEffect(() => {
+    fetchLabTests();
+  }, []);
+
+  const fetchLabTests = async () => {
+    try {
+      const { data, error } = await db.labTests.getAll();
+      if (error) {
+        console.error('Error fetching lab tests:', error);
+        toast.error('Failed to load lab tests');
+        return;
+      }
+      setLabTests(data || []);
+    } catch (error) {
+      console.error('Error fetching lab tests:', error);
+      toast.error('Failed to load lab tests');
+    }
+  };
+
+  const handleAddTest = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newTest.name || !newTest.price || !newTest.department) {
@@ -44,33 +78,49 @@ export default function LabTestManagement() {
       return;
     }
 
-    const test: LabTest = {
-      id: generateId(),
-      name: newTest.name,
-      price: newTest.price,
-      department: newTest.department,
-      normalRange: newTest.normalRange,
-      description: newTest.description,
-      sampleType: newTest.sampleType || 'Blood',
-      reportTime: newTest.reportTime || '2-4 hours',
-      active: true
-    };
+    setLoading(true);
+    try {
+      const testData = {
+        name: newTest.name,
+        price: newTest.price,
+        department: newTest.department,
+        normal_range: newTest.normal_range || null,
+        description: newTest.description || null,
+        sample_type: newTest.sample_type || 'Blood',
+        report_time: newTest.report_time || '2-4 hours',
+        active: true
+      };
 
-    setLabTests([...labTests, test]);
-    toast.success('Lab test added successfully!');
-    
-    // Reset form
-    setNewTest({
-      name: '',
-      price: 0,
-      department: 'Pathology',
-      normalRange: '',
-      description: '',
-      sampleType: 'Blood',
-      reportTime: '2-4 hours',
-      active: true
-    });
-    setShowAddForm(false);
+      const { data, error } = await db.labTests.create(testData);
+      
+      if (error) {
+        console.error('Error creating lab test:', error);
+        toast.error('Failed to add lab test');
+        setLoading(false);
+        return;
+      }
+
+      setLabTests([...labTests, data]);
+      toast.success('Lab test added successfully!');
+      
+      // Reset form
+      setNewTest({
+        name: '',
+        price: 0,
+        department: 'Pathology',
+        normal_range: '',
+        description: '',
+        sample_type: 'Blood',
+        report_time: '2-4 hours',
+        active: true
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Error creating lab test:', error);
+      toast.error('Failed to add lab test');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditTest = (test: LabTest) => {
@@ -79,7 +129,7 @@ export default function LabTestManagement() {
     setShowAddForm(true);
   };
 
-  const handleUpdateTest = (e: React.FormEvent) => {
+  const handleUpdateTest = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingTest || !newTest.name || !newTest.price || !newTest.department) {
@@ -87,48 +137,96 @@ export default function LabTestManagement() {
       return;
     }
 
-    const updatedTests = labTests.map(test => 
-      test.id === editingTest.id 
-        ? { ...test, ...newTest }
-        : test
-    );
+    setLoading(true);
+    try {
+      const updateData = {
+        name: newTest.name,
+        price: newTest.price,
+        department: newTest.department,
+        normal_range: newTest.normal_range || null,
+        description: newTest.description || null,
+        sample_type: newTest.sample_type,
+        report_time: newTest.report_time,
+        active: newTest.active
+      };
 
-    setLabTests(updatedTests);
-    toast.success('Lab test updated successfully!');
-    
-    // Reset form
-    setNewTest({
-      name: '',
-      price: 0,
-      department: 'Pathology',
-      normalRange: '',
-      description: '',
-      sampleType: 'Blood',
-      reportTime: '2-4 hours',
-      active: true
-    });
-    setShowAddForm(false);
-    setEditingTest(null);
-  };
+      const { data, error } = await db.labTests.update(editingTest.id, updateData);
+      
+      if (error) {
+        console.error('Error updating lab test:', error);
+        toast.error('Failed to update lab test');
+        setLoading(false);
+        return;
+      }
 
-  const toggleTestStatus = (testId: string) => {
-    const updatedTests = labTests.map(test => 
-      test.id === testId 
-        ? { ...test, active: !test.active }
-        : test
-    );
-    
-    setLabTests(updatedTests);
-    const test = labTests.find(t => t.id === testId);
-    if (test) {
-      toast.success(`${test.name} ${!test.active ? 'activated' : 'deactivated'}`);
+      const updatedTests = labTests.map(test => 
+        test.id === editingTest.id ? data : test
+      );
+      setLabTests(updatedTests);
+      toast.success('Lab test updated successfully!');
+      
+      // Reset form
+      setNewTest({
+        name: '',
+        price: 0,
+        department: 'Pathology',
+        normal_range: '',
+        description: '',
+        sample_type: 'Blood',
+        report_time: '2-4 hours',
+        active: true
+      });
+      setShowAddForm(false);
+      setEditingTest(null);
+    } catch (error) {
+      console.error('Error updating lab test:', error);
+      toast.error('Failed to update lab test');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteTest = (testId: string) => {
-    const updatedTests = labTests.filter(test => test.id !== testId);
-    setLabTests(updatedTests);
-    toast.success('Lab test deleted successfully!');
+  const toggleTestStatus = async (testId: string) => {
+    const test = labTests.find(t => t.id === testId);
+    if (!test) return;
+
+    try {
+      const { error } = await db.labTests.update(testId, { active: !test.active });
+      
+      if (error) {
+        console.error('Error updating test status:', error);
+        toast.error('Failed to update test status');
+        return;
+      }
+
+      const updatedTests = labTests.map(t => 
+        t.id === testId ? { ...t, active: !t.active } : t
+      );
+      setLabTests(updatedTests);
+      toast.success(`${test.name} ${!test.active ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+      console.error('Error updating test status:', error);
+      toast.error('Failed to update test status');
+    }
+  };
+
+  const deleteTest = async (testId: string) => {
+    try {
+      const { error } = await db.labTests.delete(testId);
+      
+      if (error) {
+        console.error('Error deleting lab test:', error);
+        toast.error('Failed to delete lab test');
+        return;
+      }
+
+      const updatedTests = labTests.filter(test => test.id !== testId);
+      setLabTests(updatedTests);
+      toast.success('Lab test deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting lab test:', error);
+      toast.error('Failed to delete lab test');
+    }
   };
 
   const filteredTests = filterDepartment === 'All' 
@@ -171,7 +269,7 @@ export default function LabTestManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price (₹) *</Label>
+                  <Label htmlFor="price">Price (Rs) *</Label>
                   <Input
                     id="price"
                     type="number"
@@ -201,7 +299,7 @@ export default function LabTestManagement() {
                 </div>
                 <div>
                   <Label htmlFor="sampleType">Sample Type</Label>
-                  <Select value={newTest.sampleType} onValueChange={(value) => setNewTest({ ...newTest, sampleType: value })}>
+                  <Select value={newTest.sample_type} onValueChange={(value) => setNewTest({ ...newTest, sample_type: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -217,7 +315,7 @@ export default function LabTestManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="reportTime">Report Time</Label>
-                  <Select value={newTest.reportTime} onValueChange={(value) => setNewTest({ ...newTest, reportTime: value })}>
+                  <Select value={newTest.report_time} onValueChange={(value) => setNewTest({ ...newTest, report_time: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -232,8 +330,8 @@ export default function LabTestManagement() {
                   <Label htmlFor="normalRange">Normal Range</Label>
                   <Input
                     id="normalRange"
-                    value={newTest.normalRange}
-                    onChange={(e) => setNewTest({ ...newTest, normalRange: e.target.value })}
+                    value={newTest.normal_range}
+                    onChange={(e) => setNewTest({ ...newTest, normal_range: e.target.value })}
                     placeholder="e.g., 70-100 mg/dL"
                   />
                 </div>
@@ -250,8 +348,8 @@ export default function LabTestManagement() {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">
-                  {editingTest ? 'Update Test' : 'Add Test'}
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : (editingTest ? 'Update Test' : 'Add Test')}
                 </Button>
                 <Button 
                   type="button" 
@@ -263,10 +361,10 @@ export default function LabTestManagement() {
                       name: '',
                       price: 0,
                       department: 'Pathology',
-                      normalRange: '',
+                      normal_range: '',
                       description: '',
-                      sampleType: 'Blood',
-                      reportTime: '2-4 hours',
+                      sample_type: 'Blood',
+                      report_time: '2-4 hours',
                       active: true
                     });
                   }}
@@ -319,17 +417,17 @@ export default function LabTestManagement() {
                   
                   <div className="flex justify-between">
                     <span className="text-gray-600">Sample:</span>
-                    <span>{test.sampleType}</span>
+                    <span>{test.sample_type}</span>
                   </div>
                   
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3 text-gray-500" />
-                    <span className="text-xs text-gray-600">{test.reportTime}</span>
+                    <span className="text-xs text-gray-600">{test.report_time}</span>
                   </div>
                   
-                  {test.normalRange && (
+                  {test.normal_range && (
                     <div className="text-xs text-gray-600">
-                      <strong>Normal:</strong> {test.normalRange}
+                      <strong>Normal:</strong> {test.normal_range}
                     </div>
                   )}
                   
@@ -345,7 +443,6 @@ export default function LabTestManagement() {
                     <Switch
                       checked={test.active}
                       onCheckedChange={() => toggleTestStatus(test.id)}
-                      size="sm"
                     />
                     <span className="text-xs">{test.active ? 'Active' : 'Inactive'}</span>
                   </div>
@@ -400,7 +497,7 @@ export default function LabTestManagement() {
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <p className="text-2xl font-bold text-purple-600">
-                {formatCurrency(Math.round(labTests.reduce((sum, test) => sum + test.price, 0) / labTests.length))}
+                {labTests.length > 0 ? formatCurrency(Math.round(labTests.reduce((sum, test) => sum + test.price, 0) / labTests.length)) : 'Rs0'}
               </p>
               <p className="text-sm text-gray-600">Avg. Price</p>
             </div>
