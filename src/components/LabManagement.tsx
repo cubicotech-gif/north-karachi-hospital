@@ -1,14 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { TestTube, User, Printer, CreditCard, FileText } from 'lucide-react';
-import { Patient, Doctor, LabTest, LabOrder, mockDoctors, mockLabTests, generateId, formatCurrency } from '@/lib/hospitalData';
+import { Patient, generateId, formatCurrency } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+
+interface Doctor {
+  id: string;
+  name: string;
+  department: string;
+}
+
+interface LabTest {
+  id: string;
+  name: string;
+  price: number;
+  department: string;
+  normal_range?: string;
+  active: boolean;
+}
+
+interface LabOrder {
+  id: string;
+  patient_id: string;
+  doctor_id?: string;
+  tests: string[];
+  total_amount: number;
+  status: string;
+  order_date: string;
+}
 
 interface LabManagementProps {
   selectedPatient: Patient | null;
@@ -20,6 +45,41 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [generatedOrder, setGeneratedOrder] = useState<LabOrder | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch doctors and lab tests from database
+  useEffect(() => {
+    fetchDoctors();
+    fetchLabTests();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const { data, error } = await db.doctors.getAll();
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        return;
+      }
+      setDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+    }
+  };
+
+  const fetchLabTests = async () => {
+    try {
+      const { data, error } = await db.labTests.getActive();
+      if (error) {
+        console.error('Error fetching lab tests:', error);
+        return;
+      }
+      setLabTests(data || []);
+    } catch (error) {
+      console.error('Error fetching lab tests:', error);
+    }
+  };
 
   const handleTestSelection = (testId: string, checked: boolean) => {
     if (checked) {
@@ -30,18 +90,18 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   };
 
   const handleDoctorSelect = (doctorId: string) => {
-    const doctor = mockDoctors.find(d => d.id === doctorId);
+    const doctor = doctors.find(d => d.id === doctorId);
     setSelectedDoctor(doctor || null);
   };
 
   const calculateTotal = () => {
     return selectedTests.reduce((total, testId) => {
-      const test = mockLabTests.find(t => t.id === testId);
+      const test = labTests.find(t => t.id === testId);
       return total + (test?.price || 0);
     }, 0);
   };
 
-  const createLabOrder = () => {
+  const createLabOrder = async () => {
     if (!selectedPatient || selectedTests.length === 0) {
       toast.error('Please select patient and at least one test');
       return;
@@ -52,18 +112,34 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       return;
     }
 
-    const order: LabOrder = {
-      id: generateId(),
-      patientId: selectedPatient.id,
-      doctorId: selectedDoctor?.id,
-      tests: selectedTests,
-      totalAmount: calculateTotal(),
-      status: 'pending',
-      orderDate: new Date().toISOString().split('T')[0]
-    };
+    setLoading(true);
+    try {
+      const orderData = {
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor?.id,
+        tests: selectedTests,
+        total_amount: calculateTotal(),
+        status: 'pending',
+        order_date: new Date().toISOString().split('T')[0]
+      };
 
-    setGeneratedOrder(order);
-    toast.success('Lab order created successfully!');
+      const { data, error } = await db.labOrders.create(orderData);
+      
+      if (error) {
+        console.error('Error creating lab order:', error);
+        toast.error('Failed to create lab order');
+        setLoading(false);
+        return;
+      }
+
+      setGeneratedOrder(data);
+      toast.success('Lab order created successfully!');
+    } catch (error) {
+      console.error('Error creating lab order:', error);
+      toast.error('Failed to create lab order');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayment = () => {
@@ -76,7 +152,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const printLabBill = () => {
     if (!generatedOrder || !selectedPatient) return;
 
-    const selectedTestDetails = mockLabTests.filter(test => 
+    const selectedTestDetails = labTests.filter(test => 
       generatedOrder.tests.includes(test.id)
     );
 
@@ -126,7 +202,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
             <tfoot>
               <tr style="background: #f0f0f0; font-weight: bold;">
                 <td style="border: 1px solid #ddd; padding: 8px;">Total Amount</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(generatedOrder.totalAmount)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(generatedOrder.total_amount)}</td>
               </tr>
             </tfoot>
           </table>
@@ -159,7 +235,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const printLabSlip = () => {
     if (!generatedOrder || !selectedPatient) return;
 
-    const selectedTestDetails = mockLabTests.filter(test => 
+    const selectedTestDetails = labTests.filter(test => 
       generatedOrder.tests.includes(test.id)
     );
 
@@ -196,7 +272,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
             <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
               <strong>${index + 1}. ${test.name}</strong><br>
               <span style="color: #666; font-size: 12px;">Department: ${test.department}</span>
-              ${test.normalRange ? `<br><span style="color: #666; font-size: 12px;">Normal Range: ${test.normalRange}</span>` : ''}
+              ${test.normal_range ? `<br><span style="color: #666; font-size: 12px;">Normal Range: ${test.normal_range}</span>` : ''}
               <div style="margin-top: 15px; border-top: 1px dotted #ccc; padding-top: 10px;">
                 <strong>Result:</strong><br>
                 <div style="height: 40px; border: 1px solid #ccc; margin-top: 5px;"></div>
@@ -205,23 +281,10 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           `).join('')}
         </div>
         
-        <div style="margin-bottom: 20px; font-size: 12px; color: #666;">
-          <strong>Lab Instructions:</strong><br>
-          • Verify patient identity before sample collection<br>
-          • Follow standard protocols for each test<br>
-          • Mark completion status after testing<br>
-          • Notify patient when reports are ready
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+        <div style="margin-top: 50px; display: flex; justify-content: space-between;">
           <div style="text-align: center;">
             <div style="border-top: 1px solid #333; width: 120px; padding-top: 10px; font-size: 12px;">
-              Sample Collected By
-            </div>
-          </div>
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 120px; padding-top: 10px; font-size: 12px;">
-              Lab Technician
+              Technician
             </div>
           </div>
           <div style="text-align: center;">
@@ -306,7 +369,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                   <SelectValue placeholder="Select referring doctor..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockDoctors.map((doctor) => (
+                  {doctors.map((doctor) => (
                     <SelectItem key={doctor.id} value={doctor.id}>
                       Dr. {doctor.name} - {doctor.department}
                     </SelectItem>
@@ -324,7 +387,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
-            {mockLabTests.map((test) => (
+            {labTests.map((test) => (
               <div key={test.id} className="flex items-center space-x-3 p-3 border rounded-lg">
                 <Checkbox
                   id={test.id}
@@ -365,10 +428,10 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           <Button 
             onClick={createLabOrder} 
             className="w-full"
-            disabled={selectedTests.length === 0}
+            disabled={selectedTests.length === 0 || loading}
           >
             <TestTube className="h-4 w-4 mr-2" />
-            Create Lab Order
+            {loading ? 'Creating...' : 'Create Lab Order'}
           </Button>
         </CardContent>
       </Card>
@@ -396,7 +459,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="font-medium">Total Amount</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(generatedOrder.totalAmount)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(generatedOrder.total_amount)}</p>
                 </div>
                 <div>
                   <p className="font-medium">Tests Ordered</p>
