@@ -1,53 +1,131 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Printer, Clock, User, Stethoscope, CreditCard } from 'lucide-react';
-import { Patient, Doctor, OPDToken, mockDoctors, generateId, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
+import { Patient, generateId, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+
+interface Doctor {
+  id: string;
+  name: string;
+  department: string;
+  specialization: string;
+  opd_fee: number;
+  available: boolean;
+}
+
+interface OPDToken {
+  id: string;
+  token_number: number;
+  patient_id: string;
+  doctor_id: string;
+  date: string;
+  status: string;
+  fee: number;
+  payment_status: string;
+}
 
 interface OPDTokenSystemProps {
   selectedPatient: Patient | null;
 }
 
 export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps) {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [generatedToken, setGeneratedToken] = useState<OPDToken | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
+  const [loading, setLoading] = useState(false);
+
+  // Fetch doctors from database
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const { data, error } = await db.doctors.getAll();
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        toast.error('Failed to load doctors');
+        return;
+      }
+      setDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      toast.error('Failed to load doctors');
+    }
+  };
 
   const handleDoctorSelect = (doctorId: string) => {
-    const doctor = mockDoctors.find(d => d.id === doctorId);
+    const doctor = doctors.find(d => d.id === doctorId);
     setSelectedDoctor(doctor || null);
   };
 
-  const generateOPDToken = () => {
+  const generateOPDToken = async () => {
     if (!selectedPatient || !selectedDoctor) {
       toast.error('Please select both patient and doctor');
       return;
     }
 
-    const token: OPDToken = {
-      id: generateId(),
-      tokenNumber: generateTokenNumber(),
-      patientId: selectedPatient.id,
-      doctorId: selectedDoctor.id,
-      date: new Date().toISOString().split('T')[0],
-      status: 'waiting',
-      fee: selectedDoctor.opdFee,
-      paymentStatus: paymentStatus
-    };
+    setLoading(true);
+    try {
+      const tokenData = {
+        token_number: generateTokenNumber(),
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor.id,
+        date: new Date().toISOString().split('T')[0],
+        status: 'waiting',
+        fee: selectedDoctor.opd_fee,
+        payment_status: paymentStatus
+      };
 
-    setGeneratedToken(token);
-    toast.success('OPD Token generated successfully!');
+      const { data, error } = await db.opdTokens.create(tokenData);
+      
+      if (error) {
+        console.error('Error creating token:', error);
+        toast.error('Failed to generate token');
+        setLoading(false);
+        return;
+      }
+
+      setGeneratedToken(data);
+      toast.success('OPD Token generated successfully!');
+    } catch (error) {
+      console.error('Error creating token:', error);
+      toast.error('Failed to generate token');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePayment = () => {
-    if (generatedToken) {
-      setGeneratedToken({ ...generatedToken, paymentStatus: 'paid' });
+  const handlePayment = async () => {
+    if (!generatedToken) return;
+
+    setLoading(true);
+    try {
+      const { error } = await db.opdTokens.update(generatedToken.id, {
+        payment_status: 'paid'
+      });
+
+      if (error) {
+        console.error('Error updating payment:', error);
+        toast.error('Failed to record payment');
+        setLoading(false);
+        return;
+      }
+
+      setGeneratedToken({ ...generatedToken, payment_status: 'paid' });
       setPaymentStatus('paid');
       toast.success('Payment recorded successfully!');
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,7 +141,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
           <div>
-            <strong>Token No:</strong> ${generatedToken.tokenNumber}
+            <strong>Token No:</strong> ${generatedToken.token_number}
           </div>
           <div>
             <strong>Date:</strong> ${new Date().toLocaleDateString()}
@@ -86,8 +164,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         </div>
         
         <div style="margin-bottom: 15px;">
-          <strong>Fee:</strong> ${formatCurrency(selectedDoctor.opdFee)}<br>
-          <strong>Payment Status:</strong> ${generatedToken.paymentStatus.toUpperCase()}
+          <strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}<br>
+          <strong>Payment Status:</strong> ${generatedToken.payment_status.toUpperCase()}
         </div>
         
         <div style="border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px;">
@@ -119,7 +197,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
           <div>
             <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Token No:</strong> ${generatedToken?.tokenNumber || 'N/A'}
+            <strong>Token No:</strong> ${generatedToken?.token_number || 'N/A'}
           </div>
           <div style="text-align: right;">
             <strong>Dr. ${selectedDoctor.name}</strong><br>
@@ -222,11 +300,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <SelectValue placeholder="Choose a doctor..." />
             </SelectTrigger>
             <SelectContent>
-              {mockDoctors
+              {doctors
                 .filter(doctor => doctor.available)
                 .map((doctor) => (
                   <SelectItem key={doctor.id} value={doctor.id}>
-                    Dr. {doctor.name} - {doctor.department} ({formatCurrency(doctor.opdFee)})
+                    Dr. {doctor.name} - {doctor.department} ({formatCurrency(doctor.opd_fee)})
                   </SelectItem>
                 ))}
             </SelectContent>
@@ -237,7 +315,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <h3 className="font-semibold">Dr. {selectedDoctor.name}</h3>
               <p className="text-sm text-gray-600">{selectedDoctor.department}</p>
               <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
-              <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opdFee)}</p>
+              <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opd_fee)}</p>
             </div>
           )}
         </CardContent>
@@ -256,7 +334,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">Total OPD Fee</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(selectedDoctor.opdFee)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(selectedDoctor.opd_fee)}</p>
                 </div>
                 <Badge variant={paymentStatus === 'paid' ? 'default' : 'secondary'}>
                   {paymentStatus === 'paid' ? 'Paid' : 'Pending'}
@@ -264,12 +342,12 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={generateOPDToken} className="flex-1">
+                <Button onClick={generateOPDToken} className="flex-1" disabled={loading}>
                   <Clock className="h-4 w-4 mr-2" />
-                  Generate Token
+                  {loading ? 'Generating...' : 'Generate Token'}
                 </Button>
                 {generatedToken && paymentStatus === 'pending' && (
-                  <Button onClick={handlePayment} variant="outline">
+                  <Button onClick={handlePayment} variant="outline" disabled={loading}>
                     <CreditCard className="h-4 w-4 mr-2" />
                     Record Payment
                   </Button>
@@ -291,10 +369,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           <CardContent>
             <div className="space-y-4">
               <div className="text-center p-6 bg-green-50 rounded-lg">
-                <h2 className="text-3xl font-bold text-green-600">Token #{generatedToken.tokenNumber}</h2>
+                <h2 className="text-3xl font-bold text-green-600">Token #{generatedToken.token_number}</h2>
                 <p className="text-gray-600 mt-2">Generated on {new Date().toLocaleDateString()}</p>
-                <Badge className="mt-2" variant={generatedToken.paymentStatus === 'paid' ? 'default' : 'secondary'}>
-                  {generatedToken.paymentStatus === 'paid' ? 'Payment Completed' : 'Payment Pending'}
+                <Badge className="mt-2" variant={generatedToken.payment_status === 'paid' ? 'default' : 'secondary'}>
+                  {generatedToken.payment_status === 'paid' ? 'Payment Completed' : 'Payment Pending'}
                 </Badge>
               </div>
 
