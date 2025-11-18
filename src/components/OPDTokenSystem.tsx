@@ -39,11 +39,18 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [generatedToken, setGeneratedToken] = useState<OPDToken | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
   const [loading, setLoading] = useState(false);
+  const [queueNumber, setQueueNumber] = useState<number>(0);
 
-  // Fetch doctors from database
   useEffect(() => {
     fetchDoctors();
   }, []);
+
+  // Get today's queue number for selected doctor
+  useEffect(() => {
+    if (selectedDoctor) {
+      getQueueNumber(selectedDoctor.id);
+    }
+  }, [selectedDoctor]);
 
   const fetchDoctors = async () => {
     try {
@@ -57,6 +64,27 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     } catch (error) {
       console.error('Error fetching doctors:', error);
       toast.error('Failed to load doctors');
+    }
+  };
+
+  const getQueueNumber = async (doctorId: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await db.opdTokens.getAll();
+      
+      if (error) {
+        console.error('Error fetching tokens:', error);
+        return;
+      }
+
+      // Count tokens for this doctor today
+      const todayTokens = data?.filter(
+        token => token.doctor_id === doctorId && token.date === today
+      ) || [];
+      
+      setQueueNumber(todayTokens.length + 1);
+    } catch (error) {
+      console.error('Error getting queue number:', error);
     }
   };
 
@@ -133,47 +161,67 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     if (!generatedToken || !selectedPatient || !selectedDoctor) return;
 
     const printContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333;">HOSPITAL MANAGEMENT SYSTEM</h2>
-          <p style="margin: 5px 0; color: #666;">OPD Token</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <strong>Token No:</strong> ${generatedToken.token_number}
+      <html>
+        <head>
+          <title>OPD Token - ${generatedToken.token_number}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .container { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
+            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+            .logo { width: 80px; height: 80px; margin: 0 auto 10px; }
+            .hospital-name { font-size: 22px; font-weight: bold; color: #333; margin: 5px 0; }
+            .subtitle { color: #666; font-size: 14px; }
+            .queue-box { background: #e74c3c; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
+            .queue-number { font-size: 48px; font-weight: bold; margin: 0; }
+            .queue-label { font-size: 14px; margin: 5px 0 0 0; }
+            .info-section { margin: 15px 0; }
+            .info-label { font-weight: bold; color: #333; }
+            .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="/logo.png" alt="Logo" class="logo" />
+              <div class="hospital-name">North Karachi Hospital</div>
+              <div class="subtitle">OPD Token</div>
+            </div>
+            
+            <div class="queue-box">
+              <p class="queue-number">${queueNumber}</p>
+              <p class="queue-label">QUEUE NUMBER</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+              <div><strong>Token:</strong> ${generatedToken.token_number}</div>
+              <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-label">Patient Details:</div>
+              <div>Name: ${selectedPatient.name}</div>
+              <div>Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}</div>
+              <div>Contact: ${selectedPatient.contact}</div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-label">Doctor Details:</div>
+              <div>Dr. ${selectedDoctor.name}</div>
+              <div>${selectedDoctor.department}</div>
+              <div>${selectedDoctor.specialization}</div>
+            </div>
+            
+            <div class="info-section">
+              <div><strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}</div>
+              <div><strong>Payment:</strong> ${generatedToken.payment_status.toUpperCase()}</div>
+            </div>
+            
+            <div class="footer">
+              Please wait for your turn. Show this token to the doctor.
+            </div>
           </div>
-          <div>
-            <strong>Date:</strong> ${new Date().toLocaleDateString()}
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <strong>Patient Details:</strong><br>
-          Name: ${selectedPatient.name}<br>
-          Age: ${selectedPatient.age} years<br>
-          Gender: ${selectedPatient.gender}<br>
-          Contact: ${selectedPatient.contact}
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <strong>Doctor Details:</strong><br>
-          Dr. ${selectedDoctor.name}<br>
-          Department: ${selectedDoctor.department}<br>
-          Specialization: ${selectedDoctor.specialization}
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}<br>
-          <strong>Payment Status:</strong> ${generatedToken.payment_status.toUpperCase()}
-        </div>
-        
-        <div style="border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px;">
-          <p style="margin: 0; font-size: 12px; color: #666;">
-            Please wait for your turn. Show this token to the doctor.
-          </p>
-        </div>
-      </div>
+        </body>
+      </html>
     `;
 
     const printWindow = window.open('', '_blank');
@@ -188,63 +236,88 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     if (!selectedPatient || !selectedDoctor) return;
 
     const prescriptionContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333;">HOSPITAL MANAGEMENT SYSTEM</h2>
-          <p style="margin: 5px 0; color: #666;">Prescription & Medical Record</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Token No:</strong> ${generatedToken?.token_number || 'N/A'}
+      <html>
+        <head>
+          <title>Prescription - ${selectedPatient.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .container { max-width: 700px; margin: 0 auto; }
+            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
+            .logo { width: 100px; height: 100px; margin: 0 auto 10px; }
+            .hospital-name { font-size: 28px; font-weight: bold; color: #333; margin: 5px 0; }
+            .subtitle { color: #666; font-size: 16px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            .patient-box { background: #f5f5f5; padding: 15px; border-left: 4px solid #e74c3c; margin-bottom: 25px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-weight: bold; font-size: 16px; color: #333; margin-bottom: 10px; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; }
+            .write-area { min-height: 80px; border: 1px solid #ddd; padding: 10px; margin-top: 10px; }
+            .signature { margin-top: 60px; text-align: right; }
+            .signature-line { border-top: 1px solid #333; width: 250px; margin-left: auto; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="/logo.png" alt="Logo" class="logo" />
+              <div class="hospital-name">North Karachi Hospital</div>
+              <div class="subtitle">Prescription & Medical Record</div>
+            </div>
+            
+            <div class="info-row">
+              <div>
+                <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}<br>
+                <strong>Token No:</strong> ${generatedToken?.token_number || 'N/A'}<br>
+                <strong>Queue No:</strong> ${queueNumber}
+              </div>
+              <div style="text-align: right;">
+                <strong style="font-size: 18px;">Dr. ${selectedDoctor.name}</strong><br>
+                ${selectedDoctor.department}<br>
+                ${selectedDoctor.specialization}
+              </div>
+            </div>
+            
+            <div class="patient-box">
+              <strong>Patient Information:</strong><br>
+              Name: ${selectedPatient.name}<br>
+              Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
+              Contact: ${selectedPatient.contact}<br>
+              Chief Complaint: ${selectedPatient.problem}
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Clinical Examination</div>
+              <div class="write-area" style="min-height: 100px;"></div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Diagnosis</div>
+              <div class="write-area" style="min-height: 80px;"></div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">℞ Prescription</div>
+              <div class="write-area" style="min-height: 180px;"></div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Lab Tests / Investigations</div>
+              <div class="write-area" style="min-height: 100px;"></div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Advice & Follow-up</div>
+              <div class="write-area" style="min-height: 80px;"></div>
+            </div>
+            
+            <div class="signature">
+              <div class="signature-line">
+                <strong>Dr. ${selectedDoctor.name}</strong><br>
+                ${selectedDoctor.specialization}
+              </div>
+            </div>
           </div>
-          <div style="text-align: right;">
-            <strong>Dr. ${selectedDoctor.name}</strong><br>
-            ${selectedDoctor.department}<br>
-            ${selectedDoctor.specialization}
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 20px; background: #f5f5f5; padding: 15px; border-radius: 5px;">
-          <strong>Patient Information:</strong><br>
-          Name: ${selectedPatient.name}<br>
-          Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
-          Contact: ${selectedPatient.contact}<br>
-          Problem: ${selectedPatient.problem}
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Clinical Examination:</strong><br>
-          <div style="height: 100px; border: 1px solid #ccc; margin-top: 10px;"></div>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Diagnosis:</strong><br>
-          <div style="height: 80px; border: 1px solid #ccc; margin-top: 10px;"></div>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Prescription:</strong><br>
-          <div style="height: 150px; border: 1px solid #ccc; margin-top: 10px;"></div>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Lab Tests / Investigations:</strong><br>
-          <div style="height: 100px; border: 1px solid #ccc; margin-top: 10px;"></div>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Advice / Follow-up:</strong><br>
-          <div style="height: 80px; border: 1px solid #ccc; margin-top: 10px;"></div>
-        </div>
-        
-        <div style="margin-top: 50px; text-align: right;">
-          <div style="border-top: 1px solid #333; width: 200px; margin-left: auto; padding-top: 10px;">
-            Doctor's Signature
-          </div>
-        </div>
-      </div>
+        </body>
+      </html>
     `;
 
     const printWindow = window.open('', '_blank');
@@ -316,6 +389,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <p className="text-sm text-gray-600">{selectedDoctor.department}</p>
               <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
               <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opd_fee)}</p>
+              <p className="text-sm text-blue-600 mt-1">Next Queue Number: {queueNumber}</p>
             </div>
           )}
         </CardContent>
@@ -368,9 +442,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="text-center p-6 bg-green-50 rounded-lg">
-                <h2 className="text-3xl font-bold text-green-600">Token #{generatedToken.token_number}</h2>
-                <p className="text-gray-600 mt-2">Generated on {new Date().toLocaleDateString()}</p>
+              <div className="text-center p-6 bg-green-50 rounded-lg border-2 border-green-200">
+                <div className="text-sm text-gray-600 mb-2">Queue Number</div>
+                <h2 className="text-5xl font-bold text-red-600">{queueNumber}</h2>
+                <p className="text-gray-600 mt-3">Token #{generatedToken.token_number}</p>
+                <p className="text-sm text-gray-500">{new Date().toLocaleDateString('en-PK')}</p>
                 <Badge className="mt-2" variant={generatedToken.payment_status === 'paid' ? 'default' : 'secondary'}>
                   {generatedToken.payment_status === 'paid' ? 'Payment Completed' : 'Payment Pending'}
                 </Badge>
@@ -396,7 +472,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 </Button>
                 <Button onClick={printPrescriptionSheet} variant="outline" className="flex-1">
                   <Printer className="h-4 w-4 mr-2" />
-                  Print Prescription Sheet
+                  Print Prescription
                 </Button>
               </div>
             </div>
