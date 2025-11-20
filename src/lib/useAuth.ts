@@ -107,6 +107,9 @@ export const useAuth = () => {
     // Dashboard is accessible to everyone
     if (moduleId === 'dashboard') return true;
 
+    // Admin role has access to EVERYTHING
+    if (user.role === 'Admin') return true;
+
     // Get required permissions for this module
     const requiredPermissions = MODULE_PERMISSION_MAP[moduleId] || [];
 
