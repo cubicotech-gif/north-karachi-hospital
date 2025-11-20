@@ -223,9 +223,14 @@ export default function DepartmentManagement() {
       return;
     }
 
+    // Add confirmation dialog
+    if (!window.confirm(`Are you sure you want to delete ${department.name}?`)) {
+      return;
+    }
+
     try {
       const { error } = await db.departments.delete(departmentId);
-      
+
       if (error) {
         console.error('Error deleting department:', error);
         toast.error('Failed to delete department');
@@ -261,7 +266,17 @@ export default function DepartmentManagement() {
               <Building className="h-5 w-5" />
               Department Management
             </div>
-            <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <Button onClick={() => {
+              setShowAddForm(!showAddForm);
+              setEditingDepartment(null);
+              setNewDepartment({
+                name: '',
+                description: '',
+                location: '',
+                contact_extension: '',
+                active: true
+              });
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Department
             </Button>

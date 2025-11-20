@@ -218,25 +218,25 @@ export default function RoomManagement() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete room ${room.room_number}?`)) {
+    if (!window.confirm(`Are you sure you want to delete room ${room.room_number}?`)) {
       return;
     }
 
     try {
       const { error } = await db.rooms.delete(roomId);
-      
+
       if (error) {
         console.error('Error deleting room:', error);
-        toast.error('Failed to delete room');
+        toast.error(`Failed to delete room: ${error.message || 'Unknown error'}`);
         return;
       }
 
       const updatedRooms = rooms.filter(r => r.id !== roomId);
       setRooms(updatedRooms);
       toast.success('Room deleted successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting room:', error);
-      toast.error('Failed to delete room');
+      toast.error(`Failed to delete room: ${error?.message || 'Unknown error'}`);
     }
   };
 
