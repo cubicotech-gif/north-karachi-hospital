@@ -39,7 +39,12 @@ export const useAuth = () => {
     const storedUser = localStorage.getItem('hospital_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        // Ensure permissions is always an array
+        if (!Array.isArray(parsedUser.permissions)) {
+          parsedUser.permissions = [];
+        }
+        setUser(parsedUser);
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('hospital_user');
@@ -70,13 +75,16 @@ export const useAuth = () => {
         return false;
       }
 
+      // Ensure permissions is always an array
+      const permissions = Array.isArray(data.permissions) ? data.permissions : [];
+
       const userData: User = {
         id: data.id,
         username: data.username,
         fullName: data.full_name,
         role: data.role,
         email: data.email,
-        permissions: data.permissions || []
+        permissions: permissions
       };
 
       setUser(userData);
@@ -95,19 +103,22 @@ export const useAuth = () => {
 
   const hasPermission = (moduleId: string): boolean => {
     if (!user) return false;
-    
+
     // Dashboard is accessible to everyone
     if (moduleId === 'dashboard') return true;
-    
+
     // Get required permissions for this module
     const requiredPermissions = MODULE_PERMISSION_MAP[moduleId] || [];
-    
+
     // If no permissions defined, deny access
     if (requiredPermissions.length === 0) return false;
-    
+
+    // Safety check: ensure user.permissions is an array
+    const userPermissions = user.permissions || [];
+
     // Check if user has ANY of the required permissions for this module
-    return requiredPermissions.some(reqPerm => 
-      user.permissions.includes(reqPerm)
+    return requiredPermissions.some(reqPerm =>
+      userPermissions.includes(reqPerm)
     );
   };
 
