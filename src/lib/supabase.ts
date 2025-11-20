@@ -157,6 +157,28 @@ export const db = {
     },
     update: async (id: string, data: any) => {
       return await supabase.from('users').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('users').delete().eq('id', id);
+    }
+  },
+
+  // APPOINTMENTS
+  appointments: {
+    getAll: async () => {
+      return await supabase.from('appointments').select('*').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true });
+    },
+    getById: async (id: string) => {
+      return await supabase.from('appointments').select('*').eq('id', id).single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('appointments').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('appointments').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('appointments').delete().eq('id', id);
     }
   }
 };
