@@ -26,31 +26,28 @@ interface User {
   permissions: string[];
 }
 
+// Real module permissions that match the actual system
 const rolePermissions = {
   Admin: [
-    'Patient Registration', 'OPD Management', 'Admission Management', 'Lab Management',
-    'Doctor Management', 'User Management', 'Reports & Analytics', 'System Settings',
-    'Billing & Payments'
+    'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
+    'Lab Management', 'Lab Test Management', 'Room Management', 'Department Management',
+    'Doctor Management', 'User Management', 'Reports & Analytics', 'Billing & Invoices',
+    'Appointment Scheduling', 'Doctor Queue System'
   ],
   Doctor: [
-    'View Patient Records', 'Update Medical Records', 'Prescribe Medications', 
-    'Order Lab Tests', 'Discharge Patients', 'View Reports'
+    'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
+    'Lab Management', 'Doctor Queue System', 'Reports & Analytics'
   ],
   Nurse: [
-    'Patient Registration', 'View Patient Records', 'Update Vital Signs', 
-    'Medication Administration', 'Lab Sample Collection', 'Patient Care Notes'
+    'Patient Registration', 'OPD Token System', 'Admission Management', 'Lab Management',
+    'Doctor Queue System'
   ],
   Receptionist: [
-    'Patient Registration', 'OPD Token Generation', 'Appointment Scheduling', 
-    'Billing & Payments', 'Lab Order Creation', 'Print Reports'
+    'Patient Registration', 'OPD Token System', 'Appointment Scheduling', 'Billing & Invoices',
+    'Lab Management', 'Doctor Queue System'
   ],
   'Lab Technician': [
-    'Lab Test Management', 'Lab Order Processing', 'Result Entry', 
-    'Report Generation', 'Sample Collection'
-  ],
-  Pharmacist: [
-    'Medicine Dispensing', 'Inventory Management', 'Prescription Verification', 
-    'Stock Management'
+    'Lab Management', 'Lab Test Management', 'Patient Registration'
   ]
 };
 

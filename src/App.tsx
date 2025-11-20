@@ -7,19 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
-  FileText, 
-  Bed, 
-  TestTube, 
-  Stethoscope, 
+import {
+  Users,
+  FileText,
+  Bed,
+  TestTube,
+  Stethoscope,
   Settings,
   Hospital,
   User,
   LogOut,
   Building,
   Beaker,
-  DoorOpen
+  DoorOpen,
+  TrendingUp
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
@@ -34,10 +35,14 @@ import DepartmentManagement from '@/components/DepartmentManagement';
 import LabTestManagement from '@/components/LabTestManagement';
 import RoomManagement from '@/components/RoomManagement';
 import DischargeModule from '@/components/DischargeModule';
+import DoctorQueueSystem from '@/components/DoctorQueueSystem';
+import AppointmentScheduling from '@/components/AppointmentScheduling';
+import ReportsAnalytics from '@/components/ReportsAnalytics';
+import BillingInvoices from '@/components/BillingInvoices';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms';
+type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -129,13 +134,17 @@ const App = () => {
     { id: 'dashboard' as ModuleType, name: 'Dashboard', icon: Hospital },
     { id: 'patients' as ModuleType, name: 'Patient Registration', icon: Users },
     { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
+    { id: 'appointments' as ModuleType, name: 'Appointments', icon: FileText },
+    { id: 'queue' as ModuleType, name: 'Doctor Queue', icon: Users },
     { id: 'admission' as ModuleType, name: 'Admissions', icon: Bed },
     { id: 'discharge' as ModuleType, name: 'Discharge', icon: DoorOpen },
     { id: 'lab' as ModuleType, name: 'Lab Orders', icon: TestTube },
+    { id: 'billing' as ModuleType, name: 'Billing & Invoices', icon: FileText },
     { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
     { id: 'rooms' as ModuleType, name: 'Room Management', icon: Building },
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
     { id: 'labtests' as ModuleType, name: 'Lab Test Management', icon: Beaker },
+    { id: 'reports' as ModuleType, name: 'Reports & Analytics', icon: TrendingUp },
     { id: 'users' as ModuleType, name: 'User Management', icon: Settings },
   ];
 
@@ -274,19 +283,25 @@ const App = () => {
         return renderDashboard();
       case 'patients':
         return (
-          <PatientRegistration 
+          <PatientRegistration
             onPatientSelect={handlePatientSelect}
             onNewPatient={handlePatientSelect}
           />
         );
       case 'opd':
         return <OPDTokenSystem selectedPatient={selectedPatient} />;
+      case 'appointments':
+        return <AppointmentScheduling />;
+      case 'queue':
+        return <DoctorQueueSystem />;
       case 'admission':
         return <AdmissionModule selectedPatient={selectedPatient} />;
       case 'discharge':
         return <DischargeModule />;
       case 'lab':
         return <LabManagement selectedPatient={selectedPatient} />;
+      case 'billing':
+        return <BillingInvoices />;
       case 'doctors':
         return <DoctorManagement />;
       case 'rooms':
@@ -295,6 +310,8 @@ const App = () => {
         return <DepartmentManagement />;
       case 'labtests':
         return <LabTestManagement />;
+      case 'reports':
+        return <ReportsAnalytics />;
       case 'users':
         return <UserRoles />;
       default:

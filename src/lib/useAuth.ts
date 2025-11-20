@@ -11,18 +11,23 @@ interface User {
 }
 
 // Map module IDs to permission names that are stored in database
+// Each module can be accessed if user has ANY of the listed permissions
 const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'dashboard': ['all'], // Everyone can see dashboard
   'patients': ['Patient Registration'],
-  'opd': ['OPD Management', 'OPD Token Generation'],
+  'opd': ['OPD Token System'],
   'admission': ['Admission Management'],
-  'discharge': ['Discharge Patients', 'Admission Management'],
-  'lab': ['Lab Management', 'Lab Order Processing', 'Lab Order Creation'],
+  'discharge': ['Discharge Management', 'Admission Management'],
+  'lab': ['Lab Management'],
+  'labtests': ['Lab Test Management'],
   'doctors': ['Doctor Management'],
-  'rooms': ['System Settings', 'Admission Management'],
-  'departments': ['System Settings'],
-  'labtests': ['Lab Test Management', 'System Settings'],
-  'users': ['User Management']
+  'rooms': ['Room Management'],
+  'departments': ['Department Management'],
+  'users': ['User Management'],
+  'appointments': ['Appointment Scheduling'],
+  'queue': ['Doctor Queue System'],
+  'reports': ['Reports & Analytics'],
+  'billing': ['Billing & Invoices']
 };
 
 export const useAuth = () => {
