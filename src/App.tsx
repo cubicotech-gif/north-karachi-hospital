@@ -20,12 +20,16 @@ import {
   Building,
   Beaker,
   DoorOpen,
-  TrendingUp
+  TrendingUp,
+  Activity,
+  UserCog
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
 import { toast } from 'sonner';
 import PatientRegistration from '@/components/PatientRegistration';
+import PatientProfile from '@/components/PatientProfile';
+import TreatmentManagement from '@/components/TreatmentManagement';
 import OPDTokenSystem from '@/components/OPDTokenSystem';
 import AdmissionModule from '@/components/AdmissionModule';
 import LabManagement from '@/components/LabManagement';
@@ -42,7 +46,7 @@ import BillingInvoices from '@/components/BillingInvoices';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'opd' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -133,7 +137,9 @@ const App = () => {
   const allModules = [
     { id: 'dashboard' as ModuleType, name: 'Dashboard', icon: Hospital },
     { id: 'patients' as ModuleType, name: 'Patient Registration', icon: Users },
+    { id: 'allpatients' as ModuleType, name: 'All Patients', icon: UserCog },
     { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
+    { id: 'treatment' as ModuleType, name: 'Treatment', icon: Activity },
     { id: 'appointments' as ModuleType, name: 'Appointments', icon: FileText },
     { id: 'queue' as ModuleType, name: 'Doctor Queue', icon: Users },
     { id: 'admission' as ModuleType, name: 'Admissions', icon: Bed },
@@ -288,8 +294,12 @@ const App = () => {
             onNewPatient={handlePatientSelect}
           />
         );
+      case 'allpatients':
+        return <PatientProfile selectedPatient={selectedPatient} />;
       case 'opd':
         return <OPDTokenSystem selectedPatient={selectedPatient} />;
+      case 'treatment':
+        return <TreatmentManagement selectedPatient={selectedPatient} />;
       case 'appointments':
         return <AppointmentScheduling />;
       case 'queue':
