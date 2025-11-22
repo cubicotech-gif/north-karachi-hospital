@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Users, Search, Plus, UserPlus, Edit, Trash2, X } from 'lucide-react';
-import { Patient, validateCNIC, formatCNIC, calculateAge } from '@/lib/hospitalData';
+import { Patient, validateCNIC, formatCNIC } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -25,10 +25,10 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const [newPatient, setNewPatient] = useState<Partial<Patient>>({
     name: '',
     age: 0,
-    dateOfBirth: '',
     cnicNumber: '',
     gender: 'Male',
     contact: '',
+    careOf: '',
     problem: '',
     department: 'General Medicine',
     emergencyContact: '',
@@ -68,12 +68,14 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
       const patientsData = data?.map((p: any) => ({
         id: p.id,
+        mrNumber: p.mr_number,
         name: p.name,
         age: p.age,
         dateOfBirth: p.date_of_birth,
         cnicNumber: p.cnic_number,
         gender: p.gender,
         contact: p.contact,
+        careOf: p.care_of,
         problem: p.problem,
         department: p.department,
         registrationDate: p.registration_date,
@@ -99,10 +101,10 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     setNewPatient({
       name: patient.name,
       age: patient.age,
-      dateOfBirth: patient.dateOfBirth,
       cnicNumber: patient.cnicNumber,
       gender: patient.gender,
       contact: patient.contact,
+      careOf: patient.careOf,
       problem: patient.problem,
       department: patient.department,
       emergencyContact: patient.emergencyContact,
@@ -139,9 +141,9 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
   const handleRegisterOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newPatient.name || !newPatient.contact || !newPatient.dateOfBirth) {
-      toast.error('Please fill in all required fields');
+
+    if (!newPatient.name || !newPatient.contact || !newPatient.age || newPatient.age <= 0) {
+      toast.error('Please fill in all required fields (Name, Contact, Age)');
       return;
     }
 
@@ -150,15 +152,13 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       return;
     }
 
-    const age = calculateAge(newPatient.dateOfBirth!);
-
     const patientData = {
       name: newPatient.name,
-      age: age,
-      date_of_birth: newPatient.dateOfBirth,
+      age: newPatient.age,
       cnic_number: newPatient.cnicNumber ? formatCNIC(newPatient.cnicNumber) : null,
       gender: newPatient.gender,
       contact: newPatient.contact,
+      care_of: newPatient.careOf || null,
       problem: newPatient.problem || 'General Checkup',
       department: newPatient.department,
       emergency_contact: newPatient.emergencyContact,
@@ -180,12 +180,14 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
         const updatedPatient: Patient = {
           id: data.id,
+          mrNumber: data.mr_number,
           name: data.name,
           age: data.age,
           dateOfBirth: data.date_of_birth,
           cnicNumber: data.cnic_number,
           gender: data.gender,
           contact: data.contact,
+          careOf: data.care_of,
           problem: data.problem,
           department: data.department,
           registrationDate: data.registration_date,
@@ -216,12 +218,14 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
         const createdPatient: Patient = {
           id: data.id,
+          mrNumber: data.mr_number,
           name: data.name,
           age: data.age,
           dateOfBirth: data.date_of_birth,
           cnicNumber: data.cnic_number,
           gender: data.gender,
           contact: data.contact,
+          careOf: data.care_of,
           problem: data.problem,
           department: data.department,
           registrationDate: data.registration_date,
@@ -241,10 +245,10 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       setNewPatient({
         name: '',
         age: 0,
-        dateOfBirth: '',
         cnicNumber: '',
         gender: 'Male',
         contact: '',
+        careOf: '',
         problem: '',
         department: 'General Medicine',
         emergencyContact: '',
@@ -277,12 +281,14 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
       const patientsData = data?.map((p: any) => ({
         id: p.id,
+        mrNumber: p.mr_number,
         name: p.name,
         age: p.age,
         dateOfBirth: p.date_of_birth,
         cnicNumber: p.cnic_number,
         gender: p.gender,
         contact: p.contact,
+        careOf: p.care_of,
         problem: p.problem,
         department: p.department,
         registrationDate: p.registration_date,
@@ -366,12 +372,15 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                  <Label htmlFor="age">Age *</Label>
                   <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={newPatient.dateOfBirth}
-                    onChange={(e) => setNewPatient({ ...newPatient, dateOfBirth: e.target.value })}
+                    id="age"
+                    type="number"
+                    min="0"
+                    max="150"
+                    value={newPatient.age || ''}
+                    onChange={(e) => setNewPatient({ ...newPatient, age: parseInt(e.target.value) || 0 })}
+                    placeholder="e.g., 25"
                     required
                   />
                 </div>
@@ -420,6 +429,18 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                     value={newPatient.emergencyContact}
                     onChange={(e) => setNewPatient({ ...newPatient, emergencyContact: e.target.value })}
                     placeholder="0300-7654321"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="careOf">Care Of (Guardian/Relative)</Label>
+                  <Input
+                    id="careOf"
+                    value={newPatient.careOf}
+                    onChange={(e) => setNewPatient({ ...newPatient, careOf: e.target.value })}
+                    placeholder="e.g., Father, Husband, Mother"
                   />
                 </div>
               </div>
@@ -505,7 +526,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
           <div className="flex gap-2 mb-4">
             <Input
-              placeholder="Search by name, contact, or CNIC..."
+              placeholder="Search by MR number, name, contact, or CNIC..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearchPatients()}
@@ -536,17 +557,25 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                 patients.map((patient) => (
                   <Card key={patient.id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
-                      <div 
-                        className="flex-1 cursor-pointer" 
+                      <div
+                        className="flex-1 cursor-pointer"
                         onClick={() => onPatientSelect(patient)}
                       >
                         <div className="flex items-center gap-2 mb-2">
+                          {patient.mrNumber && (
+                            <Badge variant="outline" className="text-blue-700 border-blue-700 font-mono">
+                              {patient.mrNumber}
+                            </Badge>
+                          )}
                           <h3 className="font-semibold text-lg">{patient.name}</h3>
                           <Badge>{patient.department}</Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                           <p><strong>Age:</strong> {patient.age} years • {patient.gender}</p>
                           <p><strong>Contact:</strong> {patient.contact}</p>
+                          {patient.careOf && (
+                            <p><strong>Care Of:</strong> {patient.careOf}</p>
+                          )}
                           {patient.cnicNumber && (
                             <p><strong>CNIC:</strong> {patient.cnicNumber}</p>
                           )}
@@ -565,18 +594,18 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                         )}
                       </div>
                       <div className="flex gap-2 ml-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={(e) => handleEdit(patient, e)}
                           className="hover:bg-blue-50"
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Edit
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={(e) => handleDelete(patient.id, patient.name, e)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
