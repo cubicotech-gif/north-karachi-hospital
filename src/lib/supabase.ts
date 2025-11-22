@@ -208,6 +208,28 @@ export const db = {
     }
   },
 
+  // TREATMENT TYPES
+  treatmentTypes: {
+    getAll: async () => {
+      return await supabase.from('treatment_types').select('*').order('name', { ascending: true });
+    },
+    getActive: async () => {
+      return await supabase.from('treatment_types').select('*').eq('active', true).order('name', { ascending: true });
+    },
+    getById: async (id: string) => {
+      return await supabase.from('treatment_types').select('*').eq('id', id).single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('treatment_types').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('treatment_types').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('treatment_types').delete().eq('id', id);
+    }
+  },
+
   // PATIENT HISTORY - Get all activities for a patient
   patientHistory: {
     getByPatientId: async (patientId: string) => {

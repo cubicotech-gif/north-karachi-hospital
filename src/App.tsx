@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import PatientRegistration from '@/components/PatientRegistration';
 import PatientProfile from '@/components/PatientProfile';
 import TreatmentManagement from '@/components/TreatmentManagement';
+import TreatmentTypesManagement from '@/components/TreatmentTypesManagement';
 import OPDTokenSystem from '@/components/OPDTokenSystem';
 import AdmissionModule from '@/components/AdmissionModule';
 import LabManagement from '@/components/LabManagement';
@@ -46,7 +47,7 @@ import BillingInvoices from '@/components/BillingInvoices';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -140,6 +141,7 @@ const App = () => {
     { id: 'allpatients' as ModuleType, name: 'All Patients', icon: UserCog },
     { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: FileText },
     { id: 'treatment' as ModuleType, name: 'Treatment', icon: Activity },
+    { id: 'treatmenttypes' as ModuleType, name: 'Treatment Types', icon: Settings },
     { id: 'appointments' as ModuleType, name: 'Appointments', icon: FileText },
     { id: 'queue' as ModuleType, name: 'Doctor Queue', icon: Users },
     { id: 'admission' as ModuleType, name: 'Admissions', icon: Bed },
@@ -300,6 +302,8 @@ const App = () => {
         return <OPDTokenSystem selectedPatient={selectedPatient} />;
       case 'treatment':
         return <TreatmentManagement selectedPatient={selectedPatient} />;
+      case 'treatmenttypes':
+        return <TreatmentTypesManagement />;
       case 'appointments':
         return <AppointmentScheduling />;
       case 'queue':
