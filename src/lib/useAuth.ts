@@ -15,7 +15,9 @@ interface User {
 const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'dashboard': ['all'], // Everyone can see dashboard
   'patients': ['Patient Registration'],
+  'allpatients': ['Patient Registration'], // Same permission as patient registration
   'opd': ['OPD Token System'],
+  'treatment': ['OPD Token System', 'Patient Registration'], // Treatment accessible to OPD and Patient Registration users
   'admission': ['Admission Management'],
   'discharge': ['Discharge Management', 'Admission Management'],
   'lab': ['Lab Management'],

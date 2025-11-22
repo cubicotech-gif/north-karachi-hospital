@@ -15,7 +15,7 @@ import { formatCurrency } from '@/lib/hospitalData';
 
 interface Invoice {
   id: string;
-  type: 'OPD' | 'Admission' | 'Lab' | 'Discharge';
+  type: 'OPD' | 'Admission' | 'Lab' | 'Discharge' | 'Treatment';
   patient_id: string;
   patient_name: string;
   amount: number;
@@ -44,22 +44,25 @@ export default function BillingInvoices() {
   const fetchAllInvoices = async () => {
     setLoading(true);
     try {
-      const [opdTokensRes, admissionsRes, labOrdersRes, patientsRes] = await Promise.all([
+      const [opdTokensRes, admissionsRes, labOrdersRes, treatmentsRes, patientsRes] = await Promise.all([
         db.opdTokens.getAll(),
         db.admissions.getAll(),
         db.labOrders.getAll(),
+        db.treatments.getAll(),
         db.patients.getAll()
       ]);
 
       if (opdTokensRes.error) throw opdTokensRes.error;
       if (admissionsRes.error) throw admissionsRes.error;
       if (labOrdersRes.error) throw labOrdersRes.error;
+      if (treatmentsRes.error) throw treatmentsRes.error;
       if (patientsRes.error) throw patientsRes.error;
 
       const patients = patientsRes.data || [];
       const opdTokens = opdTokensRes.data || [];
       const admissions = admissionsRes.data || [];
       const labOrders = labOrdersRes.data || [];
+      const treatments = treatmentsRes.data || [];
 
       const allInvoices: Invoice[] = [];
 
@@ -108,6 +111,22 @@ export default function BillingInvoices() {
           date: order.order_date,
           created_at: order.created_at,
           description: `Lab Order - ${order.tests?.length || 0} tests`
+        });
+      });
+
+      // Treatment Invoices
+      treatments.forEach((treatment: any) => {
+        const patient = patients.find((p: any) => p.id === treatment.patient_id);
+        allInvoices.push({
+          id: `treatment-${treatment.id}`,
+          type: 'Treatment',
+          patient_id: treatment.patient_id,
+          patient_name: patient?.name || 'Unknown Patient',
+          amount: treatment.price || 0,
+          payment_status: treatment.payment_status || 'unpaid',
+          date: treatment.date,
+          created_at: treatment.created_at,
+          description: `${treatment.treatment_type} - ${treatment.treatment_name}`
         });
       });
 

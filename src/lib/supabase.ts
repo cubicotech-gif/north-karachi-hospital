@@ -15,6 +15,13 @@ export const db = {
     getById: async (id: string) => {
       return await supabase.from('patients').select('*').eq('id', id).single();
     },
+    search: async (query: string) => {
+      return await supabase
+        .from('patients')
+        .select('*')
+        .or(`name.ilike.%${query}%,contact.ilike.%${query}%,cnic_number.ilike.%${query}%,mr_number.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+    },
     create: async (data: any) => {
       return await supabase.from('patients').insert([data]).select().single();
     },
@@ -179,6 +186,98 @@ export const db = {
     },
     delete: async (id: string) => {
       return await supabase.from('appointments').delete().eq('id', id);
+    }
+  },
+
+  // TREATMENTS
+  treatments: {
+    getAll: async () => {
+      return await supabase.from('treatments').select('*').order('created_at', { ascending: false });
+    },
+    getByPatientId: async (patientId: string) => {
+      return await supabase.from('treatments').select('*').eq('patient_id', patientId).order('date', { ascending: false });
+    },
+    create: async (data: any) => {
+      return await supabase.from('treatments').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('treatments').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('treatments').delete().eq('id', id);
+    }
+  },
+
+  // PATIENT HISTORY - Get all activities for a patient
+  patientHistory: {
+    getByPatientId: async (patientId: string) => {
+      // Get all OPD tokens for patient
+      const opdTokens = await supabase
+        .from('opd_tokens')
+        .select('*, doctors(name)')
+        .eq('patient_id', patientId)
+        .order('date', { ascending: false });
+
+      // Get all admissions for patient
+      const admissions = await supabase
+        .from('admissions')
+        .select('*, doctors(name), rooms(room_number, type)')
+        .eq('patient_id', patientId)
+        .order('admission_date', { ascending: false });
+
+      // Get all lab orders for patient
+      const labOrders = await supabase
+        .from('lab_orders')
+        .select('*, doctors(name)')
+        .eq('patient_id', patientId)
+        .order('order_date', { ascending: false });
+
+      // Get all treatments for patient
+      const treatments = await supabase
+        .from('treatments')
+        .select('*, doctors(name)')
+        .eq('patient_id', patientId)
+        .order('date', { ascending: false });
+
+      // Get all appointments for patient
+      const appointments = await supabase
+        .from('appointments')
+        .select('*, doctors(name)')
+        .eq('patient_id', patientId)
+        .order('appointment_date', { ascending: false });
+
+      return {
+        opdTokens,
+        admissions,
+        labOrders,
+        treatments,
+        appointments
+      };
+    }
+  },
+
+  // UTILITY FUNCTIONS
+  utils: {
+    // Get next MR number
+    getNextMRNumber: async () => {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('mr_number')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        return 'MR-0001';
+      }
+
+      const lastMR = data[0].mr_number;
+      if (!lastMR || !lastMR.startsWith('MR-')) {
+        return 'MR-0001';
+      }
+
+      const lastNumber = parseInt(lastMR.split('-')[1]);
+      const nextNumber = lastNumber + 1;
+      return `MR-${nextNumber.toString().padStart(4, '0')}`;
     }
   }
 };

@@ -1,11 +1,13 @@
 export interface Patient {
   id: string;
+  mrNumber?: string; // Medical Record Number - auto-generated
   name: string;
   age: number;
-  dateOfBirth: string;
+  dateOfBirth?: string; // Optional now, using age field instead
   cnicNumber: string;
   gender: 'Male' | 'Female' | 'Other';
   contact: string;
+  careOf?: string; // Care of (guardian/responsible person)
   problem: string;
   department: string;
   registrationDate: string;
@@ -105,6 +107,20 @@ export interface LabOrder {
   status: 'pending' | 'in-progress' | 'completed';
   orderDate: string;
   results?: { [testId: string]: string };
+}
+
+export interface Treatment {
+  id: string;
+  patientId: string;
+  doctorId?: string;
+  treatmentType: string; // 'Dressing', 'Operation', 'Normal Delivery', 'Seizure', etc.
+  treatmentName: string;
+  description?: string;
+  price: number;
+  paymentStatus: 'paid' | 'pending' | 'partial';
+  date: string;
+  notes?: string;
+  createdAt?: string;
 }
 
 export interface User {
