@@ -23,41 +23,24 @@ interface TreatmentManagementProps {
   selectedPatient: Patient | null;
 }
 
-// Common treatment types for maternity hospital
-const TREATMENT_TYPES = [
-  'Normal Delivery',
-  'C-Section Operation',
-  'Dressing',
-  'Seizure Care',
-  'IV Therapy',
-  'Post-Natal Care',
-  'Pre-Natal Checkup',
-  'Vaccination',
-  'Minor Surgery',
-  'Emergency Care',
-  'Other'
-];
-
-// Default prices for common treatments
-const DEFAULT_PRICES: { [key: string]: number } = {
-  'Normal Delivery': 15000,
-  'C-Section Operation': 50000,
-  'Dressing': 500,
-  'Seizure Care': 3000,
-  'IV Therapy': 1500,
-  'Post-Natal Care': 2000,
-  'Pre-Natal Checkup': 1000,
-  'Vaccination': 800,
-  'Minor Surgery': 10000,
-  'Emergency Care': 5000,
-  'Other': 0
-};
+interface TreatmentType {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  default_price: number;
+  process_details: string;
+  duration: string;
+  requirements: string;
+  active: boolean;
+}
 
 export default function TreatmentManagement({ selectedPatient }: TreatmentManagementProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [treatments, setTreatments] = useState<any[]>([]);
+  const [treatmentTypes, setTreatmentTypes] = useState<TreatmentType[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
-  const [treatmentType, setTreatmentType] = useState<string>('');
+  const [selectedTreatmentType, setSelectedTreatmentType] = useState<TreatmentType | null>(null);
   const [treatmentName, setTreatmentName] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'partial'>('pending');
@@ -68,6 +51,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
 
   useEffect(() => {
     fetchDoctors();
+    fetchTreatmentTypes();
     if (selectedPatient) {
       fetchTreatments();
     }
@@ -88,6 +72,21 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     }
   };
 
+  const fetchTreatmentTypes = async () => {
+    try {
+      const { data, error } = await db.treatmentTypes.getActive();
+      if (error) {
+        console.error('Error fetching treatment types:', error);
+        toast.error('Failed to load treatment types');
+        return;
+      }
+      setTreatmentTypes(data || []);
+    } catch (error) {
+      console.error('Error fetching treatment types:', error);
+      toast.error('Failed to load treatment types');
+    }
+  };
+
   const fetchTreatments = async () => {
     if (!selectedPatient) return;
 
@@ -103,10 +102,14 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     }
   };
 
-  const handleTreatmentTypeChange = (type: string) => {
-    setTreatmentType(type);
-    setTreatmentName(type);
-    setPrice(DEFAULT_PRICES[type] || 0);
+  const handleTreatmentTypeChange = (treatmentTypeId: string) => {
+    const selectedType = treatmentTypes.find(t => t.id === treatmentTypeId);
+    if (selectedType) {
+      setSelectedTreatmentType(selectedType);
+      setTreatmentName(selectedType.name);
+      setPrice(selectedType.default_price);
+      setDescription(selectedType.description || '');
+    }
   };
 
   const handleAddTreatment = async () => {
@@ -115,7 +118,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       return;
     }
 
-    if (!treatmentType || !treatmentName || price <= 0) {
+    if (!selectedTreatmentType || !treatmentName || price <= 0) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -125,7 +128,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       const treatmentData = {
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor || null,
-        treatment_type: treatmentType,
+        treatment_type: selectedTreatmentType.name,
         treatment_name: treatmentName,
         description: description || null,
         price: price,
@@ -147,7 +150,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       fetchTreatments();
 
       // Reset form
-      setTreatmentType('');
+      setSelectedTreatmentType(null);
       setTreatmentName('');
       setSelectedDoctor('');
       setPrice(0);
@@ -319,14 +322,25 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="treatmentType">Treatment Type *</Label>
-                    <Select value={treatmentType} onValueChange={handleTreatmentTypeChange}>
+                    <Select
+                      value={selectedTreatmentType?.id || ''}
+                      onValueChange={handleTreatmentTypeChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select treatment type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {TREATMENT_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
+                        {treatmentTypes.length === 0 ? (
+                          <div className="p-2 text-sm text-gray-500">
+                            No treatment types available. Please add them in Treatment Types Management.
+                          </div>
+                        ) : (
+                          treatmentTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name} - Rs. {type.default_price.toLocaleString()}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -341,6 +355,25 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                     />
                   </div>
                 </div>
+
+                {/* Treatment Details Info */}
+                {selectedTreatmentType && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm">
+                    <h4 className="font-semibold text-blue-900 mb-2">Treatment Information:</h4>
+                    {selectedTreatmentType.category && (
+                      <p className="text-gray-700"><strong>Category:</strong> {selectedTreatmentType.category}</p>
+                    )}
+                    {selectedTreatmentType.duration && (
+                      <p className="text-gray-700"><strong>Duration:</strong> {selectedTreatmentType.duration}</p>
+                    )}
+                    {selectedTreatmentType.process_details && (
+                      <p className="text-gray-700 mt-1"><strong>Process:</strong> {selectedTreatmentType.process_details}</p>
+                    )}
+                    {selectedTreatmentType.requirements && (
+                      <p className="text-gray-700 mt-1"><strong>Requirements:</strong> {selectedTreatmentType.requirements}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
