@@ -439,15 +439,24 @@ export const generateId = (): string => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
 
-export const formatCurrency = (amount: number): string => {
+// ✅ FIXED: Now handles undefined/null values
+export const formatCurrency = (amount: number | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return 'Rs 0';
+  }
   return `Rs ${amount.toLocaleString('en-PK')}`;
 };
 
-export const formatDate = (date: string): string => {
+// ✅ FIXED: Now handles undefined/null values
+export const formatDate = (date: string | undefined | null): string => {
+  if (!date) return 'N/A';
   return new Date(date).toLocaleDateString('en-IN');
 };
 
-export const calculateAge = (dateOfBirth: string): number => {
+// ✅ FIXED: Now handles undefined/null values
+export const calculateAge = (dateOfBirth: string | undefined | null): number => {
+  if (!dateOfBirth) return 0;
+  
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -460,12 +469,16 @@ export const calculateAge = (dateOfBirth: string): number => {
   return age;
 };
 
+// ✅ FIXED: Now handles empty/null values
 export const validateCNIC = (cnic: string): boolean => {
+  if (!cnic) return false;
   const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
   return cnicRegex.test(cnic);
 };
 
+// ✅ FIXED: Now handles empty/null values
 export const formatCNIC = (cnic: string): string => {
+  if (!cnic) return '';
   const cleaned = cnic.replace(/\D/g, '');
   if (cleaned.length === 13) {
     return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 12)}-${cleaned.slice(12)}`;
