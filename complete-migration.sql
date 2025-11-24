@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS doctors (
     experience INTEGER, -- years of experience
     contact VARCHAR(50),
     email VARCHAR(255),
-    department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+    department VARCHAR(255), -- Department name (used by application)
+    department_id UUID REFERENCES departments(id) ON DELETE SET NULL, -- Optional FK for relational queries
     consultation_fee DECIMAL(10, 2) DEFAULT 0,
     schedule TEXT, -- JSON or text describing weekly schedule
     active BOOLEAN DEFAULT TRUE,
@@ -80,6 +81,7 @@ CREATE TABLE IF NOT EXISTS doctors (
 
 CREATE INDEX IF NOT EXISTS idx_doctors_name ON doctors(name);
 CREATE INDEX IF NOT EXISTS idx_doctors_specialization ON doctors(specialization);
+CREATE INDEX IF NOT EXISTS idx_doctors_department ON doctors(department);
 CREATE INDEX IF NOT EXISTS idx_doctors_department_id ON doctors(department_id);
 CREATE INDEX IF NOT EXISTS idx_doctors_active ON doctors(active);
 
