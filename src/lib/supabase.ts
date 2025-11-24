@@ -5,28 +5,63 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Helper function to convert camelCase to snake_case
+const toSnakeCase = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toSnakeCase);
+  
+  const result: any = {};
+  for (const key in obj) {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    result[snakeKey] = toSnakeCase(obj[key]);
+  }
+  return result;
+};
+
+// Helper function to convert snake_case to camelCase
+const toCamelCase = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  
+  const result: any = {};
+  for (const key in obj) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    result[camelKey] = toCamelCase(obj[key]);
+  }
+  return result;
+};
+
 // Database helper functions
 export const db = {
   // PATIENTS
   patients: {
     getAll: async () => {
-      return await supabase.from('patients').select('*').order('created_at', { ascending: false });
+      const response = await supabase.from('patients').select('*').order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getById: async (id: string) => {
-      return await supabase.from('patients').select('*').eq('id', id).single();
+      const response = await supabase.from('patients').select('*').eq('id', id).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     search: async (query: string) => {
-      return await supabase
+      const response = await supabase
         .from('patients')
         .select('*')
         .or(`name.ilike.%${query}%,contact.ilike.%${query}%,cnic_number.ilike.%${query}%,mr_number.ilike.%${query}%`)
         .order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('patients').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('patients').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('patients').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('patients').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('patients').delete().eq('id', id);
@@ -36,16 +71,22 @@ export const db = {
   // DOCTORS
   doctors: {
     getAll: async () => {
-      return await supabase.from('doctors').select('*').order('name', { ascending: true });
+      const response = await supabase.from('doctors').select('*').order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getById: async (id: string) => {
-      return await supabase.from('doctors').select('*').eq('id', id).single();
+      const response = await supabase.from('doctors').select('*').eq('id', id).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('doctors').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('doctors').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('doctors').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('doctors').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('doctors').delete().eq('id', id);
@@ -55,13 +96,18 @@ export const db = {
   // DEPARTMENTS
   departments: {
     getAll: async () => {
-      return await supabase.from('departments').select('*').order('name', { ascending: true });
+      const response = await supabase.from('departments').select('*').order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('departments').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('departments').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('departments').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('departments').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('departments').delete().eq('id', id);
@@ -71,16 +117,22 @@ export const db = {
   // LAB TESTS
   labTests: {
     getAll: async () => {
-      return await supabase.from('lab_tests').select('*').order('name', { ascending: true });
+      const response = await supabase.from('lab_tests').select('*').order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getActive: async () => {
-      return await supabase.from('lab_tests').select('*').eq('active', true).order('name', { ascending: true });
+      const response = await supabase.from('lab_tests').select('*').eq('active', true).order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('lab_tests').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('lab_tests').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('lab_tests').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('lab_tests').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('lab_tests').delete().eq('id', id);
@@ -90,19 +142,26 @@ export const db = {
   // ROOMS
   rooms: {
     getAll: async () => {
-      return await supabase.from('rooms').select('*').order('room_number', { ascending: true });
+      const response = await supabase.from('rooms').select('*').order('room_number', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getById: async (id: string) => {
-      return await supabase.from('rooms').select('*').eq('id', id).single();
+      const response = await supabase.from('rooms').select('*').eq('id', id).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     getAvailable: async () => {
-      return await supabase.from('rooms').select('*').eq('active', true).order('room_number', { ascending: true });
+      const response = await supabase.from('rooms').select('*').eq('active', true).order('room_number', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('rooms').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('rooms').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('rooms').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('rooms').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('rooms').delete().eq('id', id);
@@ -112,58 +171,80 @@ export const db = {
   // OPD TOKENS
   opdTokens: {
     getAll: async () => {
-      return await supabase.from('opd_tokens').select('*').order('created_at', { ascending: false });
+      const response = await supabase.from('opd_tokens').select('*').order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('opd_tokens').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('opd_tokens').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('opd_tokens').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('opd_tokens').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     }
   },
 
   // ADMISSIONS
   admissions: {
     getAll: async () => {
-      return await supabase.from('admissions').select('*').order('admission_date', { ascending: false });
+      const response = await supabase.from('admissions').select('*').order('admission_date', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getActive: async () => {
-      return await supabase.from('admissions').select('*').eq('status', 'active').order('admission_date', { ascending: false });
+      const response = await supabase.from('admissions').select('*').eq('status', 'active').order('admission_date', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('admissions').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('admissions').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('admissions').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('admissions').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     }
   },
 
   // LAB ORDERS
   labOrders: {
     getAll: async () => {
-      return await supabase.from('lab_orders').select('*').order('created_at', { ascending: false });
+      const response = await supabase.from('lab_orders').select('*').order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('lab_orders').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('lab_orders').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('lab_orders').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('lab_orders').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     }
   },
 
   // USERS
   users: {
     getAll: async () => {
-      return await supabase.from('users').select('*').order('created_at', { ascending: false });
+      const response = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getByUsername: async (username: string) => {
-      return await supabase.from('users').select('*').eq('username', username).single();
+      const response = await supabase.from('users').select('*').eq('username', username).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('users').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('users').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('users').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('users').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('users').delete().eq('id', id);
@@ -173,16 +254,22 @@ export const db = {
   // APPOINTMENTS
   appointments: {
     getAll: async () => {
-      return await supabase.from('appointments').select('*').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true });
+      const response = await supabase.from('appointments').select('*').order('appointment_date', { ascending: true }).order('appointment_time', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getById: async (id: string) => {
-      return await supabase.from('appointments').select('*').eq('id', id).single();
+      const response = await supabase.from('appointments').select('*').eq('id', id).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('appointments').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('appointments').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('appointments').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('appointments').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('appointments').delete().eq('id', id);
@@ -192,16 +279,22 @@ export const db = {
   // TREATMENTS
   treatments: {
     getAll: async () => {
-      return await supabase.from('treatments').select('*').order('created_at', { ascending: false });
+      const response = await supabase.from('treatments').select('*').order('created_at', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getByPatientId: async (patientId: string) => {
-      return await supabase.from('treatments').select('*').eq('patient_id', patientId).order('date', { ascending: false });
+      const response = await supabase.from('treatments').select('*').eq('patient_id', patientId).order('date', { ascending: false });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('treatments').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('treatments').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('treatments').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('treatments').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('treatments').delete().eq('id', id);
@@ -211,19 +304,26 @@ export const db = {
   // TREATMENT TYPES
   treatmentTypes: {
     getAll: async () => {
-      return await supabase.from('treatment_types').select('*').order('name', { ascending: true });
+      const response = await supabase.from('treatment_types').select('*').order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getActive: async () => {
-      return await supabase.from('treatment_types').select('*').eq('active', true).order('name', { ascending: true });
+      const response = await supabase.from('treatment_types').select('*').eq('active', true).order('name', { ascending: true });
+      return { ...response, data: response.data ? response.data.map(toCamelCase) : null };
     },
     getById: async (id: string) => {
-      return await supabase.from('treatment_types').select('*').eq('id', id).single();
+      const response = await supabase.from('treatment_types').select('*').eq('id', id).single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     create: async (data: any) => {
-      return await supabase.from('treatment_types').insert([data]).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('treatment_types').insert([dbData]).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('treatment_types').update(data).eq('id', id).select().single();
+      const dbData = toSnakeCase(data);
+      const response = await supabase.from('treatment_types').update(dbData).eq('id', id).select().single();
+      return { ...response, data: response.data ? toCamelCase(response.data) : null };
     },
     delete: async (id: string) => {
       return await supabase.from('treatment_types').delete().eq('id', id);
@@ -269,11 +369,11 @@ export const db = {
         .order('appointment_date', { ascending: false });
 
       return {
-        opdTokens,
-        admissions,
-        labOrders,
-        treatments,
-        appointments
+        opdTokens: { ...opdTokens, data: opdTokens.data ? opdTokens.data.map(toCamelCase) : null },
+        admissions: { ...admissions, data: admissions.data ? admissions.data.map(toCamelCase) : null },
+        labOrders: { ...labOrders, data: labOrders.data ? labOrders.data.map(toCamelCase) : null },
+        treatments: { ...treatments, data: treatments.data ? treatments.data.map(toCamelCase) : null },
+        appointments: { ...appointments, data: appointments.data ? appointments.data.map(toCamelCase) : null }
       };
     }
   },
