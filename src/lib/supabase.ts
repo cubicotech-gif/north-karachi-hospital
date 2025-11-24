@@ -14,7 +14,19 @@ const toSnakeCase = (obj: any): any => {
   const result: any = {};
   for (const key in obj) {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    result[snakeKey] = toSnakeCase(obj[key]);
+    let value = obj[key];
+    
+    // Handle empty strings for number fields - convert to null or 0
+    if (value === '' || value === 'NaN' || (typeof value === 'number' && isNaN(value))) {
+      // For required number fields, provide 0 as default
+      if (['fee', 'deposit', 'price', 'total_amount', 'opd_fee', 'commission_rate', 'experience', 'bed_count', 'occupied_beds', 'price_per_day', 'token_number', 'bed_number'].includes(snakeKey)) {
+        value = 0;
+      } else {
+        value = null;
+      }
+    }
+    
+    result[snakeKey] = toSnakeCase(value);
   }
   return result;
 };
