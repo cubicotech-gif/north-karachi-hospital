@@ -167,26 +167,26 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                   <div class="activity-header">${item.type} - ${new Date(item.date).toLocaleDateString('en-PK')}</div>
                   ${item.type === 'OPD' ? `
                     <div class="activity-detail">Doctor: ${item.data.doctors?.name || 'N/A'}</div>
-                    <div class="activity-detail">Fee: ${formatCurrency(item.data.fee)}</div>
+                    <div class="activity-detail">Fee: ${formatCurrency(item.data.fee || 0)}</div>
                     <div class="activity-detail">Payment Status: ${item.data.payment_status}</div>
                   ` : ''}
                   ${item.type === 'Admission' ? `
                     <div class="activity-detail">Doctor: ${item.data.doctors?.name || 'N/A'}</div>
                     <div class="activity-detail">Room: ${item.data.rooms?.room_number || 'N/A'} (${item.data.rooms?.type || 'N/A'})</div>
                     <div class="activity-detail">Type: ${item.data.admission_type}</div>
-                    <div class="activity-detail">Deposit: ${formatCurrency(item.data.deposit)}</div>
+                    <div class="activity-detail">Deposit: ${formatCurrency(item.data.deposit || 0)}</div>
                     <div class="activity-detail">Status: ${item.data.status}</div>
                   ` : ''}
                   ${item.type === 'Lab' ? `
                     <div class="activity-detail">Tests: ${item.data.tests?.join(', ') || 'N/A'}</div>
-                    <div class="activity-detail">Amount: ${formatCurrency(item.data.total_amount)}</div>
+                    <div class="activity-detail">Amount: ${formatCurrency(item.data.total_amount || 0)}</div>
                     <div class="activity-detail">Status: ${item.data.status}</div>
                   ` : ''}
                   ${item.type === 'Treatment' ? `
                     <div class="activity-detail">Treatment: ${item.data.treatment_name}</div>
                     <div class="activity-detail">Type: ${item.data.treatment_type}</div>
                     <div class="activity-detail">Doctor: ${item.data.doctors?.name || 'N/A'}</div>
-                    <div class="activity-detail">Price: ${formatCurrency(item.data.price)}</div>
+                    <div class="activity-detail">Price: ${formatCurrency(item.data.price || 0)}</div>
                     <div class="activity-detail">Payment: ${item.data.payment_status}</div>
                   ` : ''}
                   ${item.type === 'Appointment' ? `
@@ -413,7 +413,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                             {item.type === 'OPD' && (
                               <div className="text-sm text-gray-600 space-y-1">
                                 <p><strong>Doctor:</strong> {item.data.doctors?.name || 'N/A'}</p>
-                                <p><strong>Fee:</strong> {formatCurrency(item.data.fee)}</p>
+                                <p><strong>Fee:</strong> {formatCurrency(item.data.fee || 0)}</p>
                                 <p><strong>Payment:</strong> <Badge className={item.data.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>{item.data.payment_status}</Badge></p>
                               </div>
                             )}
@@ -422,14 +422,14 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                                 <p><strong>Doctor:</strong> {item.data.doctors?.name || 'N/A'}</p>
                                 <p><strong>Room:</strong> {item.data.rooms?.room_number} ({item.data.rooms?.type})</p>
                                 <p><strong>Type:</strong> {item.data.admission_type}</p>
-                                <p><strong>Deposit:</strong> {formatCurrency(item.data.deposit)}</p>
+                                <p><strong>Deposit:</strong> {formatCurrency(item.data.deposit || 0)}</p>
                                 <p><strong>Status:</strong> <Badge>{item.data.status}</Badge></p>
                               </div>
                             )}
                             {item.type === 'Lab' && (
                               <div className="text-sm text-gray-600 space-y-1">
                                 <p><strong>Tests:</strong> {item.data.tests?.join(', ')}</p>
-                                <p><strong>Amount:</strong> {formatCurrency(item.data.total_amount)}</p>
+                                <p><strong>Amount:</strong> {formatCurrency(item.data.total_amount || 0)}</p>
                                 <p><strong>Status:</strong> <Badge>{item.data.status}</Badge></p>
                               </div>
                             )}
@@ -438,7 +438,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                                 <p><strong>Treatment:</strong> {item.data.treatment_name}</p>
                                 <p><strong>Type:</strong> {item.data.treatment_type}</p>
                                 {item.data.doctors?.name && <p><strong>Doctor:</strong> {item.data.doctors.name}</p>}
-                                <p><strong>Price:</strong> {formatCurrency(item.data.price)}</p>
+                                <p><strong>Price:</strong> {formatCurrency(item.data.price || 0)}</p>
                                 <p><strong>Payment:</strong> <Badge className={item.data.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>{item.data.payment_status}</Badge></p>
                               </div>
                             )}
@@ -473,7 +473,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                         <div>
                           <p className="font-semibold">Token #{opd.token_number}</p>
                           <p className="text-sm text-gray-600">Doctor: {opd.doctors?.name || 'N/A'}</p>
-                          <p className="text-sm text-gray-600">Fee: {formatCurrency(opd.fee)}</p>
+                          <p className="text-sm text-gray-600">Fee: {formatCurrency(opd.fee || 0)}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-gray-600">{new Date(opd.date).toLocaleDateString('en-PK')}</p>
@@ -504,7 +504,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                         </div>
                         <p className="text-sm text-gray-600">Doctor: {admission.doctors?.name || 'N/A'}</p>
                         <p className="text-sm text-gray-600">Type: {admission.admission_type}</p>
-                        <p className="text-sm text-gray-600">Deposit: {formatCurrency(admission.deposit)}</p>
+                        <p className="text-sm text-gray-600">Deposit: {formatCurrency(admission.deposit || 0)}</p>
                         <p className="text-sm text-gray-600">Date: {new Date(admission.admission_date).toLocaleDateString('en-PK')}</p>
                       </div>
                     </Card>
@@ -533,7 +533,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                         </div>
                         <p className="text-sm text-gray-600">Type: {treatment.treatment_type}</p>
                         {treatment.doctors?.name && <p className="text-sm text-gray-600">Doctor: {treatment.doctors.name}</p>}
-                        <p className="text-sm text-gray-600">Price: {formatCurrency(treatment.price)}</p>
+                        <p className="text-sm text-gray-600">Price: {formatCurrency(treatment.price || 0)}</p>
                         <p className="text-sm text-gray-600">Date: {new Date(treatment.date).toLocaleDateString('en-PK')}</p>
                         {treatment.description && <p className="text-sm text-gray-600 mt-2">Description: {treatment.description}</p>}
                       </div>
@@ -560,7 +560,7 @@ export default function PatientProfile({ selectedPatient }: PatientProfileProps)
                           <Badge>{lab.status}</Badge>
                         </div>
                         <p className="text-sm text-gray-600">Tests: {lab.tests?.join(', ')}</p>
-                        <p className="text-sm text-gray-600">Amount: {formatCurrency(lab.total_amount)}</p>
+                        <p className="text-sm text-gray-600">Amount: {formatCurrency(lab.total_amount || 0)}</p>
                         <p className="text-sm text-gray-600">Date: {new Date(lab.order_date).toLocaleDateString('en-PK')}</p>
                       </div>
                     </Card>
