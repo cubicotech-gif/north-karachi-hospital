@@ -17,7 +17,8 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'patients': ['Patient Registration'],
   'allpatients': ['Patient Registration'], // Same permission as patient registration
   'opd': ['OPD Token System'],
-  'treatment': ['OPD Token System', 'Patient Registration'], // Treatment accessible to OPD and Patient Registration users
+  'treatment': ['Treatment Management', 'OPD Token System', 'Patient Registration'],
+  'treatmenttypes': ['Treatment Management', 'User Management'], // Treatment Types management
   'admission': ['Admission Management'],
   'discharge': ['Discharge Management', 'Admission Management'],
   'lab': ['Lab Management'],
@@ -97,6 +98,9 @@ export const useAuth = () => {
 
   const hasPermission = (moduleId: string): boolean => {
     if (!user) return false;
+    
+    // ✅ ADMIN HAS FULL ACCESS TO EVERYTHING
+    if (user.role === 'Admin') return true;
     
     // Dashboard is accessible to everyone
     if (moduleId === 'dashboard') return true;
