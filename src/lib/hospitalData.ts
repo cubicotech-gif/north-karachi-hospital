@@ -1,54 +1,60 @@
+// ✅ SIMPLIFIED INTERFACES - Using snake_case to match database exactly
+// No more confusion between database and code!
+
 export interface Patient {
   id: string;
-  mrNumber?: string; // Medical Record Number - auto-generated
+  mr_number?: string; // Medical Record Number - auto-generated
   name: string;
   age: number;
-  dateOfBirth?: string; // Optional now, using age field instead
-  cnicNumber: string;
+  date_of_birth?: string; // Optional now, using age field instead
+  cnic_number: string;
   gender: 'Male' | 'Female' | 'Other';
   contact: string;
-  careOf?: string; // Care of (guardian/responsible person)
+  care_of?: string; // Care of (guardian/responsible person)
   problem: string;
   department: string;
-  registrationDate: string;
-  medicalHistory?: string;
-  emergencyContact?: string;
+  registration_date: string;
+  medical_history?: string;
+  emergency_contact?: string;
   address?: string;
-  bloodGroup?: string;
-  maritalStatus?: 'Single' | 'Married' | 'Divorced' | 'Widowed';
+  blood_group?: string;
+  marital_status?: 'Single' | 'Married' | 'Divorced' | 'Widowed';
+  created_at?: string;
 }
 
 export interface Doctor {
   id: string;
   name: string;
-  cnicNumber: string;
-  dateOfBirth: string;
+  cnic_number: string;
+  date_of_birth: string;
   gender: 'Male' | 'Female' | 'Other';
   contact: string;
   email: string;
   address: string;
   department: string;
-  opdFee: number;
-  commissionType: 'percentage' | 'fixed';
-  commissionRate: number;
+  opd_fee: number;
+  commission_type: 'percentage' | 'fixed';
+  commission_rate: number;
   specialization: string;
   qualification: string;
   experience: number;
-  joiningDate: string;
+  joining_date: string;
   available: boolean;
-  consultationHours: string;
-  roomNumber?: string;
+  consultation_hours: string;
+  room_number?: string;
+  created_at?: string;
 }
 
 export interface Department {
   id: string;
   name: string;
   description: string;
-  headOfDepartment?: string;
+  head_of_department?: string;
   location: string;
-  contactExtension: string;
+  contact_extension: string;
   active: boolean;
-  createdDate: string;
+  created_date: string;
+  created_at?: string;
 }
 
 export interface LabTest {
@@ -56,379 +62,113 @@ export interface LabTest {
   name: string;
   price: number;
   department: string;
-  normalRange?: string;
+  normal_range?: string;
   description?: string;
-  sampleType: string;
-  reportTime: string;
+  sample_type: string;
+  report_time: string;
   active: boolean;
+  created_at?: string;
 }
 
 export interface Room {
   id: string;
-  roomNumber: string;
+  room_number: string;
   type: 'General' | 'Private' | 'ICU' | 'Emergency';
-  bedCount: number;
-  occupiedBeds: number;
-  pricePerDay: number;
+  bed_count: number;
+  occupied_beds: number;
+  price_per_day: number;
   department: string;
   active: boolean;
+  created_at?: string;
 }
 
 export interface OPDToken {
   id: string;
-  tokenNumber: number;
-  patientId: string;
-  doctorId: string;
+  token_number: number;
+  patient_id: string;
+  doctor_id: string;
   date: string;
   status: 'waiting' | 'in-progress' | 'completed';
   fee: number;
-  paymentStatus: 'paid' | 'pending';
+  payment_status: 'paid' | 'pending';
+  created_at?: string;
 }
 
 export interface Admission {
   id: string;
-  patientId: string;
-  doctorId: string;
-  roomId: string;
-  bedNumber: number;
-  admissionDate: string;
-  admissionType: 'OPD' | 'Direct' | 'Emergency';
+  patient_id: string;
+  doctor_id: string;
+  room_id: string;
+  bed_number: number;
+  admission_date: string;
+  admission_type: 'OPD' | 'Direct' | 'Emergency';
   deposit: number;
   status: 'active' | 'discharged';
   notes: string;
+  created_at?: string;
 }
 
 export interface LabOrder {
   id: string;
-  patientId: string;
-  doctorId?: string;
+  patient_id: string;
+  doctor_id?: string;
   tests: string[];
-  totalAmount: number;
+  total_amount: number;
   status: 'pending' | 'in-progress' | 'completed';
-  orderDate: string;
+  order_date: string;
   results?: { [testId: string]: string };
+  created_at?: string;
 }
 
 export interface Treatment {
   id: string;
-  patientId: string;
-  doctorId?: string;
-  treatmentType: string; // 'Dressing', 'Operation', 'Normal Delivery', 'Seizure', etc.
-  treatmentName: string;
+  patient_id: string;
+  doctor_id?: string;
+  treatment_type: string; // 'Dressing', 'Operation', 'Normal Delivery', 'Seizure', etc.
+  treatment_name: string;
   description?: string;
   price: number;
-  paymentStatus: 'paid' | 'pending' | 'partial';
+  payment_status: 'paid' | 'pending' | 'partial';
   date: string;
   notes?: string;
-  createdAt?: string;
+  created_at?: string;
+}
+
+export interface TreatmentType {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description?: string;
+  active: boolean;
+  created_at?: string;
 }
 
 export interface User {
   id: string;
   username: string;
-  fullName: string;
+  full_name: string;
   role: 'Admin' | 'Doctor' | 'Nurse' | 'Receptionist' | 'Lab Technician' | 'Pharmacist';
   email: string;
   contact: string;
-  cnicNumber: string;
+  cnic_number: string;
   active: boolean;
-  createdDate: string;
+  created_date: string;
   permissions: string[];
+  password?: string;
+  created_at?: string;
 }
 
-// Mock Data
-export const mockDepartments: Department[] = [
-  {
-    id: '1',
-    name: 'General Medicine',
-    description: 'General medical consultation and treatment',
-    headOfDepartment: 'Dr. Rajesh Kumar',
-    location: 'Ground Floor, Block A',
-    contactExtension: '101',
-    active: true,
-    createdDate: '2024-01-01'
-  },
-  {
-    id: '2',
-    name: 'Pediatrics',
-    description: 'Child healthcare and treatment',
-    headOfDepartment: 'Dr. Priya Sharma',
-    location: 'First Floor, Block B',
-    contactExtension: '102',
-    active: true,
-    createdDate: '2024-01-01'
-  },
-  {
-    id: '3',
-    name: 'Orthopedics',
-    description: 'Bone and joint treatment',
-    headOfDepartment: 'Dr. Amit Singh',
-    location: 'Second Floor, Block A',
-    contactExtension: '103',
-    active: true,
-    createdDate: '2024-01-01'
-  },
-  {
-    id: '4',
-    name: 'Gynecology',
-    description: 'Women health and maternity care',
-    headOfDepartment: 'Dr. Sunita Verma',
-    location: 'First Floor, Block C',
-    contactExtension: '104',
-    active: true,
-    createdDate: '2024-01-01'
-  },
-  {
-    id: '5',
-    name: 'Cardiology',
-    description: 'Heart and cardiovascular treatment',
-    location: 'Third Floor, Block A',
-    contactExtension: '105',
-    active: true,
-    createdDate: '2024-01-01'
-  }
-];
-
-export const mockDoctors: Doctor[] = [
-  {
-    id: '1',
-    name: 'Dr. Rajesh Kumar',
-    cnicNumber: '12345-6789012-3',
-    dateOfBirth: '1975-05-15',
-    gender: 'Male',
-    contact: '0300-1234567',
-    email: 'rajesh.kumar@hospital.com',
-    address: 'House 123, Street 45, Lahore',
-    department: 'General Medicine',
-    opdFee: 500,
-    commissionType: 'percentage',
-    commissionRate: 30,
-    specialization: 'Internal Medicine',
-    qualification: 'MBBS, MD Internal Medicine',
-    experience: 15,
-    joiningDate: '2020-01-15',
-    available: true,
-    consultationHours: '9:00 AM - 1:00 PM',
-    roomNumber: 'R-101'
-  },
-  {
-    id: '2',
-    name: 'Dr. Priya Sharma',
-    cnicNumber: '12345-6789012-4',
-    dateOfBirth: '1980-08-22',
-    gender: 'Female',
-    contact: '0300-2345678',
-    email: 'priya.sharma@hospital.com',
-    address: 'House 456, Street 78, Karachi',
-    department: 'Pediatrics',
-    opdFee: 600,
-    commissionType: 'percentage',
-    commissionRate: 35,
-    specialization: 'Child Care',
-    qualification: 'MBBS, DCH',
-    experience: 12,
-    joiningDate: '2021-03-10',
-    available: true,
-    consultationHours: '10:00 AM - 2:00 PM',
-    roomNumber: 'R-201'
-  },
-  {
-    id: '3',
-    name: 'Dr. Amit Singh',
-    cnicNumber: '12345-6789012-5',
-    dateOfBirth: '1978-12-03',
-    gender: 'Male',
-    contact: '0300-3456789',
-    email: 'amit.singh@hospital.com',
-    address: 'House 789, Street 12, Islamabad',
-    department: 'Orthopedics',
-    opdFee: 800,
-    commissionType: 'fixed',
-    commissionRate: 200,
-    specialization: 'Bone & Joint',
-    qualification: 'MBBS, MS Orthopedics',
-    experience: 18,
-    joiningDate: '2019-06-20',
-    available: true,
-    consultationHours: '2:00 PM - 6:00 PM',
-    roomNumber: 'R-301'
-  },
-  {
-    id: '4',
-    name: 'Dr. Sunita Verma',
-    cnicNumber: '12345-6789012-6',
-    dateOfBirth: '1982-04-18',
-    gender: 'Female',
-    contact: '0300-4567890',
-    email: 'sunita.verma@hospital.com',
-    address: 'House 321, Street 65, Lahore',
-    department: 'Gynecology',
-    opdFee: 700,
-    commissionType: 'percentage',
-    commissionRate: 40,
-    specialization: 'Women Health',
-    qualification: 'MBBS, FCPS Gynecology',
-    experience: 10,
-    joiningDate: '2022-01-05',
-    available: true,
-    consultationHours: '9:00 AM - 12:00 PM',
-    roomNumber: 'R-401'
-  }
-];
-
-export const mockLabTests: LabTest[] = [
-  { 
-    id: '1', 
-    name: 'Complete Blood Count (CBC)', 
-    price: 300, 
-    department: 'Pathology',
-    normalRange: 'WBC: 4-11, RBC: 4.5-5.5',
-    description: 'Complete blood cell analysis',
-    sampleType: 'Blood',
-    reportTime: '2-4 hours',
-    active: true
-  },
-  { 
-    id: '2', 
-    name: 'Blood Sugar (Fasting)', 
-    price: 150, 
-    department: 'Pathology',
-    normalRange: '70-100 mg/dL',
-    description: 'Fasting glucose level',
-    sampleType: 'Blood',
-    reportTime: '1-2 hours',
-    active: true
-  },
-  { 
-    id: '3', 
-    name: 'Lipid Profile', 
-    price: 500, 
-    department: 'Pathology',
-    normalRange: 'Total Cholesterol < 200 mg/dL',
-    description: 'Cholesterol and lipid analysis',
-    sampleType: 'Blood',
-    reportTime: '4-6 hours',
-    active: true
-  },
-  { 
-    id: '4', 
-    name: 'Liver Function Test', 
-    price: 600, 
-    department: 'Pathology',
-    normalRange: 'ALT: 7-56 U/L, AST: 10-40 U/L',
-    description: 'Liver enzyme analysis',
-    sampleType: 'Blood',
-    reportTime: '4-6 hours',
-    active: true
-  },
-  { 
-    id: '5', 
-    name: 'Kidney Function Test', 
-    price: 550, 
-    department: 'Pathology',
-    normalRange: 'Creatinine: 0.6-1.2 mg/dL',
-    description: 'Kidney function assessment',
-    sampleType: 'Blood',
-    reportTime: '4-6 hours',
-    active: true
-  },
-  { 
-    id: '6', 
-    name: 'Thyroid Profile', 
-    price: 800, 
-    department: 'Pathology',
-    normalRange: 'TSH: 0.4-4.0 mIU/L',
-    description: 'Thyroid hormone analysis',
-    sampleType: 'Blood',
-    reportTime: '6-8 hours',
-    active: true
-  },
-  { 
-    id: '7', 
-    name: 'X-Ray Chest', 
-    price: 400, 
-    department: 'Radiology',
-    description: 'Chest X-ray imaging',
-    sampleType: 'Imaging',
-    reportTime: '30 minutes',
-    active: true
-  },
-  { 
-    id: '8', 
-    name: 'ECG', 
-    price: 200, 
-    department: 'Cardiology',
-    description: 'Electrocardiogram',
-    sampleType: 'Cardiac Test',
-    reportTime: '15 minutes',
-    active: true
-  },
-  { 
-    id: '9', 
-    name: 'Ultrasound Abdomen', 
-    price: 1000, 
-    department: 'Radiology',
-    description: 'Abdominal ultrasound',
-    sampleType: 'Imaging',
-    reportTime: '30 minutes',
-    active: true
-  },
-  { 
-    id: '10', 
-    name: 'Urine Analysis', 
-    price: 100, 
-    department: 'Pathology',
-    normalRange: 'Specific Gravity: 1.003-1.030',
-    description: 'Complete urine examination',
-    sampleType: 'Urine',
-    reportTime: '1-2 hours',
-    active: true
-  }
-];
-
-export const mockRooms: Room[] = [
-  { id: '1', roomNumber: 'G-101', type: 'General', bedCount: 4, occupiedBeds: 2, pricePerDay: 1000, department: 'General Medicine', active: true },
-  { id: '2', roomNumber: 'G-102', type: 'General', bedCount: 4, occupiedBeds: 1, pricePerDay: 1000, department: 'General Medicine', active: true },
-  { id: '3', roomNumber: 'P-201', type: 'Private', bedCount: 1, occupiedBeds: 0, pricePerDay: 2500, department: 'General Medicine', active: true },
-  { id: '4', roomNumber: 'P-202', type: 'Private', bedCount: 1, occupiedBeds: 1, pricePerDay: 2500, department: 'Gynecology', active: true },
-  { id: '5', roomNumber: 'ICU-301', type: 'ICU', bedCount: 2, occupiedBeds: 1, pricePerDay: 5000, department: 'Cardiology', active: true },
-  { id: '6', roomNumber: 'E-001', type: 'Emergency', bedCount: 6, occupiedBeds: 3, pricePerDay: 1500, department: 'Emergency', active: true }
-];
-
-export const mockPatients: Patient[] = [
-  {
-    id: '1',
-    name: 'Ramesh Gupta',
-    age: 45,
-    dateOfBirth: '1979-03-15',
-    cnicNumber: '12345-6789012-1',
-    gender: 'Male',
-    contact: '9876543210',
-    problem: 'Fever and headache',
-    department: 'General Medicine',
-    registrationDate: '2024-01-15',
-    emergencyContact: '9876543211',
-    address: 'House 123, Street 45, Lahore',
-    bloodGroup: 'B+',
-    maritalStatus: 'Married'
-  },
-  {
-    id: '2',
-    name: 'Meera Devi',
-    age: 32,
-    dateOfBirth: '1992-07-22',
-    cnicNumber: '12345-6789012-2',
-    gender: 'Female',
-    contact: '9876543212',
-    problem: 'Pregnancy checkup',
-    department: 'Gynecology',
-    registrationDate: '2024-01-15',
-    emergencyContact: '9876543213',
-    address: 'House 456, Street 78, Karachi',
-    bloodGroup: 'A+',
-    maritalStatus: 'Married'
-  }
-];
+export interface Appointment {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  notes?: string;
+  created_at?: string;
+}
 
 // Utility functions
 export const generateTokenNumber = (): number => {
@@ -439,7 +179,6 @@ export const generateId = (): string => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
 
-// ✅ FIXED: Now handles undefined/null values
 export const formatCurrency = (amount: number | undefined | null): string => {
   if (amount === undefined || amount === null || isNaN(amount)) {
     return 'Rs 0';
@@ -447,36 +186,40 @@ export const formatCurrency = (amount: number | undefined | null): string => {
   return `Rs ${amount.toLocaleString('en-PK')}`;
 };
 
-// ✅ FIXED: Now handles undefined/null values
 export const formatDate = (date: string | undefined | null): string => {
   if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-IN');
+  try {
+    return new Date(date).toLocaleDateString('en-IN');
+  } catch {
+    return 'N/A';
+  }
 };
 
-// ✅ FIXED: Now handles undefined/null values
 export const calculateAge = (dateOfBirth: string | undefined | null): number => {
   if (!dateOfBirth) return 0;
-  
-  const today = new Date();
-  const birthDate = new Date(dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
+
+  try {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  } catch {
+    return 0;
   }
-  
-  return age;
 };
 
-// ✅ FIXED: Now handles empty/null values
 export const validateCNIC = (cnic: string): boolean => {
   if (!cnic) return false;
   const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
   return cnicRegex.test(cnic);
 };
 
-// ✅ FIXED: Now handles empty/null values
 export const formatCNIC = (cnic: string): string => {
   if (!cnic) return '';
   const cleaned = cnic.replace(/\D/g, '');
