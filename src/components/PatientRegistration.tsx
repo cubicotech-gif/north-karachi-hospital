@@ -153,19 +153,19 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     }
 
     const patientData = {
-      name: newPatient.name,
-      age: newPatient.age,
-      cnic_number: newPatient.cnicNumber ? formatCNIC(newPatient.cnicNumber) : null,
-      gender: newPatient.gender,
-      contact: newPatient.contact,
-      care_of: newPatient.careOf || null,
-      problem: newPatient.problem || 'General Checkup',
-      department: newPatient.department,
-      emergency_contact: newPatient.emergencyContact,
-      address: newPatient.address,
-      blood_group: newPatient.bloodGroup,
-      marital_status: newPatient.maritalStatus,
-    };
+  name: newPatient.name,
+  age: newPatient.age,
+  cnic_number: newPatient.cnicNumber ? formatCNIC(newPatient.cnicNumber) : null,
+  gender: newPatient.gender,
+  contact: newPatient.contact,
+  care_of: newPatient.careOf || null,
+  problem: newPatient.problem || null,
+  department: newPatient.department || null,
+  emergency_contact: newPatient.emergencyContact || null,
+  address: newPatient.address || null,
+  blood_group: newPatient.bloodGroup || null,
+  marital_status: newPatient.maritalStatus || null,
+};
 
     try {
       if (editingPatient) {
