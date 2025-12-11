@@ -67,6 +67,17 @@ export default function LabTestManagement() {
   const handleAddTest = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate essential fields
+    if (!newTest.name?.trim()) {
+      toast.error('Test name is required');
+      return;
+    }
+
+    if (!newTest.price || newTest.price <= 0) {
+      toast.error('Valid price is required');
+      return;
+    }
+
     // Check if test name already exists
     if (labTests.some(test => test.name.toLowerCase() === newTest.name?.toLowerCase())) {
       toast.error('Test with this name already exists');
@@ -128,6 +139,17 @@ export default function LabTestManagement() {
     e.preventDefault();
 
     if (!editingTest) {
+      return;
+    }
+
+    // Validate essential fields
+    if (!newTest.name?.trim()) {
+      toast.error('Test name is required');
+      return;
+    }
+
+    if (!newTest.price || newTest.price <= 0) {
+      toast.error('Valid price is required');
       return;
     }
 
@@ -253,22 +275,24 @@ export default function LabTestManagement() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="testName">Test Name</Label>
+                  <Label htmlFor="testName">Test Name *</Label>
                   <Input
                     id="testName"
                     value={newTest.name}
                     onChange={(e) => setNewTest({ ...newTest, name: e.target.value })}
                     placeholder="e.g., Complete Blood Count"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price (Rs)</Label>
+                  <Label htmlFor="price">Price (Rs) *</Label>
                   <Input
                     id="price"
                     type="number"
                     value={newTest.price}
                     onChange={(e) => setNewTest({ ...newTest, price: parseInt(e.target.value) })}
                     placeholder="300"
+                    required
                   />
                 </div>
               </div>
