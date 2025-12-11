@@ -142,11 +142,6 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const handleRegisterOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newPatient.name || !newPatient.contact || !newPatient.age || newPatient.age <= 0) {
-      toast.error('Please fill in all required fields (Name, Contact, Age)');
-      return;
-    }
-
     if (newPatient.cnicNumber && !validateCNIC(newPatient.cnicNumber)) {
       toast.error('Invalid CNIC format. Use: 12345-6789012-3');
       return;
@@ -362,17 +357,16 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="patientName">Full Name *</Label>
+                  <Label htmlFor="patientName">Full Name</Label>
                   <Input
                     id="patientName"
                     value={newPatient.name}
                     onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
                     placeholder="John Doe"
-                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="age">Age *</Label>
+                  <Label htmlFor="age">Age</Label>
                   <Input
                     id="age"
                     type="number"
@@ -381,7 +375,6 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                     value={newPatient.age || ''}
                     onChange={(e) => setNewPatient({ ...newPatient, age: parseInt(e.target.value) || 0 })}
                     placeholder="e.g., 25"
-                    required
                   />
                 </div>
               </div>
@@ -397,7 +390,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                   />
                 </div>
                 <div>
-                  <Label htmlFor="gender">Gender *</Label>
+                  <Label htmlFor="gender">Gender</Label>
                   <Select value={newPatient.gender} onValueChange={(value) => setNewPatient({ ...newPatient, gender: value as any })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -413,13 +406,12 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="contact">Contact Number *</Label>
+                  <Label htmlFor="contact">Contact Number</Label>
                   <Input
                     id="contact"
                     value={newPatient.contact}
                     onChange={(e) => setNewPatient({ ...newPatient, contact: e.target.value })}
                     placeholder="0300-1234567"
-                    required
                   />
                 </div>
                 <div>
@@ -477,7 +469,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="department">Department *</Label>
+                  <Label htmlFor="department">Department</Label>
                   <Select value={newPatient.department} onValueChange={(value) => setNewPatient({ ...newPatient, department: value })}>
                     <SelectTrigger>
                       <SelectValue />

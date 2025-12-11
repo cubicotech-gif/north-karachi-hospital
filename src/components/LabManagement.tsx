@@ -102,8 +102,8 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   };
 
   const createLabOrder = async () => {
-    if (!selectedPatient || selectedTests.length === 0) {
-      toast.error('Please select patient and at least one test');
+    if (!selectedPatient) {
+      toast.error('Please select a patient first');
       return;
     }
 

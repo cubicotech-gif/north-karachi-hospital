@@ -117,11 +117,6 @@ export default function TreatmentTypesManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.category || formData.default_price < 0) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
     setIsLoading(true);
     try {
       const treatmentData = {
@@ -285,18 +280,17 @@ export default function TreatmentTypesManagement() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="name">Treatment Name *</Label>
+                      <Label htmlFor="name">Treatment Name</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="e.g., Normal Delivery"
-                        required
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="category">Category *</Label>
+                      <Label htmlFor="category">Category</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData({ ...formData, category: value })}
@@ -315,7 +309,7 @@ export default function TreatmentTypesManagement() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="default_price">Default Price (Rs) *</Label>
+                      <Label htmlFor="default_price">Default Price (Rs)</Label>
                       <Input
                         id="default_price"
                         type="number"
@@ -324,7 +318,6 @@ export default function TreatmentTypesManagement() {
                         value={formData.default_price || ''}
                         onChange={(e) => setFormData({ ...formData, default_price: parseFloat(e.target.value) || 0 })}
                         placeholder="e.g., 5000"
-                        required
                       />
                     </div>
 

@@ -77,11 +77,6 @@ export default function DepartmentManagement() {
 
   const handleAddDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newDepartment.name || !newDepartment.description || !newDepartment.location) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
 
     // Check if department name already exists
     if (departments.some(dept => dept.name.toLowerCase() === newDepartment.name?.toLowerCase())) {
@@ -137,9 +132,8 @@ export default function DepartmentManagement() {
 
   const handleUpdateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingDepartment || !newDepartment.name || !newDepartment.description || !newDepartment.location) {
-      toast.error('Please fill in all required fields');
+
+    if (!editingDepartment) {
       return;
     }
 
@@ -276,13 +270,12 @@ export default function DepartmentManagement() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="departmentName">Department Name *</Label>
+                  <Label htmlFor="departmentName">Department Name</Label>
                   <Input
                     id="departmentName"
                     value={newDepartment.name}
                     onChange={(e) => setNewDepartment({ ...newDepartment, name: e.target.value })}
                     placeholder="e.g., Cardiology"
-                    required
                   />
                 </div>
                 <div>
@@ -297,24 +290,22 @@ export default function DepartmentManagement() {
               </div>
 
               <div>
-                <Label htmlFor="location">Location *</Label>
+                <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
                   value={newDepartment.location}
                   onChange={(e) => setNewDepartment({ ...newDepartment, location: e.target.value })}
                   placeholder="e.g., Ground Floor, Block A"
-                  required
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   value={newDepartment.description}
                   onChange={(e) => setNewDepartment({ ...newDepartment, description: e.target.value })}
                   placeholder="Brief description of the department services..."
-                  required
                 />
               </div>
 

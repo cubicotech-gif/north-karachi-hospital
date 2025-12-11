@@ -66,11 +66,6 @@ export default function LabTestManagement() {
 
   const handleAddTest = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newTest.name || !newTest.price || !newTest.department) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
 
     // Check if test name already exists
     if (labTests.some(test => test.name.toLowerCase() === newTest.name?.toLowerCase())) {
@@ -131,9 +126,8 @@ export default function LabTestManagement() {
 
   const handleUpdateTest = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingTest || !newTest.name || !newTest.price || !newTest.department) {
-      toast.error('Please fill in all required fields');
+
+    if (!editingTest) {
       return;
     }
 
@@ -259,31 +253,29 @@ export default function LabTestManagement() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="testName">Test Name *</Label>
+                  <Label htmlFor="testName">Test Name</Label>
                   <Input
                     id="testName"
                     value={newTest.name}
                     onChange={(e) => setNewTest({ ...newTest, name: e.target.value })}
                     placeholder="e.g., Complete Blood Count"
-                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price (Rs) *</Label>
+                  <Label htmlFor="price">Price (Rs)</Label>
                   <Input
                     id="price"
                     type="number"
                     value={newTest.price}
                     onChange={(e) => setNewTest({ ...newTest, price: parseInt(e.target.value) })}
                     placeholder="300"
-                    required
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="department">Department *</Label>
+                  <Label htmlFor="department">Department</Label>
                   <Select value={newTest.department} onValueChange={(value) => setNewTest({ ...newTest, department: value })}>
                     <SelectTrigger>
                       <SelectValue />

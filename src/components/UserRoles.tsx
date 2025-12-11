@@ -119,10 +119,6 @@ export default function UserRoles() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.username || !formData.full_name || !formData.email || !formData.password) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
@@ -161,8 +157,7 @@ export default function UserRoles() {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingUser || !formData.full_name || !formData.email) {
-      toast.error('Please fill in all required fields');
+    if (!editingUser) {
       return;
     }
 
@@ -254,43 +249,40 @@ export default function UserRoles() {
           <form onSubmit={editingUser ? handleUpdateUser : handleAddUser} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="username">Username *</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="john_doe"
-                  required
                   disabled={!!editingUser}
                 />
               </div>
               <div>
-                <Label htmlFor="fullName">Full Name *</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   placeholder="John Doe"
-                  required
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="john@hospital.com"
-                  required
                 />
               </div>
               <div>
                 <Label htmlFor="password">
-                  Password {editingUser ? '(Leave blank to keep current)' : '*'}
+                  Password {editingUser ? '(Leave blank to keep current)' : ''}
                 </Label>
                 <Input
                   id="password"
@@ -298,7 +290,6 @@ export default function UserRoles() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder={editingUser ? 'Enter new password to change' : 'Min 6 characters'}
-                  required={!editingUser}
                   minLength={6}
                 />
                 {editingUser && (
@@ -311,7 +302,7 @@ export default function UserRoles() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="role">Role *</Label>
+                <Label htmlFor="role">Role</Label>
                 <Select value={formData.role} onValueChange={onRoleChange}>
                   <SelectTrigger>
                     <SelectValue />

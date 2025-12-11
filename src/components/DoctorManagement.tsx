@@ -145,11 +145,6 @@ export default function EnhancedDoctorManagement() {
 
   const handleAddOrUpdateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newDoctor.name || !newDoctor.department || !newDoctor.opdFee || !newDoctor.contact) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
 
     if (newDoctor.cnicNumber && !validateCNIC(newDoctor.cnicNumber)) {
       toast.error('Invalid CNIC format. Use: 12345-6789012-3');
@@ -367,23 +362,21 @@ export default function EnhancedDoctorManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="doctorName">Doctor Name *</Label>
+                  <Label htmlFor="doctorName">Doctor Name</Label>
                   <Input
                     id="doctorName"
                     value={newDoctor.name}
                     onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
                     placeholder="Dr. John Doe"
-                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="contact">Contact Number *</Label>
+                  <Label htmlFor="contact">Contact Number</Label>
                   <Input
                     id="contact"
                     value={newDoctor.contact}
                     onChange={(e) => setNewDoctor({ ...newDoctor, contact: e.target.value })}
                     placeholder="0300-1234567"
-                    required
                   />
                 </div>
               </div>
@@ -437,7 +430,7 @@ export default function EnhancedDoctorManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="department">Department *</Label>
+                  <Label htmlFor="department">Department</Label>
                   <Select value={newDoctor.department} onValueChange={(value) => setNewDoctor({ ...newDoctor, department: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
@@ -484,14 +477,13 @@ export default function EnhancedDoctorManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="opdFee">OPD Fee *</Label>
+                  <Label htmlFor="opdFee">OPD Fee</Label>
                   <Input
                     id="opdFee"
                     type="number"
                     value={newDoctor.opdFee}
                     onChange={(e) => setNewDoctor({ ...newDoctor, opdFee: parseInt(e.target.value) || 0 })}
                     placeholder="500"
-                    required
                   />
                 </div>
                 <div>
