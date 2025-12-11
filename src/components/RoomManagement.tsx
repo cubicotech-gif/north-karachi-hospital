@@ -68,11 +68,6 @@ export default function RoomManagement() {
 
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newRoom.room_number || !newRoom.type || !newRoom.department) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
 
     if (rooms.some(room => room.room_number === newRoom.room_number)) {
       toast.error('Room number already exists');
@@ -135,9 +130,8 @@ export default function RoomManagement() {
 
   const handleUpdateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!editingRoom || !newRoom.room_number || !newRoom.type || !newRoom.department) {
-      toast.error('Please fill in all required fields');
+
+    if (!editingRoom) {
       return;
     }
 
@@ -283,17 +277,16 @@ export default function RoomManagement() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="roomNumber">Room Number *</Label>
+                  <Label htmlFor="roomNumber">Room Number</Label>
                   <Input
                     id="roomNumber"
                     value={newRoom.room_number}
                     onChange={(e) => setNewRoom({ ...newRoom, room_number: e.target.value })}
                     placeholder="e.g., G-101"
-                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Room Type *</Label>
+                  <Label htmlFor="type">Room Type</Label>
                   <Select value={newRoom.type} onValueChange={(value) => setNewRoom({ ...newRoom, type: value })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -309,31 +302,29 @@ export default function RoomManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="bedCount">Number of Beds *</Label>
+                  <Label htmlFor="bedCount">Number of Beds</Label>
                   <Input
                     id="bedCount"
                     type="number"
                     min="1"
                     value={newRoom.bed_count}
                     onChange={(e) => setNewRoom({ ...newRoom, bed_count: parseInt(e.target.value) })}
-                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pricePerDay">Price per Day (Rs) *</Label>
+                  <Label htmlFor="pricePerDay">Price per Day (Rs)</Label>
                   <Input
                     id="pricePerDay"
                     type="number"
                     min="0"
                     value={newRoom.price_per_day}
                     onChange={(e) => setNewRoom({ ...newRoom, price_per_day: parseInt(e.target.value) })}
-                    required
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="department">Department *</Label>
+                <Label htmlFor="department">Department</Label>
                 <Select value={newRoom.department} onValueChange={(value) => setNewRoom({ ...newRoom, department: value })}>
                   <SelectTrigger>
                     <SelectValue />

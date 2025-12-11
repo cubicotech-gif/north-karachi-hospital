@@ -107,8 +107,8 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   };
 
   const createAdmission = async () => {
-    if (!selectedPatient || !selectedDoctor || !selectedRoom) {
-      toast.error('Please fill in all required fields');
+    if (!selectedPatient) {
+      toast.error('Please select a patient first');
       return;
     }
 

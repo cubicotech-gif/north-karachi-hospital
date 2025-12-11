@@ -118,11 +118,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       return;
     }
 
-    if (!selectedTreatmentType || !treatmentName || price <= 0) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
     setLoading(true);
     try {
       const treatmentData = {
@@ -321,7 +316,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="treatmentType">Treatment Type *</Label>
+                    <Label htmlFor="treatmentType">Treatment Type</Label>
                     <Select
                       value={selectedTreatmentType?.id || ''}
                       onValueChange={handleTreatmentTypeChange}
@@ -346,7 +341,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                   </div>
 
                   <div>
-                    <Label htmlFor="treatmentName">Treatment Name *</Label>
+                    <Label htmlFor="treatmentName">Treatment Name</Label>
                     <Input
                       id="treatmentName"
                       value={treatmentName}
@@ -377,7 +372,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
 
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
-                    <Label htmlFor="price">Price (Rs) *</Label>
+                    <Label htmlFor="price">Price (Rs)</Label>
                     <Input
                       id="price"
                       type="number"
@@ -407,7 +402,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
 
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
-                    <Label htmlFor="paymentStatus">Payment Status *</Label>
+                    <Label htmlFor="paymentStatus">Payment Status</Label>
                     <Select value={paymentStatus} onValueChange={(value: any) => setPaymentStatus(value)}>
                       <SelectTrigger>
                         <SelectValue />

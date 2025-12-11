@@ -106,11 +106,6 @@ export default function AppointmentScheduling() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.patient_id || !formData.doctor_id || !formData.appointment_date || !formData.appointment_time) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
     setLoading(true);
     try {
       if (editingAppointment) {
@@ -257,7 +252,7 @@ export default function AppointmentScheduling() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="patient">Patient *</Label>
+                <Label htmlFor="patient">Patient</Label>
                 <Select value={formData.patient_id} onValueChange={(value) => setFormData({ ...formData, patient_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select patient" />
@@ -272,7 +267,7 @@ export default function AppointmentScheduling() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="doctor">Doctor *</Label>
+                <Label htmlFor="doctor">Doctor</Label>
                 <Select value={formData.doctor_id} onValueChange={(value) => setFormData({ ...formData, doctor_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select doctor" />
@@ -290,18 +285,17 @@ export default function AppointmentScheduling() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="date">Date *</Label>
+                <Label htmlFor="date">Date</Label>
                 <Input
                   id="date"
                   type="date"
                   value={formData.appointment_date}
                   onChange={(e) => setFormData({ ...formData, appointment_date: e.target.value })}
                   min={new Date().toISOString().split('T')[0]}
-                  required
                 />
               </div>
               <div>
-                <Label htmlFor="time">Time *</Label>
+                <Label htmlFor="time">Time</Label>
                 <Select value={formData.appointment_time} onValueChange={(value) => setFormData({ ...formData, appointment_time: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -316,13 +310,12 @@ export default function AppointmentScheduling() {
             </div>
 
             <div>
-              <Label htmlFor="reason">Reason for Visit *</Label>
+              <Label htmlFor="reason">Reason for Visit</Label>
               <Input
                 id="reason"
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 placeholder="e.g., Regular checkup, Follow-up, etc."
-                required
               />
             </div>
 

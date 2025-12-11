@@ -56,26 +56,16 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username.trim()) {
-      toast.error('Please enter username');
-      return;
-    }
-
-    if (!password.trim()) {
-      toast.error('Please enter password');
-      return;
-    }
 
     setIsLoading(true);
     const success = await onLogin(username.trim(), password.trim());
-    
+
     if (success) {
       toast.success('Login successful!');
     } else {
       toast.error('Invalid username or password');
     }
-    
+
     setIsLoading(false);
   };
 

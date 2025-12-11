@@ -153,10 +153,6 @@ export default function DischargeModule() {
       return;
     }
 
-    if (!dischargeData.final_diagnosis || !dischargeData.treatment_summary) {
-      toast.error('Please fill in discharge notes');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -378,7 +374,7 @@ export default function DischargeModule() {
               </div>
 
               <div>
-                <Label htmlFor="finalDiagnosis">Final Diagnosis *</Label>
+                <Label htmlFor="finalDiagnosis">Final Diagnosis</Label>
                 <Textarea
                   id="finalDiagnosis"
                   value={dischargeData.final_diagnosis}
@@ -389,7 +385,7 @@ export default function DischargeModule() {
               </div>
 
               <div>
-                <Label htmlFor="treatmentSummary">Treatment Summary *</Label>
+                <Label htmlFor="treatmentSummary">Treatment Summary</Label>
                 <Textarea
                   id="treatmentSummary"
                   value={dischargeData.treatment_summary}
