@@ -279,5 +279,48 @@ export const db = {
         appointments
       };
     }
+  },
+
+  // HOSPITAL SETTINGS
+  hospitalSettings: {
+    get: async () => {
+      return await supabase.from('hospital_settings').select('*').limit(1).single();
+    },
+    update: async (data: any) => {
+      // Update the single settings record
+      return await supabase.from('hospital_settings').update(data).eq('id', (await supabase.from('hospital_settings').select('id').limit(1).single()).data?.id).select().single();
+    },
+    getNextDocumentNumber: async (docType: string) => {
+      return await supabase.rpc('get_next_document_number', { doc_type: docType });
+    }
+  },
+
+  // GENERATED DOCUMENTS
+  generatedDocuments: {
+    getAll: async () => {
+      return await supabase.from('generated_documents').select('*').order('generated_at', { ascending: false });
+    },
+    getByPatient: async (patient_id: string) => {
+      return await supabase.from('generated_documents').select('*').eq('patient_id', patient_id).order('generated_at', { ascending: false });
+    },
+    getByType: async (document_type: string) => {
+      return await supabase.from('generated_documents').select('*').eq('document_type', document_type).order('generated_at', { ascending: false });
+    },
+    getByNumber: async (document_number: string) => {
+      return await supabase.from('generated_documents').select('*').eq('document_number', document_number).single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('generated_documents').insert([data]).select().single();
+    },
+    incrementPrintCount: async (id: string) => {
+      return await supabase.from('generated_documents')
+        .update({
+          print_count: supabase.from('generated_documents').select('print_count').eq('id', id),
+          last_printed_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    }
   }
 };

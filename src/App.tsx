@@ -44,10 +44,11 @@ import DoctorQueueSystem from '@/components/DoctorQueueSystem';
 import AppointmentScheduling from '@/components/AppointmentScheduling';
 import ReportsAnalytics from '@/components/ReportsAnalytics';
 import BillingInvoices from '@/components/BillingInvoices';
+import HospitalSettings from '@/components/HospitalSettings';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -143,7 +144,8 @@ const App = () => {
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
     { id: 'labtests' as ModuleType, name: 'Lab Test Management', icon: Beaker },
     { id: 'reports' as ModuleType, name: 'Reports & Analytics', icon: TrendingUp },
-    { id: 'users' as ModuleType, name: 'User Management', icon: Settings },
+    { id: 'users' as ModuleType, name: 'User Management', icon: UserCog },
+    { id: 'settings' as ModuleType, name: 'Hospital Settings', icon: Settings },
   ];
 
   // ✅ FILTER MODULES BASED ON USER PERMISSIONS
@@ -318,6 +320,8 @@ const App = () => {
         return <ReportsAnalytics />;
       case 'users':
         return <UserRoles />;
+      case 'settings':
+        return <HospitalSettings />;
       default:
         return renderDashboard();
     }
