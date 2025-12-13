@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import {
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/hospitalData';
+import { useReactToPrint } from 'react-to-print';
+import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 
 interface Invoice {
   id: string;
@@ -32,6 +34,9 @@ export default function BillingInvoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [patients, setPatients] = useState<any[]>([]);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAllInvoices();
@@ -138,6 +143,7 @@ export default function BillingInvoices() {
       });
 
       setInvoices(allInvoices);
+      setPatients(patients);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast.error('Failed to load invoices');
@@ -217,68 +223,21 @@ export default function BillingInvoices() {
     }
   };
 
-  const handlePrint = (invoice: Invoice) => {
-    // Create a printable receipt
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Invoice - ${invoice.id}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .header { text-align: center; margin-bottom: 30px; }
-              .invoice-details { margin: 20px 0; }
-              .detail-row { display: flex; justify-content: space-between; margin: 10px 0; }
-              .total { font-size: 20px; font-weight: bold; margin-top: 20px; }
-              .footer { margin-top: 40px; text-align: center; font-size: 12px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>Hospital Management System</h1>
-              <h2>Invoice</h2>
-            </div>
-            <div class="invoice-details">
-              <div class="detail-row">
-                <strong>Invoice ID:</strong>
-                <span>${invoice.id}</span>
-              </div>
-              <div class="detail-row">
-                <strong>Type:</strong>
-                <span>${invoice.type}</span>
-              </div>
-              <div class="detail-row">
-                <strong>Patient Name:</strong>
-                <span>${invoice.patient_name}</span>
-              </div>
-              <div class="detail-row">
-                <strong>Date:</strong>
-                <span>${new Date(invoice.date).toLocaleDateString()}</span>
-              </div>
-              <div class="detail-row">
-                <strong>Description:</strong>
-                <span>${invoice.description}</span>
-              </div>
-              <div class="detail-row">
-                <strong>Payment Status:</strong>
-                <span style="text-transform: uppercase;">${invoice.payment_status}</span>
-              </div>
-              <div class="detail-row total">
-                <strong>Total Amount:</strong>
-                <span>${formatCurrency(invoice.amount)}</span>
-              </div>
-            </div>
-            <div class="footer">
-              <p>Generated on ${new Date().toLocaleString()}</p>
-              <p>Thank you for choosing our hospital!</p>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+  const handlePrint = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `Receipt-${selectedInvoice?.id || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Receipt printed successfully');
+      setSelectedInvoice(null);
+    },
+  });
+
+  const openPrintDialog = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    // Trigger print after state is updated
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
   };
 
   const stats = getStats();
@@ -435,10 +394,10 @@ export default function BillingInvoices() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handlePrint(invoice)}
+                              onClick={() => openPrintDialog(invoice)}
                             >
                               <Printer className="h-4 w-4 mr-2" />
-                              Print
+                              Print Receipt
                             </Button>
                           </div>
                         </div>
@@ -457,6 +416,32 @@ export default function BillingInvoices() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Hidden Receipt Template for Printing */}
+      {selectedInvoice && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            data={{
+              receiptNumber: selectedInvoice.id.toUpperCase(),
+              date: selectedInvoice.date,
+              patientName: selectedInvoice.patient_name,
+              patientCnic: patients.find(p => p.id === selectedInvoice.patient_id)?.cnic_number,
+              patientContact: patients.find(p => p.id === selectedInvoice.patient_id)?.contact,
+              items: [
+                {
+                  description: selectedInvoice.description,
+                  amount: selectedInvoice.amount
+                }
+              ],
+              total: selectedInvoice.amount,
+              paymentStatus: selectedInvoice.payment_status,
+              amountPaid: selectedInvoice.payment_status === 'paid' ? selectedInvoice.amount : 0,
+              balanceDue: selectedInvoice.payment_status === 'paid' ? 0 : selectedInvoice.amount,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
