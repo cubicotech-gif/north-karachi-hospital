@@ -117,16 +117,27 @@ export default function TreatmentTypesManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate essential fields
+    if (!formData.name?.trim()) {
+      toast.error('Treatment name is required');
+      return;
+    }
+
+    if (!formData.default_price || formData.default_price <= 0) {
+      toast.error('Price must be greater than 0');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const treatmentData = {
-        name: formData.name,
-        category: formData.category,
-        description: formData.description || null,
+        name: formData.name.trim(),
+        category: formData.category || null,
+        description: formData.description?.trim() || null,
         default_price: formData.default_price,
-        process_details: formData.process_details || null,
-        duration: formData.duration || null,
-        requirements: formData.requirements || null,
+        process_details: formData.process_details?.trim() || null,
+        duration: formData.duration?.trim() || null,
+        requirements: formData.requirements?.trim() || null,
         active: formData.active
       };
 
