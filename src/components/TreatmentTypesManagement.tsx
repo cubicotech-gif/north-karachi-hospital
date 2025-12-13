@@ -303,29 +303,17 @@ export default function TreatmentTypesManagement() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="default_price">Default Price (Rs)</Label>
-                      <Input
-                        id="default_price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.default_price || ''}
-                        onChange={(e) => setFormData({ ...formData, default_price: parseFloat(e.target.value) || 0 })}
-                        placeholder="e.g., 5000"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="duration">Expected Duration</Label>
-                      <Input
-                        id="duration"
-                        value={formData.duration}
-                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                        placeholder="e.g., 30 minutes, 2 hours"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="default_price">Default Price (Rs)</Label>
+                    <Input
+                      id="default_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.default_price || ''}
+                      onChange={(e) => setFormData({ ...formData, default_price: parseFloat(e.target.value) || 0 })}
+                      placeholder="e.g., 5000"
+                    />
                   </div>
 
                   <div>
@@ -335,28 +323,6 @@ export default function TreatmentTypesManagement() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of the treatment"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="process_details">Process Details</Label>
-                    <Textarea
-                      id="process_details"
-                      value={formData.process_details}
-                      onChange={(e) => setFormData({ ...formData, process_details: e.target.value })}
-                      placeholder="Detailed process and steps for this treatment"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="requirements">Requirements</Label>
-                    <Textarea
-                      id="requirements"
-                      value={formData.requirements}
-                      onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                      placeholder="Required preparations, documents, or conditions"
                       rows={2}
                     />
                   </div>
@@ -454,15 +420,8 @@ export default function TreatmentTypesManagement() {
 
                         <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
                           <p><strong>Price:</strong> Rs. {type.default_price.toLocaleString()}</p>
-                          {type.duration && <p><strong>Duration:</strong> {type.duration}</p>}
                           {type.description && (
                             <p className="col-span-2"><strong>Description:</strong> {type.description}</p>
-                          )}
-                          {type.process_details && (
-                            <p className="col-span-2"><strong>Process:</strong> {type.process_details}</p>
-                          )}
-                          {type.requirements && (
-                            <p className="col-span-2"><strong>Requirements:</strong> {type.requirements}</p>
                           )}
                         </div>
                       </div>
