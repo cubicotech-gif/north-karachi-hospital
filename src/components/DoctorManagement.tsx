@@ -146,6 +146,17 @@ export default function EnhancedDoctorManagement() {
   const handleAddOrUpdateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate only essential fields - Name and Contact only
+    if (!newDoctor.name?.trim()) {
+      toast.error('Doctor name is required');
+      return;
+    }
+
+    if (!newDoctor.contact?.trim()) {
+      toast.error('Contact number is required');
+      return;
+    }
+
     if (newDoctor.cnicNumber && !validateCNIC(newDoctor.cnicNumber)) {
       toast.error('Invalid CNIC format. Use: 12345-6789012-3');
       return;
@@ -362,21 +373,23 @@ export default function EnhancedDoctorManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="doctorName">Doctor Name</Label>
+                  <Label htmlFor="doctorName">Doctor Name *</Label>
                   <Input
                     id="doctorName"
                     value={newDoctor.name}
                     onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
                     placeholder="Dr. John Doe"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="contact">Contact Number</Label>
+                  <Label htmlFor="contact">Contact Number *</Label>
                   <Input
                     id="contact"
                     value={newDoctor.contact}
                     onChange={(e) => setNewDoctor({ ...newDoctor, contact: e.target.value })}
                     placeholder="0300-1234567"
+                    required
                   />
                 </div>
               </div>

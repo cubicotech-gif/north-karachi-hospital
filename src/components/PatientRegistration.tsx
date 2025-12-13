@@ -142,6 +142,17 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const handleRegisterOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate only essential fields
+    if (!newPatient.name?.trim()) {
+      toast.error('Patient name is required');
+      return;
+    }
+
+    if (!newPatient.contact?.trim()) {
+      toast.error('Contact number is required');
+      return;
+    }
+
     if (newPatient.cnicNumber && !validateCNIC(newPatient.cnicNumber)) {
       toast.error('Invalid CNIC format. Use: 12345-6789012-3');
       return;
@@ -357,12 +368,13 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="patientName">Full Name</Label>
+                  <Label htmlFor="patientName">Full Name *</Label>
                   <Input
                     id="patientName"
                     value={newPatient.name}
                     onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
                     placeholder="John Doe"
+                    required
                   />
                 </div>
                 <div>
@@ -406,12 +418,13 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="contact">Contact Number</Label>
+                  <Label htmlFor="contact">Contact Number *</Label>
                   <Input
                     id="contact"
                     value={newPatient.contact}
                     onChange={(e) => setNewPatient({ ...newPatient, contact: e.target.value })}
                     placeholder="0300-1234567"
+                    required
                   />
                 </div>
                 <div>

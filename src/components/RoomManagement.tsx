@@ -69,6 +69,17 @@ export default function RoomManagement() {
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate essential fields
+    if (!newRoom.room_number?.trim()) {
+      toast.error('Room number is required');
+      return;
+    }
+
+    if (!newRoom.type) {
+      toast.error('Room type is required');
+      return;
+    }
+
     if (rooms.some(room => room.room_number === newRoom.room_number)) {
       toast.error('Room number already exists');
       return;
@@ -132,6 +143,17 @@ export default function RoomManagement() {
     e.preventDefault();
 
     if (!editingRoom) {
+      return;
+    }
+
+    // Validate essential fields
+    if (!newRoom.room_number?.trim()) {
+      toast.error('Room number is required');
+      return;
+    }
+
+    if (!newRoom.type) {
+      toast.error('Room type is required');
       return;
     }
 
@@ -277,16 +299,17 @@ export default function RoomManagement() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="roomNumber">Room Number</Label>
+                  <Label htmlFor="roomNumber">Room Number *</Label>
                   <Input
                     id="roomNumber"
                     value={newRoom.room_number}
                     onChange={(e) => setNewRoom({ ...newRoom, room_number: e.target.value })}
                     placeholder="e.g., G-101"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Room Type</Label>
+                  <Label htmlFor="type">Room Type *</Label>
                   <Select value={newRoom.type} onValueChange={(value) => setNewRoom({ ...newRoom, type: value })}>
                     <SelectTrigger>
                       <SelectValue />

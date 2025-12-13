@@ -119,6 +119,18 @@ export default function UserRoles() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate essential fields
+    if (!formData.username?.trim()) {
+      toast.error('Username is required');
+      return;
+    }
+
+    if (!formData.email?.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
@@ -158,6 +170,12 @@ export default function UserRoles() {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) {
+      return;
+    }
+
+    // Validate essential fields
+    if (!formData.email?.trim()) {
+      toast.error('Email is required');
       return;
     }
 
@@ -249,13 +267,14 @@ export default function UserRoles() {
           <form onSubmit={editingUser ? handleUpdateUser : handleAddUser} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Username *</Label>
                 <Input
                   id="username"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="john_doe"
                   disabled={!!editingUser}
+                  required
                 />
               </div>
               <div>
@@ -271,13 +290,14 @@ export default function UserRoles() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="john@hospital.com"
+                  required
                 />
               </div>
               <div>
