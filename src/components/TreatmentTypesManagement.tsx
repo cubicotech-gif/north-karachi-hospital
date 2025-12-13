@@ -17,9 +17,6 @@ interface TreatmentType {
   category: string;
   description: string;
   default_price: number;
-  process_details: string;
-  duration: string;
-  requirements: string;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -51,9 +48,6 @@ export default function TreatmentTypesManagement() {
     category: 'Medical',
     description: '',
     default_price: 0,
-    process_details: '',
-    duration: '',
-    requirements: '',
     active: true
   });
 
@@ -135,9 +129,6 @@ export default function TreatmentTypesManagement() {
         category: formData.category || null,
         description: formData.description?.trim() || null,
         default_price: formData.default_price,
-        process_details: formData.process_details?.trim() || null,
-        duration: formData.duration?.trim() || null,
-        requirements: formData.requirements?.trim() || null,
         active: formData.active
       };
 
@@ -186,9 +177,6 @@ export default function TreatmentTypesManagement() {
       category: type.category,
       description: type.description || '',
       default_price: type.default_price,
-      process_details: type.process_details || '',
-      duration: type.duration || '',
-      requirements: type.requirements || '',
       active: type.active
     });
     setShowForm(true);
@@ -242,9 +230,6 @@ export default function TreatmentTypesManagement() {
       category: 'Medical',
       description: '',
       default_price: 0,
-      process_details: '',
-      duration: '',
-      requirements: '',
       active: true
     });
     setEditingType(null);
