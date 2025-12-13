@@ -163,23 +163,24 @@ export default function EnhancedDoctorManagement() {
     }
 
     // Convert to snake_case for database
+    // IMPORTANT: Send null for empty fields, not undefined
     const doctorData = {
       name: newDoctor.name,
       cnic_number: newDoctor.cnicNumber ? formatCNIC(newDoctor.cnicNumber) : null,
-      date_of_birth: newDoctor.dateOfBirth,
-      gender: newDoctor.gender,
+      date_of_birth: newDoctor.dateOfBirth || null,
+      gender: newDoctor.gender || null,
       contact: newDoctor.contact,
-      email: newDoctor.email,
-      address: newDoctor.address,
-      department: newDoctor.department,
-      opd_fee: newDoctor.opdFee,
-      commission_type: newDoctor.commissionType,
-      commission_rate: newDoctor.commissionRate || 0,
-      specialization: newDoctor.specialization || '',
-      qualification: newDoctor.qualification || '',
-      experience: newDoctor.experience || 0,
-      consultation_hours: newDoctor.consultationHours || '',
-      room_number: newDoctor.roomNumber || '',
+      email: newDoctor.email || null,
+      address: newDoctor.address || null,
+      department: newDoctor.department || null,
+      opd_fee: newDoctor.opdFee || null,
+      commission_type: newDoctor.commissionType || null,
+      commission_rate: newDoctor.commissionRate || null,
+      specialization: newDoctor.specialization || null,
+      qualification: newDoctor.qualification || null,
+      experience: newDoctor.experience || null,
+      consultation_hours: newDoctor.consultationHours || null,
+      room_number: newDoctor.roomNumber || null,
       available: newDoctor.available !== undefined ? newDoctor.available : true
     };
 

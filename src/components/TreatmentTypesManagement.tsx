@@ -17,9 +17,6 @@ interface TreatmentType {
   category: string;
   description: string;
   default_price: number;
-  process_details: string;
-  duration: string;
-  requirements: string;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -51,9 +48,6 @@ export default function TreatmentTypesManagement() {
     category: 'Medical',
     description: '',
     default_price: 0,
-    process_details: '',
-    duration: '',
-    requirements: '',
     active: true
   });
 
@@ -117,16 +111,24 @@ export default function TreatmentTypesManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate essential fields
+    if (!formData.name?.trim()) {
+      toast.error('Treatment name is required');
+      return;
+    }
+
+    if (!formData.default_price || formData.default_price <= 0) {
+      toast.error('Price must be greater than 0');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const treatmentData = {
-        name: formData.name,
-        category: formData.category,
-        description: formData.description || null,
+        name: formData.name.trim(),
+        category: formData.category || null,
+        description: formData.description?.trim() || null,
         default_price: formData.default_price,
-        process_details: formData.process_details || null,
-        duration: formData.duration || null,
-        requirements: formData.requirements || null,
         active: formData.active
       };
 
@@ -175,9 +177,6 @@ export default function TreatmentTypesManagement() {
       category: type.category,
       description: type.description || '',
       default_price: type.default_price,
-      process_details: type.process_details || '',
-      duration: type.duration || '',
-      requirements: type.requirements || '',
       active: type.active
     });
     setShowForm(true);
@@ -231,9 +230,6 @@ export default function TreatmentTypesManagement() {
       category: 'Medical',
       description: '',
       default_price: 0,
-      process_details: '',
-      duration: '',
-      requirements: '',
       active: true
     });
     setEditingType(null);
@@ -307,29 +303,17 @@ export default function TreatmentTypesManagement() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="default_price">Default Price (Rs)</Label>
-                      <Input
-                        id="default_price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.default_price || ''}
-                        onChange={(e) => setFormData({ ...formData, default_price: parseFloat(e.target.value) || 0 })}
-                        placeholder="e.g., 5000"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="duration">Expected Duration</Label>
-                      <Input
-                        id="duration"
-                        value={formData.duration}
-                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                        placeholder="e.g., 30 minutes, 2 hours"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="default_price">Default Price (Rs)</Label>
+                    <Input
+                      id="default_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.default_price || ''}
+                      onChange={(e) => setFormData({ ...formData, default_price: parseFloat(e.target.value) || 0 })}
+                      placeholder="e.g., 5000"
+                    />
                   </div>
 
                   <div>
@@ -339,28 +323,6 @@ export default function TreatmentTypesManagement() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of the treatment"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="process_details">Process Details</Label>
-                    <Textarea
-                      id="process_details"
-                      value={formData.process_details}
-                      onChange={(e) => setFormData({ ...formData, process_details: e.target.value })}
-                      placeholder="Detailed process and steps for this treatment"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="requirements">Requirements</Label>
-                    <Textarea
-                      id="requirements"
-                      value={formData.requirements}
-                      onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                      placeholder="Required preparations, documents, or conditions"
                       rows={2}
                     />
                   </div>
@@ -458,15 +420,8 @@ export default function TreatmentTypesManagement() {
 
                         <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-3">
                           <p><strong>Price:</strong> Rs. {type.default_price.toLocaleString()}</p>
-                          {type.duration && <p><strong>Duration:</strong> {type.duration}</p>}
                           {type.description && (
                             <p className="col-span-2"><strong>Description:</strong> {type.description}</p>
-                          )}
-                          {type.process_details && (
-                            <p className="col-span-2"><strong>Process:</strong> {type.process_details}</p>
-                          )}
-                          {type.requirements && (
-                            <p className="col-span-2"><strong>Requirements:</strong> {type.requirements}</p>
                           )}
                         </div>
                       </div>
