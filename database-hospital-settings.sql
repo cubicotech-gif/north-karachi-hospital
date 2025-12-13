@@ -49,19 +49,23 @@ CREATE TABLE IF NOT EXISTS hospital_settings (
   updated_by UUID REFERENCES auth.users(id)
 );
 
--- Insert default record
+-- Insert default record with actual North Karachi Hospital information
 INSERT INTO hospital_settings (
   hospital_name,
   hospital_name_urdu,
   address,
   city,
-  phone
+  phone,
+  email,
+  website
 ) VALUES (
   'North Karachi Hospital',
   'نارتھ کراچی ہسپتال',
-  'Block A, North Karachi',
+  'C-122, Sector 11-B, North Karachi Township',
   'Karachi',
-  '+92-21-XXXXXXX'
+  '36989080',
+  'info@northkarachihospital.com',
+  'www.northkarachihospital.com'
 ) ON CONFLICT DO NOTHING;
 
 -- Document Generation Log Table
