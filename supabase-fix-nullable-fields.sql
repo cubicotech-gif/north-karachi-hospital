@@ -18,8 +18,9 @@ ALTER TABLE patients ALTER COLUMN care_of DROP NOT NULL;
 ALTER TABLE patients ALTER COLUMN chief_complaint DROP NOT NULL;
 
 -- DOCTORS TABLE
--- Keep name, contact, department as NOT NULL (required)
--- Make everything else nullable
+-- Keep name, contact as NOT NULL (required)
+-- Make everything else nullable INCLUDING department
+ALTER TABLE doctors ALTER COLUMN department DROP NOT NULL;
 ALTER TABLE doctors ALTER COLUMN cnic_number DROP NOT NULL;
 ALTER TABLE doctors ALTER COLUMN date_of_birth DROP NOT NULL;
 ALTER TABLE doctors ALTER COLUMN gender DROP NOT NULL;
