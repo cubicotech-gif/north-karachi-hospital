@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { Bed, Building, User, Printer } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+import AdmissionFormTemplate from '@/components/documents/AdmissionFormTemplate';
 
 interface Doctor {
   id: string;
@@ -58,6 +60,8 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
+  const [shouldPrint, setShouldPrint] = useState(false);
+  const admissionFormRef = useRef<HTMLDivElement>(null);
 
   // Fetch doctors and rooms from database
   useEffect(() => {
@@ -158,91 +162,24 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
     }
   };
 
+  const handlePrint = useReactToPrint({
+    content: () => admissionFormRef.current,
+    documentTitle: `Admission-Form-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Admission form printed successfully');
+      setShouldPrint(false);
+    },
+  });
+
   const printAdmissionForm = () => {
-    if (!generatedAdmission || !selectedPatient || !selectedDoctor || !selectedRoom) return;
-
-    const admissionContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333;">HOSPITAL MANAGEMENT SYSTEM</h2>
-          <p style="margin: 5px 0; color: #666;">Patient Admission Form</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <strong>Admission ID:</strong> ${generatedAdmission.id}<br>
-            <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Type:</strong> ${generatedAdmission.admission_type}
-          </div>
-          <div style="text-align: right;">
-            <strong>Room:</strong> ${selectedRoom.room_number}<br>
-            <strong>Bed:</strong> ${generatedAdmission.bed_number}<br>
-            <strong>Type:</strong> ${selectedRoom.type}
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 20px; background: #f5f5f5; padding: 15px; border-radius: 5px;">
-          <strong>Patient Information:</strong><br>
-          Name: ${selectedPatient.name}<br>
-          Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
-          Contact: ${selectedPatient.contact}<br>
-          Emergency Contact: ${selectedPatient.emergencyContact || 'N/A'}<br>
-          Problem: ${selectedPatient.problem}
-        </div>
-        
-        <div style="margin-bottom: 20px; background: #e8f4fd; padding: 15px; border-radius: 5px;">
-          <strong>Attending Doctor:</strong><br>
-          Dr. ${selectedDoctor.name}<br>
-          Department: ${selectedDoctor.department}<br>
-          Specialization: ${selectedDoctor.specialization}
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <strong>Admission Details:</strong><br>
-          Room Number: ${selectedRoom.room_number} (${selectedRoom.type})<br>
-          Bed Number: ${generatedAdmission.bed_number}<br>
-          Room Rate: ${formatCurrency(selectedRoom.price_per_day)}/day<br>
-          Deposit Paid: ${formatCurrency(generatedAdmission.deposit)}
-        </div>
-        
-        ${generatedAdmission.notes ? `
-        <div style="margin-bottom: 20px;">
-          <strong>Admission Notes:</strong><br>
-          ${generatedAdmission.notes}
-        </div>
-        ` : ''}
-        
-        <div style="margin-bottom: 30px;">
-          <strong>Terms & Conditions:</strong><br>
-          <div style="font-size: 12px; color: #666; margin-top: 10px;">
-            1. The deposit is refundable upon discharge after adjusting dues.<br>
-            2. Visiting hours: 10:00 AM - 12:00 PM & 4:00 PM - 7:00 PM<br>
-            3. Patient attendant must follow hospital rules and regulations.<br>
-            4. Hospital is not responsible for personal belongings.
-          </div>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-top: 50px;">
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 150px; padding-top: 10px;">
-              Patient/Guardian Signature
-            </div>
-          </div>
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 150px; padding-top: 10px;">
-              Hospital Authority
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(admissionContent);
-      printWindow.document.close();
-      printWindow.print();
+    if (!generatedAdmission || !selectedPatient || !selectedDoctor || !selectedRoom) {
+      toast.error('Missing admission details');
+      return;
     }
+    setShouldPrint(true);
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
   };
 
   if (!selectedPatient) {
@@ -457,6 +394,32 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Hidden Admission Form Template for Printing */}
+      {shouldPrint && selectedPatient && selectedDoctor && selectedRoom && generatedAdmission && (
+        <div style={{ display: 'none' }}>
+          <AdmissionFormTemplate
+            ref={admissionFormRef}
+            data={{
+              patientName: selectedPatient.name,
+              age: selectedPatient.age,
+              gender: selectedPatient.gender === 'Male' ? 'M' : selectedPatient.gender === 'Female' ? 'F' : undefined,
+              address: selectedPatient.address,
+              phone: selectedPatient.contact,
+              cellPhone: selectedPatient.emergencyContact,
+              regNumber: generatedAdmission.id.slice(-8).toUpperCase(),
+              department: selectedDoctor.department,
+              consultant: selectedDoctor.name,
+              admissionDateTime: new Date(generatedAdmission.admission_date).toLocaleString('en-GB'),
+              modeOfAdmission:
+                admissionType === 'OPD' ? 'From OPD' :
+                admissionType === 'Emergency' ? 'Emergency' :
+                'Refered',
+              admissionFor: notes || selectedPatient.problem,
+            }}
+          />
+        </div>
       )}
     </div>
   );

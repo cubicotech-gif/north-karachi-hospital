@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { Activity, Printer, Trash2, Plus } from 'lucide-react';
 import { Patient, Treatment, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 
 interface Doctor {
   id: string;
@@ -48,6 +50,9 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+  const [printingTreatment, setPrintingTreatment] = useState<any>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -183,80 +188,26 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     }
   };
 
+  const handlePrintReceipt = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `Treatment-Receipt-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Treatment receipt printed successfully');
+      setShouldPrintReceipt(false);
+      setPrintingTreatment(null);
+    },
+  });
+
   const printTreatmentReceipt = (treatment: any) => {
-    const doctor = doctors.find(d => d.id === treatment.doctor_id);
-
-    const printContent = `
-      <html>
-        <head>
-          <title>Treatment Receipt</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 600px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
-            .header { text-align: center; border-bottom: 3px solid #27ae60; padding-bottom: 15px; margin-bottom: 20px; }
-            .hospital-name { font-size: 24px; font-weight: bold; color: #333; }
-            .subtitle { color: #666; font-size: 14px; margin-top: 5px; }
-            .section { margin: 20px 0; }
-            .label { font-weight: bold; color: #333; display: inline-block; width: 150px; }
-            .value { display: inline-block; }
-            .price-box { background: #27ae60; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
-            .price { font-size: 32px; font-weight: bold; }
-            .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="subtitle">Treatment Receipt</div>
-            </div>
-
-            <div class="section">
-              <div><span class="label">Receipt Date:</span><span class="value">${new Date().toLocaleDateString('en-PK')}</span></div>
-              <div><span class="label">Treatment Date:</span><span class="value">${new Date(treatment.date).toLocaleDateString('en-PK')}</span></div>
-            </div>
-
-            <div class="section">
-              <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">Patient Information</h3>
-              <div><span class="label">MR Number:</span><span class="value">${selectedPatient?.mrNumber || 'N/A'}</span></div>
-              <div><span class="label">Patient Name:</span><span class="value">${selectedPatient?.name}</span></div>
-              <div><span class="label">Age/Gender:</span><span class="value">${selectedPatient?.age} years / ${selectedPatient?.gender}</span></div>
-              <div><span class="label">Contact:</span><span class="value">${selectedPatient?.contact}</span></div>
-            </div>
-
-            <div class="section">
-              <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">Treatment Details</h3>
-              <div><span class="label">Treatment Type:</span><span class="value">${treatment.treatment_type}</span></div>
-              <div><span class="label">Treatment Name:</span><span class="value">${treatment.treatment_name}</span></div>
-              ${doctor ? `<div><span class="label">Doctor:</span><span class="value">${doctor.name}</span></div>` : ''}
-              ${treatment.description ? `<div><span class="label">Description:</span><span class="value">${treatment.description}</span></div>` : ''}
-              ${treatment.notes ? `<div><span class="label">Notes:</span><span class="value">${treatment.notes}</span></div>` : ''}
-            </div>
-
-            <div class="price-box">
-              <div style="font-size: 14px; margin-bottom: 5px;">Total Amount</div>
-              <div class="price">${formatCurrency(treatment.price)}</div>
-              <div style="font-size: 14px; margin-top: 5px;">Payment Status: ${treatment.payment_status.toUpperCase()}</div>
-            </div>
-
-            <div class="footer">
-              <p>This is a computer-generated receipt</p>
-              <p>North Karachi Hospital - Quality Healthcare Services</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
+    if (!selectedPatient || !treatment) {
+      toast.error('Missing treatment details');
+      return;
     }
+    setPrintingTreatment(treatment);
+    setShouldPrintReceipt(true);
+    setTimeout(() => {
+      handlePrintReceipt();
+    }, 100);
   };
 
   if (!selectedPatient) {
@@ -521,6 +472,49 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
           </div>
         </CardContent>
       </Card>
+
+      {/* Hidden Receipt Template for Treatment Printing */}
+      {shouldPrintReceipt && selectedPatient && printingTreatment && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            data={{
+              receiptNumber: `TRT-${printingTreatment.id.slice(-8).toUpperCase()}`,
+              date: printingTreatment.date,
+              patientName: selectedPatient.name,
+              patientContact: selectedPatient.contact,
+              patientCnic: selectedPatient.cnicNumber,
+              items: [
+                {
+                  description: `${printingTreatment.treatment_type} - ${printingTreatment.treatment_name}${
+                    printingTreatment.description ? `\n${printingTreatment.description}` : ''
+                  }`,
+                  amount: printingTreatment.price,
+                },
+              ],
+              total: printingTreatment.price,
+              paymentStatus:
+                printingTreatment.payment_status === 'paid'
+                  ? 'paid'
+                  : printingTreatment.payment_status === 'partial'
+                  ? 'partial'
+                  : 'unpaid',
+              amountPaid:
+                printingTreatment.payment_status === 'paid'
+                  ? printingTreatment.price
+                  : printingTreatment.payment_status === 'partial'
+                  ? printingTreatment.price / 2
+                  : 0,
+              balanceDue:
+                printingTreatment.payment_status === 'paid'
+                  ? 0
+                  : printingTreatment.payment_status === 'partial'
+                  ? printingTreatment.price / 2
+                  : printingTreatment.price,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

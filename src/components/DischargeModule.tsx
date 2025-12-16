@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { LogOut, Printer, DollarSign, Bed } from 'lucide-react';
 import { formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+import DischargeSummaryTemplate from '@/components/documents/DischargeSummaryTemplate';
 
 interface Admission {
   id: string;
@@ -69,6 +71,8 @@ export default function DischargeModule() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
+  const [shouldPrint, setShouldPrint] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
   
   const [dischargeData, setDischargeData] = useState<DischargeData>({
     discharge_date: new Date().toISOString().split('T')[0],
@@ -189,113 +193,24 @@ export default function DischargeModule() {
     }
   };
 
+  const handlePrint = useReactToPrint({
+    content: () => summaryRef.current,
+    documentTitle: `Discharge-Summary-${patient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Discharge summary printed successfully');
+      setShouldPrint(false);
+    },
+  });
+
   const printDischargeSummary = () => {
-    if (!patient || !doctor || !room || !selectedAdmission) return;
-
-    const content = `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333;">HOSPITAL MANAGEMENT SYSTEM</h2>
-          <p style="margin: 5px 0; color: #666;">Discharge Summary</p>
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <h3 style="margin-bottom: 10px;">Patient Information</h3>
-          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-            <p><strong>Name:</strong> ${patient.name}</p>
-            <p><strong>Age:</strong> ${patient.age} years | <strong>Gender:</strong> ${patient.gender}</p>
-            <p><strong>Contact:</strong> ${patient.contact}</p>
-            <p><strong>Admission Date:</strong> ${new Date(selectedAdmission.admission_date).toLocaleDateString()}</p>
-            <p><strong>Discharge Date:</strong> ${new Date(dischargeData.discharge_date).toLocaleDateString()}</p>
-            <p><strong>Total Days:</strong> ${dischargeData.total_days} days</p>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <h3 style="margin-bottom: 10px;">Medical Details</h3>
-          <div style="background: #e8f4fd; padding: 15px; border-radius: 5px;">
-            <p><strong>Attending Doctor:</strong> Dr. ${doctor.name}</p>
-            <p><strong>Specialization:</strong> ${doctor.specialization}</p>
-            <p><strong>Room:</strong> ${room.room_number} (${room.type})</p>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <h3 style="margin-bottom: 10px;">Clinical Summary</h3>
-          <div style="padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-            <p><strong>Final Diagnosis:</strong></p>
-            <p style="margin-left: 20px;">${dischargeData.final_diagnosis}</p>
-            <br>
-            <p><strong>Treatment Summary:</strong></p>
-            <p style="margin-left: 20px;">${dischargeData.treatment_summary}</p>
-            <br>
-            <p><strong>Medications Prescribed:</strong></p>
-            <p style="margin-left: 20px;">${dischargeData.medications || 'None'}</p>
-            <br>
-            <p><strong>Follow-up Instructions:</strong></p>
-            <p style="margin-left: 20px;">${dischargeData.follow_up_instructions || 'None'}</p>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <h3 style="margin-bottom: 10px;">Billing Summary</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr style="background: #f0f0f0;">
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount</th>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">Room Charges (${dischargeData.total_days} days)</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.room_charges)}</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">Medical Charges</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.medical_charges)}</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">Medicine Charges</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.medicine_charges)}</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">Other Charges</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.other_charges)}</td>
-            </tr>
-            <tr style="background: #f0f0f0; font-weight: bold;">
-              <td style="border: 1px solid #ddd; padding: 8px;">Total Charges</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.total_charges)}</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">Advance Paid</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(dischargeData.amount_paid)}</td>
-            </tr>
-            <tr style="background: ${dischargeData.balance_due > 0 ? '#fff3cd' : '#d4edda'}; font-weight: bold;">
-              <td style="border: 1px solid #ddd; padding: 8px;">${dischargeData.balance_due > 0 ? 'Balance Due' : 'Refund Amount'}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(Math.abs(dischargeData.balance_due))}</td>
-            </tr>
-          </table>
-        </div>
-
-        <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 200px; padding-top: 10px;">
-              Doctor's Signature
-            </div>
-          </div>
-          <div style="text-align: center;">
-            <div style="border-top: 1px solid #333; width: 200px; padding-top: 10px;">
-              Hospital Authority
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(content);
-      printWindow.document.close();
-      printWindow.print();
+    if (!patient || !doctor || !room || !selectedAdmission) {
+      toast.error('Missing discharge details');
+      return;
     }
+    setShouldPrint(true);
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
   };
 
   return (
@@ -509,6 +424,31 @@ export default function DischargeModule() {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {/* Hidden Discharge Summary Template for Printing */}
+      {shouldPrint && patient && doctor && room && selectedAdmission && (
+        <div style={{ display: 'none' }}>
+          <DischargeSummaryTemplate
+            ref={summaryRef}
+            data={{
+              summaryNumber: `DSC-${selectedAdmission.id.slice(-6).toUpperCase()}`,
+              patientName: patient.name,
+              age: patient.age,
+              gender: patient.gender,
+              mrNumber: selectedAdmission.patient_id.slice(-8),
+              admissionDate: selectedAdmission.admission_date,
+              dischargeDate: dischargeData.discharge_date,
+              totalDays: dischargeData.total_days,
+              consultantName: doctor.name,
+              diagnosis: dischargeData.final_diagnosis,
+              treatmentGiven: dischargeData.treatment_summary,
+              conditionAtDischarge: 'Improved',
+              medications: dischargeData.medications,
+              advice: dischargeData.follow_up_instructions,
+            }}
+          />
+        </div>
       )}
     </div>
   );

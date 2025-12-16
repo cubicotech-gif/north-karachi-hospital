@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +9,8 @@ import { TestTube, User, Printer, CreditCard, FileText } from 'lucide-react';
 import { Patient, generateId, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 
 interface Doctor {
   id: string;
@@ -48,6 +50,8 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [shouldPrintBill, setShouldPrintBill] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   // Fetch doctors and lab tests from database
   useEffect(() => {
@@ -149,87 +153,24 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     }
   };
 
+  const handlePrintBill = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `Lab-Bill-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Lab bill printed successfully');
+      setShouldPrintBill(false);
+    },
+  });
+
   const printLabBill = () => {
-    if (!generatedOrder || !selectedPatient) return;
-
-    const selectedTestDetails = labTests.filter(test => 
-      generatedOrder.tests.includes(test.id)
-    );
-
-    const billContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333;">HOSPITAL MANAGEMENT SYSTEM</h2>
-          <p style="margin: 5px 0; color: #666;">Laboratory Bill Receipt</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <strong>Order ID:</strong> ${generatedOrder.id}<br>
-            <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Type:</strong> ${orderType}
-          </div>
-          <div style="text-align: right;">
-            <strong>Status:</strong> ${paymentStatus.toUpperCase()}<br>
-            ${selectedDoctor ? `<strong>Ref. Dr.:</strong> ${selectedDoctor.name}` : ''}
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 20px; background: #f5f5f5; padding: 15px; border-radius: 5px;">
-          <strong>Patient Information:</strong><br>
-          Name: ${selectedPatient.name}<br>
-          Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
-          Contact: ${selectedPatient.contact}
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <strong>Lab Tests Ordered:</strong><br>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="background: #f0f0f0;">
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Test Name</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${selectedTestDetails.map(test => `
-                <tr>
-                  <td style="border: 1px solid #ddd; padding: 8px;">${test.name}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(test.price)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-            <tfoot>
-              <tr style="background: #f0f0f0; font-weight: bold;">
-                <td style="border: 1px solid #ddd; padding: 8px;">Total Amount</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatCurrency(generatedOrder.total_amount)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        
-        <div style="margin-bottom: 20px; font-size: 12px; color: #666;">
-          <strong>Instructions:</strong><br>
-          • Please bring this receipt when collecting reports<br>
-          • Reports will be available within 24-48 hours<br>
-          • Fasting required for certain tests as advised<br>
-          • Contact lab for any queries: Lab Extension 123
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px;">
-          <div style="border-top: 1px solid #333; width: 200px; margin: 0 auto; padding-top: 10px;">
-            Authorized Signature
-          </div>
-        </div>
-      </div>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(billContent);
-      printWindow.document.close();
-      printWindow.print();
+    if (!generatedOrder || !selectedPatient) {
+      toast.error('Missing order details');
+      return;
     }
+    setShouldPrintBill(true);
+    setTimeout(() => {
+      handlePrintBill();
+    }, 100);
   };
 
   const printLabSlip = () => {
@@ -486,6 +427,31 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Hidden Receipt Template for Lab Bill Printing */}
+      {shouldPrintBill && selectedPatient && generatedOrder && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            data={{
+              receiptNumber: `LAB-${generatedOrder.id.slice(-8).toUpperCase()}`,
+              date: generatedOrder.order_date,
+              patientName: selectedPatient.name,
+              patientContact: selectedPatient.contact,
+              items: labTests
+                .filter(test => generatedOrder.tests.includes(test.id))
+                .map(test => ({
+                  description: test.name,
+                  amount: test.price,
+                })),
+              total: generatedOrder.total_amount,
+              paymentStatus: paymentStatus === 'paid' ? 'paid' : 'unpaid',
+              amountPaid: paymentStatus === 'paid' ? generatedOrder.total_amount : 0,
+              balanceDue: paymentStatus === 'paid' ? 0 : generatedOrder.total_amount,
+            }}
+          />
+        </div>
       )}
     </div>
   );
