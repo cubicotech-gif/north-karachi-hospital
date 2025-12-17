@@ -45,10 +45,11 @@ import AppointmentScheduling from '@/components/AppointmentScheduling';
 import ReportsAnalytics from '@/components/ReportsAnalytics';
 import BillingInvoices from '@/components/BillingInvoices';
 import HospitalSettings from '@/components/HospitalSettings';
+import DocumentsManagement from '@/components/DocumentsManagement';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -139,6 +140,7 @@ const App = () => {
     { id: 'discharge' as ModuleType, name: 'Discharge', icon: DoorOpen },
     { id: 'lab' as ModuleType, name: 'Lab Orders', icon: TestTube },
     { id: 'billing' as ModuleType, name: 'Billing & Invoices', icon: FileText },
+    { id: 'documents' as ModuleType, name: 'Documents & Paperwork', icon: FileText },
     { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
     { id: 'rooms' as ModuleType, name: 'Room Management', icon: Building },
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
@@ -320,6 +322,8 @@ const App = () => {
         return <ReportsAnalytics />;
       case 'users':
         return <UserRoles />;
+      case 'documents':
+        return <DocumentsManagement />;
       case 'settings':
         return <HospitalSettings />;
       default:
