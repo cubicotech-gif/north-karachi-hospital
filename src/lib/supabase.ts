@@ -322,5 +322,71 @@ export const db = {
         .select()
         .single();
     }
+  },
+
+  // DOCUMENT CATEGORIES
+  documentCategories: {
+    getAll: async () => {
+      return await supabase.from('document_categories').select('*').order('name');
+    },
+    getActive: async () => {
+      return await supabase.from('document_categories').select('*').eq('active', true).order('name');
+    },
+    getById: async (id: string) => {
+      return await supabase.from('document_categories').select('*').eq('id', id).single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('document_categories').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('document_categories').update(data).eq('id', id).select().single();
+    }
+  },
+
+  // DOCUMENT TEMPLATES
+  documentTemplates: {
+    getAll: async () => {
+      return await supabase.from('document_templates').select('*').order('created_at', { ascending: false });
+    },
+    getActive: async () => {
+      return await supabase.from('document_templates').select('*').eq('active', true).order('created_at', { ascending: false });
+    },
+    getByCategory: async (category_id: string) => {
+      return await supabase.from('document_templates').select('*').eq('category_id', category_id).eq('active', true).order('name');
+    },
+    getById: async (id: string) => {
+      return await supabase.from('document_templates').select('*').eq('id', id).single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('document_templates').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('document_templates').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('document_templates').update({ active: false }).eq('id', id).select().single();
+    }
+  },
+
+  // DOCUMENT TEMPLATE MAPPINGS
+  documentMappings: {
+    getAll: async () => {
+      return await supabase.from('document_template_mappings').select('*').order('created_at', { ascending: false });
+    },
+    getActive: async () => {
+      return await supabase.from('document_template_mappings').select('*').eq('is_active', true);
+    },
+    getByModule: async (module_name: string) => {
+      return await supabase.from('document_template_mappings').select('*').eq('module_name', module_name).eq('is_active', true);
+    },
+    getModuleTemplate: async (module_name: string, document_type: string) => {
+      return await supabase.rpc('get_module_template', { mod_name: module_name, doc_type: document_type });
+    },
+    create: async (data: any) => {
+      return await supabase.from('document_template_mappings').insert([data]).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('document_template_mappings').delete().eq('id', id);
+    }
   }
 };
