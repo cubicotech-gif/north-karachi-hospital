@@ -11,6 +11,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Doctor {
   id: string;
@@ -423,6 +424,22 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                   <Printer className="h-4 w-4 mr-2" />
                   Print Lab Slip
                 </Button>
+              </div>
+
+              <Separator />
+
+              {/* Uploaded Document Templates */}
+              <div className="space-y-3">
+                <DocumentViewer
+                  moduleName="lab"
+                  documentType="receipt"
+                  title="Lab Bill Receipt Template"
+                />
+                <DocumentViewer
+                  moduleName="lab"
+                  documentType="lab_report"
+                  title="Lab Report Template"
+                />
               </div>
             </div>
           </CardContent>

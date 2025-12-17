@@ -13,6 +13,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import AdmissionFormTemplate from '@/components/documents/AdmissionFormTemplate';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Doctor {
   id: string;
@@ -391,6 +392,22 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 <Printer className="h-4 w-4 mr-2" />
                 Print Admission Form
               </Button>
+
+              <Separator />
+
+              {/* Uploaded Document Templates */}
+              <div className="space-y-3">
+                <DocumentViewer
+                  moduleName="admission"
+                  documentType="admission_form"
+                  title="Admission Form Template"
+                />
+                <DocumentViewer
+                  moduleName="admission"
+                  documentType="consent_form"
+                  title="Admission Consent Form"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
