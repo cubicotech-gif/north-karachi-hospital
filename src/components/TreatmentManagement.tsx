@@ -13,6 +13,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import DocumentViewer from '@/components/documents/DocumentViewer';
 import ConsentModal from '@/components/ConsentModal';
 
@@ -53,8 +54,10 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
   const [printingTreatment, setPrintingTreatment] = useState<any>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const consentFormRef = useRef<HTMLDivElement>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
 
@@ -231,6 +234,28 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     setShouldPrintReceipt(true);
     setTimeout(() => {
       handlePrintReceipt();
+    }, 100);
+  };
+
+  const handlePrintConsentForm = useReactToPrint({
+    content: () => consentFormRef.current,
+    documentTitle: `Treatment-Consent-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Treatment consent form printed successfully');
+      setShouldPrintConsentForm(false);
+      setPrintingTreatment(null);
+    },
+  });
+
+  const printTreatmentConsentForm = (treatment: any) => {
+    if (!selectedPatient || !treatment) {
+      toast.error('Missing treatment details');
+      return;
+    }
+    setPrintingTreatment(treatment);
+    setShouldPrintConsentForm(true);
+    setTimeout(() => {
+      handlePrintConsentForm();
     }, 100);
   };
 
@@ -472,10 +497,18 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => printTreatmentConsentForm(treatment)}
+                          >
+                            <Printer className="h-3 w-3 mr-1" />
+                            Consent
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => printTreatmentReceipt(treatment)}
                           >
                             <Printer className="h-3 w-3 mr-1" />
-                            Print
+                            Receipt
                           </Button>
                           <Button
                             variant="outline"
@@ -558,6 +591,23 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         onAccept={handleConsentAccepted}
         onDecline={handleConsentDeclined}
       />
+
+      {/* Hidden Consent Form Template for Treatment Printing */}
+      {shouldPrintConsentForm && selectedPatient && printingTreatment && (
+        <div style={{ display: 'none' }}>
+          <ConsentFormTemplate
+            ref={consentFormRef}
+            consentType="treatment"
+            patientName={selectedPatient.name}
+            patientAge={selectedPatient.age}
+            patientGender={selectedPatient.gender}
+            patientContact={selectedPatient.contact}
+            doctorName={doctors.find(d => d.id === printingTreatment.doctor_id)?.name}
+            procedureName={`${printingTreatment.treatment_type} - ${printingTreatment.treatment_name}`}
+            date={new Date(printingTreatment.date).toLocaleDateString('en-PK')}
+          />
+        </div>
+      )}
     </div>
   );
 }

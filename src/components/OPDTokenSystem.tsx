@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ConsentModal from '@/components/ConsentModal';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Doctor {
@@ -46,7 +47,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [queueNumber, setQueueNumber] = useState<number>(0);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const consentFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -193,6 +196,26 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     setShouldPrintReceipt(true);
     setTimeout(() => {
       handlePrintReceipt();
+    }, 100);
+  };
+
+  const handlePrintConsentForm = useReactToPrint({
+    content: () => consentFormRef.current,
+    documentTitle: `OPD-Consent-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Consent form printed successfully');
+      setShouldPrintConsentForm(false);
+    },
+  });
+
+  const printConsentForm = () => {
+    if (!selectedPatient || !selectedDoctor) {
+      toast.error('Missing patient or doctor details');
+      return;
+    }
+    setShouldPrintConsentForm(true);
+    setTimeout(() => {
+      handlePrintConsentForm();
     }, 100);
   };
 
@@ -504,17 +527,21 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={printToken} variant="outline" className="flex-1">
-                  <Printer className="h-4 w-4 mr-2" />
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={printToken} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
                   Print Token
                 </Button>
-                <Button onClick={printPrescriptionSheet} variant="outline" className="flex-1">
-                  <Printer className="h-4 w-4 mr-2" />
+                <Button onClick={printConsentForm} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
+                  Print Consent Form
+                </Button>
+                <Button onClick={printPrescriptionSheet} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
                   Print Prescription
                 </Button>
-                <Button onClick={printOPDReceipt} variant="outline" className="flex-1">
-                  <Printer className="h-4 w-4 mr-2" />
+                <Button onClick={printOPDReceipt} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
                   Print Receipt
                 </Button>
               </div>
@@ -570,6 +597,23 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               amountPaid: generatedToken.payment_status === 'paid' ? selectedDoctor.opd_fee : 0,
               balanceDue: generatedToken.payment_status === 'paid' ? 0 : selectedDoctor.opd_fee,
             }}
+          />
+        </div>
+      )}
+
+      {/* Hidden Consent Form Template for OPD Printing */}
+      {shouldPrintConsentForm && selectedPatient && selectedDoctor && (
+        <div style={{ display: 'none' }}>
+          <ConsentFormTemplate
+            ref={consentFormRef}
+            consentType="opd"
+            patientName={selectedPatient.name}
+            patientAge={selectedPatient.age}
+            patientGender={selectedPatient.gender}
+            patientContact={selectedPatient.contact}
+            doctorName={selectedDoctor.name}
+            procedureName={`OPD Consultation - ${selectedDoctor.department} Department`}
+            date={new Date().toLocaleDateString('en-PK')}
           />
         </div>
       )}
