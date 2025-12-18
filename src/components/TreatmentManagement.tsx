@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 import DocumentViewer from '@/components/documents/DocumentViewer';
+import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -54,6 +55,8 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
   const [printingTreatment, setPrintingTreatment] = useState<any>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -124,21 +127,34 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       return;
     }
 
-    setLoading(true);
-    try {
-      const treatmentData = {
-        patient_id: selectedPatient.id,
-        doctor_id: selectedDoctor || null,
-        treatment_type: selectedTreatmentType.name,
-        treatment_name: treatmentName,
-        description: description || null,
-        price: price,
-        payment_status: paymentStatus,
-        date: new Date().toISOString().split('T')[0],
-        notes: notes || null
-      };
+    if (!selectedTreatmentType) {
+      toast.error('Please select a treatment type');
+      return;
+    }
 
-      const { data, error } = await db.treatments.create(treatmentData);
+    // Prepare treatment data and show consent modal
+    const treatmentData = {
+      patient_id: selectedPatient.id,
+      doctor_id: selectedDoctor || null,
+      treatment_type: selectedTreatmentType.name,
+      treatment_name: treatmentName,
+      description: description || null,
+      price: price,
+      payment_status: paymentStatus,
+      date: new Date().toISOString().split('T')[0],
+      notes: notes || null
+    };
+
+    setPendingTreatmentData(treatmentData);
+    setShowConsentModal(true);
+  };
+
+  const handleConsentAccepted = async () => {
+    setShowConsentModal(false);
+    setLoading(true);
+
+    try {
+      const { data, error } = await db.treatments.create(pendingTreatmentData);
 
       if (error) {
         console.error('Error creating treatment:', error);
@@ -147,7 +163,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         return;
       }
 
-      toast.success('Treatment added successfully!');
+      toast.success('Treatment added successfully with consent!');
       fetchTreatments();
 
       // Reset form
@@ -159,12 +175,19 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       setDescription('');
       setNotes('');
       setShowForm(false);
+      setPendingTreatmentData(null);
     } catch (error) {
       console.error('Error creating treatment:', error);
       toast.error('Failed to add treatment');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConsentDeclined = () => {
+    setShowConsentModal(false);
+    setPendingTreatmentData(null);
+    toast.info('Treatment cancelled - consent not provided');
   };
 
   const handleDeleteTreatment = async (treatmentId: string) => {
@@ -525,6 +548,16 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
           />
         </div>
       )}
+
+      {/* Treatment Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        consentType="treatment"
+        patientName={selectedPatient?.name || ''}
+        procedureName={treatmentName || selectedTreatmentType?.name}
+        onAccept={handleConsentAccepted}
+        onDecline={handleConsentDeclined}
+      />
     </div>
   );
 }
