@@ -122,6 +122,9 @@ export const db = {
     getAll: async () => {
       return await supabase.from('opd_tokens').select('*').order('created_at', { ascending: false });
     },
+    getByPatientId: async (patient_id: string) => {
+      return await supabase.from('opd_tokens').select('*').eq('patient_id', patient_id).order('created_at', { ascending: false });
+    },
     create: async (data: any) => {
       return await supabase.from('opd_tokens').insert([data]).select().single();
     },
@@ -138,6 +141,9 @@ export const db = {
     getActive: async () => {
       return await supabase.from('admissions').select('*').eq('status', 'active').order('admission_date', { ascending: false });
     },
+    getByPatientId: async (patient_id: string) => {
+      return await supabase.from('admissions').select('*').eq('patient_id', patient_id).order('admission_date', { ascending: false });
+    },
     create: async (data: any) => {
       return await supabase.from('admissions').insert([data]).select().single();
     },
@@ -150,6 +156,9 @@ export const db = {
   labOrders: {
     getAll: async () => {
       return await supabase.from('lab_orders').select('*').order('created_at', { ascending: false });
+    },
+    getByPatientId: async (patient_id: string) => {
+      return await supabase.from('lab_orders').select('*').eq('patient_id', patient_id).order('created_at', { ascending: false });
     },
     create: async (data: any) => {
       return await supabase.from('lab_orders').insert([data]).select().single();

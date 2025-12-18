@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 import DocumentViewer from '@/components/documents/DocumentViewer';
+import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -53,6 +54,8 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [loading, setLoading] = useState(false);
   const [shouldPrintBill, setShouldPrintBill] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
 
   // Fetch doctors and lab tests from database
   useEffect(() => {
@@ -117,19 +120,32 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const orderData = {
-        patient_id: selectedPatient.id,
-        doctor_id: selectedDoctor?.id,
-        tests: selectedTests,
-        total_amount: calculateTotal(),
-        status: 'pending',
-        order_date: new Date().toISOString().split('T')[0]
-      };
+    if (selectedTests.length === 0) {
+      toast.error('Please select at least one test');
+      return;
+    }
 
-      const { data, error } = await db.labOrders.create(orderData);
-      
+    // Prepare order data and show consent modal
+    const orderData = {
+      patient_id: selectedPatient.id,
+      doctor_id: selectedDoctor?.id,
+      tests: selectedTests,
+      total_amount: calculateTotal(),
+      status: 'pending',
+      order_date: new Date().toISOString().split('T')[0]
+    };
+
+    setPendingOrderData(orderData);
+    setShowConsentModal(true);
+  };
+
+  const handleConsentAccepted = async () => {
+    setShowConsentModal(false);
+    setLoading(true);
+
+    try {
+      const { data, error } = await db.labOrders.create(pendingOrderData);
+
       if (error) {
         console.error('Error creating lab order:', error);
         toast.error('Failed to create lab order');
@@ -138,13 +154,20 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       }
 
       setGeneratedOrder(data);
-      toast.success('Lab order created successfully!');
+      toast.success('Lab order created successfully with consent!');
+      setPendingOrderData(null);
     } catch (error) {
       console.error('Error creating lab order:', error);
       toast.error('Failed to create lab order');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConsentDeclined = () => {
+    setShowConsentModal(false);
+    setPendingOrderData(null);
+    toast.info('Lab order cancelled - consent not provided');
   };
 
   const handlePayment = () => {
@@ -470,6 +493,16 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           />
         </div>
       )}
+
+      {/* Lab Test Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        consentType="lab"
+        patientName={selectedPatient?.name || ''}
+        procedureName={`Laboratory Testing (${selectedTests.length} test${selectedTests.length !== 1 ? 's' : ''})`}
+        onAccept={handleConsentAccepted}
+        onDecline={handleConsentDeclined}
+      />
     </div>
   );
 }

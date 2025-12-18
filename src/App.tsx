@@ -46,10 +46,11 @@ import ReportsAnalytics from '@/components/ReportsAnalytics';
 import BillingInvoices from '@/components/BillingInvoices';
 import HospitalSettings from '@/components/HospitalSettings';
 import DocumentsManagement from '@/components/DocumentsManagement';
+import PatientDocumentPortfolio from '@/components/PatientDocumentPortfolio';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -141,6 +142,7 @@ const App = () => {
     { id: 'lab' as ModuleType, name: 'Lab Orders', icon: TestTube },
     { id: 'billing' as ModuleType, name: 'Billing & Invoices', icon: FileText },
     { id: 'documents' as ModuleType, name: 'Documents & Paperwork', icon: FileText },
+    { id: 'portfolio' as ModuleType, name: 'Patient Document Portfolio', icon: User },
     { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
     { id: 'rooms' as ModuleType, name: 'Room Management', icon: Building },
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
@@ -324,6 +326,8 @@ const App = () => {
         return <UserRoles />;
       case 'documents':
         return <DocumentsManagement />;
+      case 'portfolio':
+        return <PatientDocumentPortfolio selectedPatient={selectedPatient} />;
       case 'settings':
         return <HospitalSettings />;
       default:

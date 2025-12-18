@@ -12,6 +12,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import DischargeSummaryTemplate from '@/components/documents/DischargeSummaryTemplate';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Admission {
   id: string;
@@ -420,6 +421,27 @@ export default function DischargeModule() {
                   <Printer className="h-4 w-4 mr-2" />
                   Preview
                 </Button>
+              </div>
+
+              <Separator className="my-4" />
+
+              {/* Uploaded Document Templates */}
+              <div className="space-y-3">
+                <DocumentViewer
+                  moduleName="discharge"
+                  documentType="discharge_summary"
+                  title="Discharge Summary Template"
+                />
+                <DocumentViewer
+                  moduleName="discharge"
+                  documentType="consent_form"
+                  title="Discharge Consent Form"
+                />
+                <DocumentViewer
+                  moduleName="discharge"
+                  documentType="certificate"
+                  title="Discharge Certificate"
+                />
               </div>
             </CardContent>
           </Card>

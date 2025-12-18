@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +8,10 @@ import { FileText, Printer, Clock, User, Stethoscope, CreditCard } from 'lucide-
 import { Patient, generateId, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+import ConsentModal from '@/components/ConsentModal';
+import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Doctor {
   id: string;
@@ -40,6 +44,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
   const [loading, setLoading] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number>(0);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -99,20 +106,27 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       return;
     }
 
+    // Show consent modal first
+    setShowConsentModal(true);
+  };
+
+  const handleConsentAccepted = async () => {
+    setShowConsentModal(false);
     setLoading(true);
+
     try {
       const tokenData = {
         token_number: generateTokenNumber(),
-        patient_id: selectedPatient.id,
-        doctor_id: selectedDoctor.id,
+        patient_id: selectedPatient!.id,
+        doctor_id: selectedDoctor!.id,
         date: new Date().toISOString().split('T')[0],
         status: 'waiting',
-        fee: selectedDoctor.opd_fee,
+        fee: selectedDoctor!.opd_fee,
         payment_status: paymentStatus
       };
 
       const { data, error } = await db.opdTokens.create(tokenData);
-      
+
       if (error) {
         console.error('Error creating token:', error);
         toast.error('Failed to generate token');
@@ -121,13 +135,18 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       setGeneratedToken(data);
-      toast.success('OPD Token generated successfully!');
+      toast.success('OPD Token generated successfully with consent!');
     } catch (error) {
       console.error('Error creating token:', error);
       toast.error('Failed to generate token');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConsentDeclined = () => {
+    setShowConsentModal(false);
+    toast.info('OPD consultation cancelled - consent not provided');
   };
 
   const handlePayment = async () => {
@@ -155,6 +174,26 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrintReceipt = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `OPD-Receipt-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('OPD receipt printed successfully');
+      setShouldPrintReceipt(false);
+    },
+  });
+
+  const printOPDReceipt = () => {
+    if (!generatedToken || !selectedPatient || !selectedDoctor) {
+      toast.error('Missing OPD details');
+      return;
+    }
+    setShouldPrintReceipt(true);
+    setTimeout(() => {
+      handlePrintReceipt();
+    }, 100);
   };
 
   const printToken = () => {
@@ -474,10 +513,65 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                   <Printer className="h-4 w-4 mr-2" />
                   Print Prescription
                 </Button>
+                <Button onClick={printOPDReceipt} variant="outline" className="flex-1">
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Receipt
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Uploaded Document Templates */}
+              <div className="space-y-3">
+                <DocumentViewer
+                  moduleName="opd"
+                  documentType="receipt"
+                  title="OPD Receipt Template"
+                />
+                <DocumentViewer
+                  moduleName="opd"
+                  documentType="consent_form"
+                  title="OPD Consent Form"
+                />
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* OPD Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        consentType="opd"
+        patientName={selectedPatient?.name || ''}
+        procedureName={`OPD Consultation with Dr. ${selectedDoctor?.name}`}
+        onAccept={handleConsentAccepted}
+        onDecline={handleConsentDeclined}
+      />
+
+      {/* Hidden Receipt Template for OPD Printing */}
+      {shouldPrintReceipt && selectedPatient && selectedDoctor && generatedToken && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            data={{
+              receiptNumber: `OPD-${generatedToken.id.slice(-8).toUpperCase()}`,
+              date: generatedToken.date,
+              patientName: selectedPatient.name,
+              patientContact: selectedPatient.contact,
+              items: [
+                {
+                  description: `OPD Consultation Fee\nDoctor: Dr. ${selectedDoctor.name}\nDepartment: ${selectedDoctor.department}\nToken #${generatedToken.token_number} | Queue #${queueNumber}`,
+                  amount: selectedDoctor.opd_fee,
+                },
+              ],
+              total: selectedDoctor.opd_fee,
+              paymentStatus: generatedToken.payment_status === 'paid' ? 'paid' : 'unpaid',
+              amountPaid: generatedToken.payment_status === 'paid' ? selectedDoctor.opd_fee : 0,
+              balanceDue: generatedToken.payment_status === 'paid' ? 0 : selectedDoctor.opd_fee,
+            }}
+          />
+        </div>
       )}
     </div>
   );

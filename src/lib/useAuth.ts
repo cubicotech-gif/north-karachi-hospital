@@ -30,7 +30,9 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'appointments': ['Appointment Scheduling'],
   'queue': ['Doctor Queue System'],
   'reports': ['Reports & Analytics'],
-  'billing': ['Billing & Invoices']
+  'billing': ['Billing & Invoices'],
+  'documents': ['documents'],
+  'portfolio': ['Patient Registration', 'OPD Token System', 'Lab Management', 'Treatment Management', 'Admission Management', 'Discharge Management']
 };
 
 export const useAuth = () => {

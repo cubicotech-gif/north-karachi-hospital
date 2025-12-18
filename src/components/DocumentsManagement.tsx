@@ -25,7 +25,7 @@ import {
   Settings,
   Link as LinkIcon,
 } from 'lucide-react';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface DocumentCategory {
@@ -122,7 +122,7 @@ export default function DocumentsManagement() {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('document_categories')
         .select('*')
         .eq('active', true)
@@ -138,7 +138,7 @@ export default function DocumentsManagement() {
 
   const fetchTemplates = async () => {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('document_templates')
         .select('*')
         .order('created_at', { ascending: false });
@@ -153,7 +153,7 @@ export default function DocumentsManagement() {
 
   const fetchMappings = async () => {
     try {
-      const { data, error } = await db.supabase
+      const { data, error } = await supabase
         .from('document_template_mappings')
         .select('*')
         .eq('is_active', true);
@@ -180,7 +180,7 @@ export default function DocumentsManagement() {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `documents/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await db.supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('hospital-documents')
         .upload(filePath, uploadForm.file);
 
@@ -192,12 +192,12 @@ export default function DocumentsManagement() {
       }
 
       // Get public URL
-      const { data: urlData } = db.supabase.storage
+      const { data: urlData } = supabase.storage
         .from('hospital-documents')
         .getPublicUrl(filePath);
 
       // Save template metadata to database
-      const { data: templateData, error: templateError } = await db.supabase
+      const { data: templateData, error: templateError } = await supabase
         .from('document_templates')
         .insert({
           name: uploadForm.name,
@@ -242,7 +242,7 @@ export default function DocumentsManagement() {
     }
 
     try {
-      const { error } = await db.supabase
+      const { error } = await supabase
         .from('document_template_mappings')
         .insert({
           template_id: mappingForm.template_id,
@@ -275,7 +275,7 @@ export default function DocumentsManagement() {
     }
 
     try {
-      const { error } = await db.supabase
+      const { error } = await supabase
         .from('document_templates')
         .update({ active: false })
         .eq('id', templateId);
@@ -292,7 +292,7 @@ export default function DocumentsManagement() {
 
   const handleDeleteMapping = async (mappingId: string) => {
     try {
-      const { error } = await db.supabase
+      const { error } = await supabase
         .from('document_template_mappings')
         .delete()
         .eq('id', mappingId);
