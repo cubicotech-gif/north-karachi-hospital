@@ -11,7 +11,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
+import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
@@ -53,7 +53,9 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(false);
   const [shouldPrintBill, setShouldPrintBill] = useState(false);
+  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const consentFormRef = useRef<HTMLDivElement>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
 
@@ -194,6 +196,26 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     setShouldPrintBill(true);
     setTimeout(() => {
       handlePrintBill();
+    }, 100);
+  };
+
+  const handlePrintConsentForm = useReactToPrint({
+    content: () => consentFormRef.current,
+    documentTitle: `Lab-Consent-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Lab consent form printed successfully');
+      setShouldPrintConsentForm(false);
+    },
+  });
+
+  const printLabConsentForm = () => {
+    if (!generatedOrder || !selectedPatient) {
+      toast.error('Missing order details');
+      return;
+    }
+    setShouldPrintConsentForm(true);
+    setTimeout(() => {
+      handlePrintConsentForm();
     }, 100);
   };
 
@@ -432,37 +454,25 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {paymentStatus === 'pending' && (
-                  <Button onClick={handlePayment} variant="outline" className="flex-1">
-                    <CreditCard className="h-4 w-4 mr-2" />
+                  <Button onClick={handlePayment} variant="outline" size="sm">
+                    <CreditCard className="h-3 w-3 mr-2" />
                     Record Payment
                   </Button>
                 )}
-                <Button onClick={printLabBill} variant="outline" className="flex-1">
-                  <Printer className="h-4 w-4 mr-2" />
+                <Button onClick={printLabConsentForm} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
+                  Print Consent Form
+                </Button>
+                <Button onClick={printLabBill} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
                   Print Bill
                 </Button>
-                <Button onClick={printLabSlip} variant="outline" className="flex-1">
-                  <Printer className="h-4 w-4 mr-2" />
+                <Button onClick={printLabSlip} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
                   Print Lab Slip
                 </Button>
-              </div>
-
-              <Separator />
-
-              {/* Uploaded Document Templates */}
-              <div className="space-y-3">
-                <DocumentViewer
-                  moduleName="lab"
-                  documentType="receipt"
-                  title="Lab Bill Receipt Template"
-                />
-                <DocumentViewer
-                  moduleName="lab"
-                  documentType="lab_report"
-                  title="Lab Report Template"
-                />
               </div>
             </div>
           </CardContent>
@@ -503,6 +513,23 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
         onAccept={handleConsentAccepted}
         onDecline={handleConsentDeclined}
       />
+
+      {/* Hidden Consent Form Template for Lab Printing */}
+      {shouldPrintConsentForm && selectedPatient && generatedOrder && (
+        <div style={{ display: 'none' }}>
+          <ConsentFormTemplate
+            ref={consentFormRef}
+            consentType="lab"
+            patientName={selectedPatient.name}
+            patientAge={selectedPatient.age}
+            patientGender={selectedPatient.gender}
+            patientContact={selectedPatient.contact}
+            doctorName={selectedDoctor?.name}
+            procedureName={`Laboratory Testing - ${generatedOrder.tests.length} test${generatedOrder.tests.length !== 1 ? 's' : ''}`}
+            date={new Date(generatedOrder.order_date).toLocaleDateString('en-PK')}
+          />
+        </div>
+      )}
     </div>
   );
 }
