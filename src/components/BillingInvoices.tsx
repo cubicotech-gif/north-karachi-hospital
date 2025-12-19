@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/hospitalData';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Invoice {
   id: string;
@@ -415,25 +414,6 @@ export default function BillingInvoices() {
               </TabsContent>
             ))}
           </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Available Document Templates */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Available Receipt Templates
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <DocumentViewer
-              moduleName="billing"
-              documentType="receipt"
-              title="Billing Receipt Template"
-            />
-          </div>
         </CardContent>
       </Card>
 
