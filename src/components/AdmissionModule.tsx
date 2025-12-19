@@ -13,7 +13,8 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import AdmissionFormTemplate from '@/components/documents/AdmissionFormTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
+import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
+import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 
 interface Doctor {
   id: string;
@@ -62,7 +63,11 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [shouldPrint, setShouldPrint] = useState(false);
+  const [shouldPrintConsent, setShouldPrintConsent] = useState(false);
+  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
   const admissionFormRef = useRef<HTMLDivElement>(null);
+  const consentFormRef = useRef<HTMLDivElement>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   // Fetch doctors and rooms from database
   useEffect(() => {
@@ -172,6 +177,24 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
     },
   });
 
+  const handlePrintConsent = useReactToPrint({
+    content: () => consentFormRef.current,
+    documentTitle: `Admission-Consent-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Consent form printed successfully');
+      setShouldPrintConsent(false);
+    },
+  });
+
+  const handlePrintReceipt = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `Admission-Receipt-${selectedPatient?.name || 'Unknown'}`,
+    onAfterPrint: () => {
+      toast.success('Deposit receipt printed successfully');
+      setShouldPrintReceipt(false);
+    },
+  });
+
   const printAdmissionForm = () => {
     if (!generatedAdmission || !selectedPatient || !selectedDoctor || !selectedRoom) {
       toast.error('Missing admission details');
@@ -180,6 +203,28 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
     setShouldPrint(true);
     setTimeout(() => {
       handlePrint();
+    }, 100);
+  };
+
+  const printConsentForm = () => {
+    if (!generatedAdmission || !selectedPatient || !selectedDoctor) {
+      toast.error('Missing admission details');
+      return;
+    }
+    setShouldPrintConsent(true);
+    setTimeout(() => {
+      handlePrintConsent();
+    }, 100);
+  };
+
+  const printDepositReceipt = () => {
+    if (!generatedAdmission || !selectedPatient || !selectedRoom) {
+      toast.error('Missing admission details');
+      return;
+    }
+    setShouldPrintReceipt(true);
+    setTimeout(() => {
+      handlePrintReceipt();
     }, 100);
   };
 
@@ -388,25 +433,19 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 </div>
               </div>
 
-              <Button onClick={printAdmissionForm} variant="outline" className="w-full">
-                <Printer className="h-4 w-4 mr-2" />
-                Print Admission Form
-              </Button>
-
-              <Separator />
-
-              {/* Uploaded Document Templates */}
-              <div className="space-y-3">
-                <DocumentViewer
-                  moduleName="admission"
-                  documentType="admission_form"
-                  title="Admission Form Template"
-                />
-                <DocumentViewer
-                  moduleName="admission"
-                  documentType="consent_form"
-                  title="Admission Consent Form"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={printAdmissionForm} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
+                  Admission Form
+                </Button>
+                <Button onClick={printConsentForm} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
+                  Consent Form
+                </Button>
+                <Button onClick={printDepositReceipt} variant="outline" size="sm">
+                  <Printer className="h-3 w-3 mr-2" />
+                  Deposit Receipt
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -434,6 +473,49 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 admissionType === 'Emergency' ? 'Emergency' :
                 'Refered',
               admissionFor: notes || selectedPatient.problem,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Hidden Consent Form Template for Printing */}
+      {shouldPrintConsent && selectedPatient && selectedDoctor && generatedAdmission && (
+        <div style={{ display: 'none' }}>
+          <ConsentFormTemplate
+            ref={consentFormRef}
+            consentType="admission"
+            patientName={selectedPatient.name}
+            patientAge={selectedPatient.age}
+            patientGender={selectedPatient.gender}
+            patientContact={selectedPatient.contact}
+            doctorName={selectedDoctor.name}
+            procedureName={`Hospital Admission - ${selectedDoctor.department}`}
+            date={new Date(generatedAdmission.admission_date).toLocaleDateString('en-PK')}
+          />
+        </div>
+      )}
+
+      {/* Hidden Receipt Template for Deposit Printing */}
+      {shouldPrintReceipt && selectedPatient && selectedRoom && generatedAdmission && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            data={{
+              receiptNumber: `ADM-${generatedAdmission.id.slice(-8).toUpperCase()}`,
+              date: generatedAdmission.admission_date,
+              patientName: selectedPatient.name,
+              patientContact: selectedPatient.contact,
+              patientCnic: selectedPatient.cnicNumber,
+              items: [
+                {
+                  description: `Admission Deposit\nRoom: ${selectedRoom.room_number} (${selectedRoom.type})\nBed: ${generatedAdmission.bed_number}\nRate: ${formatCurrency(selectedRoom.price_per_day)}/day`,
+                  amount: generatedAdmission.deposit,
+                },
+              ],
+              total: generatedAdmission.deposit,
+              paymentStatus: 'paid',
+              amountPaid: generatedAdmission.deposit,
+              balanceDue: 0,
             }}
           />
         </div>
