@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
 import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
@@ -522,14 +521,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                         </div>
                       </div>
 
-                      {/* Uploaded Document Template */}
-                      <div className="mt-4">
-                        <DocumentViewer
-                          moduleName="treatment"
-                          documentType="receipt"
-                          title="Treatment Receipt Template"
-                        />
-                      </div>
                     </Card>
                   );
                 })}

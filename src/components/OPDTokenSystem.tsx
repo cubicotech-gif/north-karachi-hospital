@@ -12,7 +12,6 @@ import { useReactToPrint } from 'react-to-print';
 import ConsentModal from '@/components/ConsentModal';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
 
 interface Doctor {
   id: string;
@@ -546,21 +545,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 </Button>
               </div>
 
-              <Separator />
-
-              {/* Uploaded Document Templates */}
-              <div className="space-y-3">
-                <DocumentViewer
-                  moduleName="opd"
-                  documentType="receipt"
-                  title="OPD Receipt Template"
-                />
-                <DocumentViewer
-                  moduleName="opd"
-                  documentType="consent_form"
-                  title="OPD Consent Form"
-                />
-              </div>
             </div>
           </CardContent>
         </Card>

@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
-import DocumentViewer from '@/components/documents/DocumentViewer';
 import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
@@ -474,22 +473,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                   <Printer className="h-3 w-3 mr-2" />
                   Print Lab Slip
                 </Button>
-              </div>
-
-              <Separator />
-
-              {/* Uploaded Document Templates */}
-              <div className="space-y-3">
-                <DocumentViewer
-                  moduleName="lab"
-                  documentType="receipt"
-                  title="Lab Bill Receipt Template"
-                />
-                <DocumentViewer
-                  moduleName="lab"
-                  documentType="lab_report"
-                  title="Lab Report Template"
-                />
               </div>
             </div>
           </CardContent>
