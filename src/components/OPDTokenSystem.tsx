@@ -10,7 +10,7 @@ import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import ConsentModal from '@/components/ConsentModal';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import SimpleReceiptTemplate from '@/components/documents/SimpleReceiptTemplate';
 import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 
 interface Doctor {
@@ -563,7 +563,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       {/* Hidden Receipt Template for OPD Printing */}
       {shouldPrintReceipt && selectedPatient && selectedDoctor && generatedToken && (
         <div style={{ display: 'none' }}>
-          <ReceiptTemplate
+          <SimpleReceiptTemplate
             ref={receiptRef}
             data={{
               receiptNumber: `OPD-${generatedToken.id.slice(-8).toUpperCase()}`,

@@ -10,7 +10,7 @@ import { Patient, generateId, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
+import SimpleReceiptTemplate from '@/components/documents/SimpleReceiptTemplate';
 import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import ConsentModal from '@/components/ConsentModal';
 
@@ -482,7 +482,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       {/* Hidden Receipt Template for Lab Bill Printing */}
       {shouldPrintBill && selectedPatient && generatedOrder && (
         <div style={{ display: 'none' }}>
-          <ReceiptTemplate
+          <SimpleReceiptTemplate
             ref={receiptRef}
             data={{
               receiptNumber: `LAB-${generatedOrder.id.slice(-8).toUpperCase()}`,
