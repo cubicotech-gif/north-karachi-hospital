@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,12 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TestTube, User, Printer, CreditCard, FileText } from 'lucide-react';
-import { Patient, generateId, formatCurrency } from '@/lib/hospitalData';
+import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useReactToPrint } from 'react-to-print';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
-import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
@@ -52,10 +49,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(false);
-  const [shouldPrintBill, setShouldPrintBill] = useState(false);
-  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const consentFormRef = useRef<HTMLDivElement>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
 
@@ -179,44 +172,234 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     }
   };
 
-  const handlePrintBill = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: `Lab-Bill-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Lab bill printed successfully');
-      setShouldPrintBill(false);
-    },
-  });
-
   const printLabBill = () => {
     if (!generatedOrder || !selectedPatient) {
       toast.error('Missing order details');
       return;
     }
-    setShouldPrintBill(true);
-    setTimeout(() => {
-      handlePrintBill();
-    }, 100);
-  };
 
-  const handlePrintConsentForm = useReactToPrint({
-    content: () => consentFormRef.current,
-    documentTitle: `Lab-Consent-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Lab consent form printed successfully');
-      setShouldPrintConsentForm(false);
-    },
-  });
+    const selectedTestDetails = labTests.filter(test =>
+      generatedOrder.tests.includes(test.id)
+    );
+
+    const billContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Lab Bill - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .receipt-title { background: #2563eb; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+          .info-box { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          .info-box p { margin: 5px 0; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background: #2563eb; color: white; padding: 12px; text-align: left; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+          .total-row { font-weight: bold; font-size: 16px; background: #f0f7ff; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          .status-badge { display: inline-block; padding: 5px 15px; border-radius: 15px; font-weight: bold; }
+          .status-paid { background: #d4edda; color: #155724; }
+          .status-unpaid { background: #f8d7da; color: #721c24; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="receipt-title">LABORATORY BILL / RECEIPT</div>
+
+        <div class="info-section">
+          <div class="info-box">
+            <p><strong>Receipt No:</strong> LAB-${generatedOrder.id.slice(-8).toUpperCase()}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <div class="info-box">
+            <p><strong>Patient:</strong> ${selectedPatient.name}</p>
+            <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
+            <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Test Name</th>
+              <th>Department</th>
+              <th style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${selectedTestDetails.map((test, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${test.name}</td>
+                <td>${test.department}</td>
+                <td style="text-align: right;">${formatCurrency(test.price)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="3" style="text-align: right;"><strong>TOTAL:</strong></td>
+              <td style="text-align: right;"><strong>${formatCurrency(generatedOrder.total_amount)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <span class="status-badge ${paymentStatus === 'paid' ? 'status-paid' : 'status-unpaid'}">
+            ${paymentStatus === 'paid' ? 'PAID' : 'PAYMENT PENDING'}
+          </span>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for choosing North Karachi Hospital</p>
+          <p>This is a computer generated receipt</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(billContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Lab bill printed successfully');
+    }
+  };
 
   const printLabConsentForm = () => {
     if (!generatedOrder || !selectedPatient) {
       toast.error('Missing order details');
       return;
     }
-    setShouldPrintConsentForm(true);
-    setTimeout(() => {
-      handlePrintConsentForm();
-    }, 100);
+
+    const selectedTestDetails = labTests.filter(test =>
+      generatedOrder.tests.includes(test.id)
+    );
+    const testNames = selectedTestDetails.map(t => t.name).join(', ');
+
+    const consentContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Lab Consent - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .consent-title { background: #e74c3c; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .patient-info { border: 2px solid #e74c3c; padding: 20px; margin-bottom: 30px; background: #fff5f5; }
+          .patient-info h3 { margin: 0 0 15px 0; color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 8px; }
+          .patient-info p { margin: 8px 0; font-size: 14px; }
+          .consent-text { line-height: 1.8; text-align: justify; margin-bottom: 30px; }
+          .consent-text ul { margin: 15px 0; padding-left: 25px; }
+          .consent-text li { margin: 8px 0; }
+          .checkbox-section { border: 1px solid #ddd; padding: 15px; margin-bottom: 30px; background: #f9f9f9; }
+          .checkbox-item { margin: 10px 0; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+          .checkbox-box { width: 18px; height: 18px; border: 2px solid #333; display: inline-block; }
+          .signature-section { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+          .signature-box { text-align: center; }
+          .signature-line { border-bottom: 2px solid #333; height: 60px; margin-bottom: 10px; }
+          .signature-label { font-size: 13px; font-weight: bold; }
+          .signature-fields { font-size: 12px; color: #666; margin-top: 5px; }
+          .footer-note { margin-top: 40px; padding: 15px; background: #f5f5f5; border: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="consent-title">LABORATORY TESTING CONSENT FORM</div>
+
+        <div style="text-align: right; margin-bottom: 20px; font-size: 14px;">
+          <strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}
+        </div>
+
+        <div class="patient-info">
+          <h3>PATIENT INFORMATION</h3>
+          <p><strong>Patient Name:</strong> ${selectedPatient.name}</p>
+          <p><strong>Age:</strong> ${selectedPatient.age} years</p>
+          <p><strong>Gender:</strong> ${selectedPatient.gender}</p>
+          <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          <p><strong>Tests:</strong> ${testNames}</p>
+          ${selectedDoctor ? `<p><strong>Referring Doctor:</strong> Dr. ${selectedDoctor.name}</p>` : ''}
+        </div>
+
+        <div class="consent-text">
+          <h3>CONSENT STATEMENT</h3>
+          <p>I, the undersigned, hereby give my consent for laboratory testing and specimen collection from the patient named above.</p>
+          <p>I understand that:</p>
+          <ul>
+            <li>Laboratory tests have been ordered by the attending physician</li>
+            <li>Specimen collection (blood, urine, or other samples) will be performed</li>
+            <li>Test results will be shared with the ordering physician</li>
+            <li>Results will be used for diagnosis and treatment planning</li>
+            <li>Sample collection may cause minor discomfort</li>
+            <li>All test results will be kept confidential</li>
+          </ul>
+          <p>I voluntarily consent to these laboratory tests and specimen collection.</p>
+        </div>
+
+        <div class="checkbox-section">
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I have read and understood the above consent statement
+          </div>
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I understand the risks, benefits, and alternatives explained to me
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Patient / Guardian Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Relationship: _________________<br>
+              CNIC: ________________________
+            </div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Witness Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Designation: _________________<br>
+              Date: ________________________
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          <strong>Note:</strong> This consent form is a legal document. Please read it carefully before signing.<br>
+          If you have any questions, please ask the medical staff before signing.
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(consentContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Lab consent form printed successfully');
+    }
   };
 
   const printLabSlip = () => {
@@ -479,31 +662,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
         </Card>
       )}
 
-      {/* Hidden Receipt Template for Lab Bill Printing */}
-      {shouldPrintBill && selectedPatient && generatedOrder && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            data={{
-              receiptNumber: `LAB-${generatedOrder.id.slice(-8).toUpperCase()}`,
-              date: generatedOrder.order_date,
-              patientName: selectedPatient.name,
-              patientContact: selectedPatient.contact,
-              items: labTests
-                .filter(test => generatedOrder.tests.includes(test.id))
-                .map(test => ({
-                  description: test.name,
-                  amount: test.price,
-                })),
-              total: generatedOrder.total_amount,
-              paymentStatus: paymentStatus === 'paid' ? 'paid' : 'unpaid',
-              amountPaid: paymentStatus === 'paid' ? generatedOrder.total_amount : 0,
-              balanceDue: paymentStatus === 'paid' ? 0 : generatedOrder.total_amount,
-            }}
-          />
-        </div>
-      )}
-
       {/* Lab Test Consent Modal */}
       <ConsentModal
         isOpen={showConsentModal}
@@ -513,23 +671,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
         onAccept={handleConsentAccepted}
         onDecline={handleConsentDeclined}
       />
-
-      {/* Hidden Consent Form Template for Lab Printing */}
-      {shouldPrintConsentForm && selectedPatient && generatedOrder && (
-        <div style={{ display: 'none' }}>
-          <ConsentFormTemplate
-            ref={consentFormRef}
-            consentType="lab"
-            patientName={selectedPatient.name}
-            patientAge={selectedPatient.age}
-            patientGender={selectedPatient.gender}
-            patientContact={selectedPatient.contact}
-            doctorName={selectedDoctor?.name}
-            procedureName={`Laboratory Testing - ${generatedOrder.tests.length} test${generatedOrder.tests.length !== 1 ? 's' : ''}`}
-            date={new Date(generatedOrder.order_date).toLocaleDateString('en-PK')}
-          />
-        </div>
-      )}
     </div>
   );
 }

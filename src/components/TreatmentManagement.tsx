@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Activity, Printer, Trash2, Plus } from 'lucide-react';
-import { Patient, Treatment, formatCurrency } from '@/lib/hospitalData';
+import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useReactToPrint } from 'react-to-print';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
-import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
@@ -52,11 +49,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
-  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
-  const [printingTreatment, setPrintingTreatment] = useState<any>(null);
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const consentFormRef = useRef<HTMLDivElement>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
 
@@ -214,48 +206,228 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     }
   };
 
-  const handlePrintReceipt = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: `Treatment-Receipt-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Treatment receipt printed successfully');
-      setShouldPrintReceipt(false);
-      setPrintingTreatment(null);
-    },
-  });
-
   const printTreatmentReceipt = (treatment: any) => {
     if (!selectedPatient || !treatment) {
       toast.error('Missing treatment details');
       return;
     }
-    setPrintingTreatment(treatment);
-    setShouldPrintReceipt(true);
-    setTimeout(() => {
-      handlePrintReceipt();
-    }, 100);
-  };
 
-  const handlePrintConsentForm = useReactToPrint({
-    content: () => consentFormRef.current,
-    documentTitle: `Treatment-Consent-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Treatment consent form printed successfully');
-      setShouldPrintConsentForm(false);
-      setPrintingTreatment(null);
-    },
-  });
+    const doctor = doctors.find(d => d.id === treatment.doctor_id);
+
+    const receiptContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Treatment Receipt - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .receipt-title { background: #2563eb; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+          .info-box { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          .info-box p { margin: 5px 0; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background: #2563eb; color: white; padding: 12px; text-align: left; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+          .total-row { font-weight: bold; font-size: 16px; background: #f0f7ff; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          .status-badge { display: inline-block; padding: 5px 15px; border-radius: 15px; font-weight: bold; }
+          .status-paid { background: #d4edda; color: #155724; }
+          .status-pending { background: #f8d7da; color: #721c24; }
+          .status-partial { background: #fff3cd; color: #856404; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="receipt-title">TREATMENT RECEIPT</div>
+
+        <div class="info-section">
+          <div class="info-box">
+            <p><strong>Receipt No:</strong> TRT-${treatment.id.slice(-8).toUpperCase()}</p>
+            <p><strong>Date:</strong> ${new Date(treatment.date).toLocaleDateString('en-GB')}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <div class="info-box">
+            <p><strong>Patient:</strong> ${selectedPatient.name}</p>
+            <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
+            <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>${treatment.treatment_type}</strong> - ${treatment.treatment_name}
+                ${treatment.description ? `<br><span style="font-size: 13px; color: #666;">${treatment.description}</span>` : ''}
+                ${doctor ? `<br><span style="font-size: 13px; color: #666;">Doctor: Dr. ${doctor.name}</span>` : ''}
+              </td>
+              <td style="text-align: right;">${formatCurrency(treatment.price)}</td>
+            </tr>
+            <tr class="total-row">
+              <td style="text-align: right;"><strong>TOTAL:</strong></td>
+              <td style="text-align: right;"><strong>${formatCurrency(treatment.price)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <span class="status-badge status-${treatment.payment_status}">
+            ${treatment.payment_status === 'paid' ? 'PAID' : treatment.payment_status === 'partial' ? 'PARTIAL PAYMENT' : 'PAYMENT PENDING'}
+          </span>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for choosing North Karachi Hospital</p>
+          <p>This is a computer generated receipt</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(receiptContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Treatment receipt printed successfully');
+    }
+  };
 
   const printTreatmentConsentForm = (treatment: any) => {
     if (!selectedPatient || !treatment) {
       toast.error('Missing treatment details');
       return;
     }
-    setPrintingTreatment(treatment);
-    setShouldPrintConsentForm(true);
-    setTimeout(() => {
-      handlePrintConsentForm();
-    }, 100);
+
+    const doctor = doctors.find(d => d.id === treatment.doctor_id);
+
+    const consentContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Treatment Consent - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .consent-title { background: #e74c3c; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .patient-info { border: 2px solid #e74c3c; padding: 20px; margin-bottom: 30px; background: #fff5f5; }
+          .patient-info h3 { margin: 0 0 15px 0; color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 8px; }
+          .patient-info p { margin: 8px 0; font-size: 14px; }
+          .consent-text { line-height: 1.8; text-align: justify; margin-bottom: 30px; }
+          .consent-text ul { margin: 15px 0; padding-left: 25px; }
+          .consent-text li { margin: 8px 0; }
+          .checkbox-section { border: 1px solid #ddd; padding: 15px; margin-bottom: 30px; background: #f9f9f9; }
+          .checkbox-item { margin: 10px 0; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+          .checkbox-box { width: 18px; height: 18px; border: 2px solid #333; display: inline-block; }
+          .signature-section { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+          .signature-box { text-align: center; }
+          .signature-line { border-bottom: 2px solid #333; height: 60px; margin-bottom: 10px; }
+          .signature-label { font-size: 13px; font-weight: bold; }
+          .signature-fields { font-size: 12px; color: #666; margin-top: 5px; }
+          .footer-note { margin-top: 40px; padding: 15px; background: #f5f5f5; border: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="consent-title">TREATMENT CONSENT FORM</div>
+
+        <div style="text-align: right; margin-bottom: 20px; font-size: 14px;">
+          <strong>Date:</strong> ${new Date(treatment.date).toLocaleDateString('en-GB')}
+        </div>
+
+        <div class="patient-info">
+          <h3>PATIENT INFORMATION</h3>
+          <p><strong>Patient Name:</strong> ${selectedPatient.name}</p>
+          <p><strong>Age:</strong> ${selectedPatient.age} years</p>
+          <p><strong>Gender:</strong> ${selectedPatient.gender}</p>
+          <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          <p><strong>Treatment:</strong> ${treatment.treatment_type} - ${treatment.treatment_name}</p>
+          ${doctor ? `<p><strong>Doctor:</strong> Dr. ${doctor.name}</p>` : ''}
+        </div>
+
+        <div class="consent-text">
+          <h3>CONSENT STATEMENT</h3>
+          <p>I, the undersigned, hereby give my consent for the treatment procedure: "${treatment.treatment_type} - ${treatment.treatment_name}" to be performed on the patient named above.</p>
+          <p>I understand that:</p>
+          <ul>
+            <li>The nature and purpose of this treatment has been explained to me</li>
+            <li>All risks, benefits, and possible complications have been discussed</li>
+            <li>Alternative treatment options have been explained</li>
+            <li>I have had the opportunity to ask questions and received satisfactory answers</li>
+            <li>I understand that no guarantee has been made about the results</li>
+            <li>The treating physician will use their professional judgment during the procedure</li>
+          </ul>
+          <p>I voluntarily consent to this treatment and authorize the medical staff to proceed.</p>
+        </div>
+
+        <div class="checkbox-section">
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I have read and understood the above consent statement
+          </div>
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I understand the risks, benefits, and alternatives explained to me
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Patient / Guardian Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Relationship: _________________<br>
+              CNIC: ________________________
+            </div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Witness Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Designation: _________________<br>
+              Date: ________________________
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          <strong>Note:</strong> This consent form is a legal document. Please read it carefully before signing.<br>
+          If you have any questions, please ask the medical staff before signing.
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(consentContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Treatment consent form printed successfully');
+    }
   };
 
   if (!selectedPatient) {
@@ -530,49 +702,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         </CardContent>
       </Card>
 
-      {/* Hidden Receipt Template for Treatment Printing */}
-      {shouldPrintReceipt && selectedPatient && printingTreatment && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            data={{
-              receiptNumber: `TRT-${printingTreatment.id.slice(-8).toUpperCase()}`,
-              date: printingTreatment.date,
-              patientName: selectedPatient.name,
-              patientContact: selectedPatient.contact,
-              patientCnic: selectedPatient.cnicNumber,
-              items: [
-                {
-                  description: `${printingTreatment.treatment_type} - ${printingTreatment.treatment_name}${
-                    printingTreatment.description ? `\n${printingTreatment.description}` : ''
-                  }`,
-                  amount: printingTreatment.price,
-                },
-              ],
-              total: printingTreatment.price,
-              paymentStatus:
-                printingTreatment.payment_status === 'paid'
-                  ? 'paid'
-                  : printingTreatment.payment_status === 'partial'
-                  ? 'partial'
-                  : 'unpaid',
-              amountPaid:
-                printingTreatment.payment_status === 'paid'
-                  ? printingTreatment.price
-                  : printingTreatment.payment_status === 'partial'
-                  ? printingTreatment.price / 2
-                  : 0,
-              balanceDue:
-                printingTreatment.payment_status === 'paid'
-                  ? 0
-                  : printingTreatment.payment_status === 'partial'
-                  ? printingTreatment.price / 2
-                  : printingTreatment.price,
-            }}
-          />
-        </div>
-      )}
-
       {/* Treatment Consent Modal */}
       <ConsentModal
         isOpen={showConsentModal}
@@ -582,23 +711,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         onAccept={handleConsentAccepted}
         onDecline={handleConsentDeclined}
       />
-
-      {/* Hidden Consent Form Template for Treatment Printing */}
-      {shouldPrintConsentForm && selectedPatient && printingTreatment && (
-        <div style={{ display: 'none' }}>
-          <ConsentFormTemplate
-            ref={consentFormRef}
-            consentType="treatment"
-            patientName={selectedPatient.name}
-            patientAge={selectedPatient.age}
-            patientGender={selectedPatient.gender}
-            patientContact={selectedPatient.contact}
-            doctorName={doctors.find(d => d.id === printingTreatment.doctor_id)?.name}
-            procedureName={`${printingTreatment.treatment_type} - ${printingTreatment.treatment_name}`}
-            date={new Date(printingTreatment.date).toLocaleDateString('en-PK')}
-          />
-        </div>
-      )}
     </div>
   );
 }
