@@ -1,17 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Printer, Clock, User, Stethoscope, CreditCard } from 'lucide-react';
-import { Patient, generateId, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
+import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useReactToPrint } from 'react-to-print';
 import ConsentModal from '@/components/ConsentModal';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
-import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
 
 interface Doctor {
   id: string;
@@ -45,16 +42,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [loading, setLoading] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number>(0);
   const [showConsentModal, setShowConsentModal] = useState(false);
-  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
-  const [shouldPrintConsentForm, setShouldPrintConsentForm] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const consentFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDoctors();
   }, []);
 
-  // Get today's queue number for selected doctor
   useEffect(() => {
     if (selectedDoctor) {
       getQueueNumber(selectedDoctor.id);
@@ -80,17 +72,16 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await db.opdTokens.getAll();
-      
+
       if (error) {
         console.error('Error fetching tokens:', error);
         return;
       }
 
-      // Count tokens for this doctor today
       const todayTokens = data?.filter(
         token => token.doctor_id === doctorId && token.date === today
       ) || [];
-      
+
       setQueueNumber(todayTokens.length + 1);
     } catch (error) {
       console.error('Error getting queue number:', error);
@@ -107,8 +98,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       toast.error('Please select both patient and doctor');
       return;
     }
-
-    // Show consent modal first
     setShowConsentModal(true);
   };
 
@@ -178,45 +167,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     }
   };
 
-  const handlePrintReceipt = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: `OPD-Receipt-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('OPD receipt printed successfully');
-      setShouldPrintReceipt(false);
-    },
-  });
-
-  const printOPDReceipt = () => {
-    if (!generatedToken || !selectedPatient || !selectedDoctor) {
-      toast.error('Missing OPD details');
-      return;
-    }
-    setShouldPrintReceipt(true);
-    setTimeout(() => {
-      handlePrintReceipt();
-    }, 100);
-  };
-
-  const handlePrintConsentForm = useReactToPrint({
-    content: () => consentFormRef.current,
-    documentTitle: `OPD-Consent-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Consent form printed successfully');
-      setShouldPrintConsentForm(false);
-    },
-  });
-
-  const printConsentForm = () => {
-    if (!selectedPatient || !selectedDoctor) {
-      toast.error('Missing patient or doctor details');
-      return;
-    }
-    setShouldPrintConsentForm(true);
-    setTimeout(() => {
-      handlePrintConsentForm();
-    }, 100);
-  };
+  // ========== ALL PRINT FUNCTIONS USE window.open ==========
 
   const printToken = () => {
     if (!generatedToken || !selectedPatient || !selectedDoctor) return;
@@ -229,8 +180,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
             .container { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
             .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
-            .logo { width: 80px; height: 80px; margin: 0 auto 10px; }
             .hospital-name { font-size: 22px; font-weight: bold; color: #333; margin: 5px 0; }
+            .hospital-urdu { font-size: 18px; color: #666; }
             .subtitle { color: #666; font-size: 14px; }
             .queue-box { background: #e74c3c; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .queue-number { font-size: 48px; font-weight: bold; margin: 0; }
@@ -243,11 +194,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <body>
           <div class="container">
             <div class="header">
-              <img src="/logo.png" alt="Logo" class="logo" />
               <div class="hospital-name">North Karachi Hospital</div>
-              <div class="subtitle">OPD Token</div>
+              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+              <div class="subtitle">OPD Token / او پی ڈی ٹوکن</div>
             </div>
-            
+
             <div class="queue-box">
               <p class="queue-number">${queueNumber}</p>
               <p class="queue-label">QUEUE NUMBER</p>
@@ -257,28 +208,29 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <div><strong>Token:</strong> ${generatedToken.token_number}</div>
               <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</div>
             </div>
-            
+
             <div class="info-section">
               <div class="info-label">Patient Details:</div>
               <div>Name: ${selectedPatient.name}</div>
               <div>Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}</div>
               <div>Contact: ${selectedPatient.contact}</div>
             </div>
-            
+
             <div class="info-section">
               <div class="info-label">Doctor Details:</div>
               <div>Dr. ${selectedDoctor.name}</div>
               <div>${selectedDoctor.department}</div>
               <div>${selectedDoctor.specialization}</div>
             </div>
-            
+
             <div class="info-section">
               <div><strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}</div>
               <div><strong>Payment:</strong> ${generatedToken.payment_status.toUpperCase()}</div>
             </div>
-            
+
             <div class="footer">
-              Please wait for your turn. Show this token to the doctor.
+              Please wait for your turn. Show this token to the doctor.<br>
+              براہ کرم اپنی باری کا انتظار کریں۔
             </div>
           </div>
         </body>
@@ -293,10 +245,226 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     }
   };
 
-  const printPrescriptionSheet = () => {
+  const printReceipt = () => {
+    if (!generatedToken || !selectedPatient || !selectedDoctor) {
+      toast.error('Missing OPD details');
+      return;
+    }
+
+    const receiptNumber = `OPD-${generatedToken.id.slice(-8).toUpperCase()}`;
+    const isPaid = generatedToken.payment_status === 'paid';
+
+    const printContent = `
+      <html>
+        <head>
+          <title>OPD Receipt - ${receiptNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .container { max-width: 500px; margin: 0 auto; border: 2px solid #333; padding: 25px; }
+            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+            .hospital-name { font-size: 24px; font-weight: bold; color: #333; }
+            .hospital-urdu { font-size: 18px; color: #666; }
+            .address { font-size: 12px; color: #666; margin-top: 5px; }
+            .receipt-title { background: #e74c3c; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+            .info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 5px 0; border-bottom: 1px dashed #ddd; }
+            .patient-box { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px; }
+            .amount-box { background: #e8f5e9; padding: 15px; margin: 15px 0; border-radius: 5px; text-align: center; }
+            .total { font-size: 28px; font-weight: bold; color: #2e7d32; }
+            .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+            .paid { background: #4caf50; color: white; }
+            .unpaid { background: #f44336; color: white; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
+            .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; padding-top: 5px; font-size: 12px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="hospital-name">North Karachi Hospital</div>
+              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+              <div class="address">C-122, Sector 11-B, North Karachi | Ph: 36989080</div>
+            </div>
+
+            <div class="receipt-title">RECEIPT / رسید</div>
+
+            <div class="info-row">
+              <span><strong>Receipt No:</strong> ${receiptNumber}</span>
+              <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
+            </div>
+
+            <div class="patient-box">
+              <strong>Patient Details:</strong><br>
+              Name: ${selectedPatient.name}<br>
+              Contact: ${selectedPatient.contact}<br>
+              Age/Gender: ${selectedPatient.age} yrs / ${selectedPatient.gender}
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+              <tr style="background: #f0f0f0;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Description</th>
+                <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Amount</th>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                  OPD Consultation Fee<br>
+                  <small>Dr. ${selectedDoctor.name} - ${selectedDoctor.department}</small><br>
+                  <small>Token #${generatedToken.token_number} | Queue #${queueNumber}</small>
+                </td>
+                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
+                  ${formatCurrency(selectedDoctor.opd_fee)}
+                </td>
+              </tr>
+            </table>
+
+            <div class="amount-box">
+              <div>Total Amount / کل رقم</div>
+              <div class="total">${formatCurrency(selectedDoctor.opd_fee)}</div>
+              <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+                ${isPaid ? 'PAID / ادا شدہ' : 'UNPAID / غیر ادا شدہ'}
+              </div>
+            </div>
+
+            <div class="signatures">
+              <div class="sig-line">Patient Signature<br>مریض کے دستخط</div>
+              <div class="sig-line">Cashier<br>کیشیئر</div>
+            </div>
+
+            <div class="footer">
+              Thank you for choosing North Karachi Hospital<br>
+              نارتھ کراچی ہسپتال کا انتخاب کرنے کا شکریہ<br>
+              <small>Printed: ${new Date().toLocaleString('en-PK')}</small>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const printConsentForm = () => {
+    if (!selectedPatient || !selectedDoctor) {
+      toast.error('Missing patient or doctor details');
+      return;
+    }
+
+    const printContent = `
+      <html>
+        <head>
+          <title>OPD Consent Form - ${selectedPatient.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .container { max-width: 700px; margin: 0 auto; }
+            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
+            .hospital-name { font-size: 24px; font-weight: bold; }
+            .hospital-urdu { font-size: 18px; color: #666; }
+            .consent-title { background: #e74c3c; color: white; padding: 12px; text-align: center; font-size: 18px; font-weight: bold; margin: 20px 0; }
+            .patient-box { border: 2px solid #e74c3c; padding: 15px; margin: 20px 0; background: #fff5f5; }
+            .consent-text { line-height: 1.8; text-align: justify; margin: 20px 0; }
+            .checkbox-item { margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
+            .checkbox { width: 20px; height: 20px; border: 2px solid #333; display: inline-block; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+            .sig-block { width: 45%; }
+            .sig-line { border-top: 1px solid #333; margin-top: 60px; padding-top: 10px; }
+            .footer { margin-top: 30px; padding: 15px; background: #f5f5f5; font-size: 11px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="hospital-name">North Karachi Hospital</div>
+              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+              <div>C-122, Sector 11-B, North Karachi | Ph: 36989080</div>
+            </div>
+
+            <div class="consent-title">OPD CONSULTATION CONSENT FORM</div>
+
+            <div style="text-align: right; margin-bottom: 20px;">
+              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}
+            </div>
+
+            <div class="patient-box">
+              <h3 style="margin: 0 0 10px 0; color: #e74c3c;">PATIENT INFORMATION</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><strong>Name:</strong> ${selectedPatient.name}</div>
+                <div><strong>Age:</strong> ${selectedPatient.age} years</div>
+                <div><strong>Gender:</strong> ${selectedPatient.gender}</div>
+                <div><strong>Contact:</strong> ${selectedPatient.contact}</div>
+              </div>
+              <div style="margin-top: 10px;"><strong>Doctor:</strong> Dr. ${selectedDoctor.name} (${selectedDoctor.department})</div>
+            </div>
+
+            <div class="consent-text">
+              <p>I, the undersigned, hereby give my consent for OPD consultation and examination with Dr. ${selectedDoctor.name}.</p>
+
+              <p><strong>I understand that:</strong></p>
+              <ul>
+                <li>The doctor will examine and assess the patient's medical condition</li>
+                <li>Diagnostic tests or procedures may be recommended</li>
+                <li>Treatment or medication may be prescribed based on the diagnosis</li>
+                <li>I have the right to ask questions about the examination and treatment</li>
+                <li>All medical information will be kept confidential</li>
+                <li>I may be required to follow-up as advised by the doctor</li>
+              </ul>
+
+              <p>I voluntarily consent to this consultation and authorize the medical examination.</p>
+            </div>
+
+            <div class="checkbox-item">
+              <span class="checkbox"></span>
+              <span>I have read and understood the above consent statement</span>
+            </div>
+            <div class="checkbox-item">
+              <span class="checkbox"></span>
+              <span>I understand the risks, benefits, and alternatives explained to me</span>
+            </div>
+
+            <div class="signatures">
+              <div class="sig-block">
+                <div class="sig-line">
+                  <strong>Patient / Guardian Signature</strong><br>
+                  Name: _______________________<br>
+                  CNIC: _______________________<br>
+                  Relationship: ________________
+                </div>
+              </div>
+              <div class="sig-block">
+                <div class="sig-line">
+                  <strong>Witness Signature</strong><br>
+                  Name: _______________________<br>
+                  Designation: _________________<br>
+                  Date: _______________________
+                </div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <strong>Note:</strong> This consent form is a legal document. Please read it carefully before signing.<br>
+              If you have any questions, please ask the medical staff before signing.
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const printPrescription = () => {
     if (!selectedPatient || !selectedDoctor) return;
 
-    const prescriptionContent = `
+    const printContent = `
       <html>
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
@@ -304,9 +472,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
             .container { max-width: 700px; margin: 0 auto; }
             .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
-            .logo { width: 100px; height: 100px; margin: 0 auto 10px; }
-            .hospital-name { font-size: 28px; font-weight: bold; color: #333; margin: 5px 0; }
-            .subtitle { color: #666; font-size: 16px; }
+            .hospital-name { font-size: 28px; font-weight: bold; color: #333; }
+            .hospital-urdu { font-size: 18px; color: #666; }
             .info-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
             .patient-box { background: #f5f5f5; padding: 15px; border-left: 4px solid #e74c3c; margin-bottom: 25px; }
             .section { margin-bottom: 25px; }
@@ -319,11 +486,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <body>
           <div class="container">
             <div class="header">
-              <img src="/logo.png" alt="Logo" class="logo" />
               <div class="hospital-name">North Karachi Hospital</div>
-              <div class="subtitle">Prescription & Medical Record</div>
+              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+              <div style="font-size: 14px; color: #666;">Prescription & Medical Record</div>
             </div>
-            
+
             <div class="info-row">
               <div>
                 <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}<br>
@@ -336,7 +503,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 ${selectedDoctor.specialization}
               </div>
             </div>
-            
+
             <div class="patient-box">
               <strong>Patient Information:</strong><br>
               Name: ${selectedPatient.name}<br>
@@ -344,32 +511,32 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               Contact: ${selectedPatient.contact}<br>
               Chief Complaint: ${selectedPatient.problem}
             </div>
-            
+
             <div class="section">
               <div class="section-title">Clinical Examination</div>
               <div class="write-area" style="min-height: 100px;"></div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Diagnosis</div>
               <div class="write-area" style="min-height: 80px;"></div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">℞ Prescription</div>
               <div class="write-area" style="min-height: 180px;"></div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Lab Tests / Investigations</div>
               <div class="write-area" style="min-height: 100px;"></div>
             </div>
-            
+
             <div class="section">
               <div class="section-title">Advice & Follow-up</div>
               <div class="write-area" style="min-height: 80px;"></div>
             </div>
-            
+
             <div class="signature">
               <div class="signature-line">
                 <strong>Dr. ${selectedDoctor.name}</strong><br>
@@ -383,7 +550,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(prescriptionContent);
+      printWindow.document.write(printContent);
       printWindow.document.close();
       printWindow.print();
     }
@@ -533,24 +700,22 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 </Button>
                 <Button onClick={printConsentForm} variant="outline" size="sm">
                   <Printer className="h-3 w-3 mr-2" />
-                  Print Consent Form
+                  Print Consent
                 </Button>
-                <Button onClick={printPrescriptionSheet} variant="outline" size="sm">
+                <Button onClick={printPrescription} variant="outline" size="sm">
                   <Printer className="h-3 w-3 mr-2" />
                   Print Prescription
                 </Button>
-                <Button onClick={printOPDReceipt} variant="outline" size="sm">
+                <Button onClick={printReceipt} variant="outline" size="sm">
                   <Printer className="h-3 w-3 mr-2" />
                   Print Receipt
                 </Button>
               </div>
-
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* OPD Consent Modal */}
       <ConsentModal
         isOpen={showConsentModal}
         consentType="opd"
@@ -559,48 +724,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         onAccept={handleConsentAccepted}
         onDecline={handleConsentDeclined}
       />
-
-      {/* Hidden Receipt Template for OPD Printing */}
-      {shouldPrintReceipt && selectedPatient && selectedDoctor && generatedToken && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            data={{
-              receiptNumber: `OPD-${generatedToken.id.slice(-8).toUpperCase()}`,
-              date: generatedToken.date,
-              patientName: selectedPatient.name,
-              patientContact: selectedPatient.contact,
-              items: [
-                {
-                  description: `OPD Consultation Fee\nDoctor: Dr. ${selectedDoctor.name}\nDepartment: ${selectedDoctor.department}\nToken #${generatedToken.token_number} | Queue #${queueNumber}`,
-                  amount: selectedDoctor.opd_fee,
-                },
-              ],
-              total: selectedDoctor.opd_fee,
-              paymentStatus: generatedToken.payment_status === 'paid' ? 'paid' : 'unpaid',
-              amountPaid: generatedToken.payment_status === 'paid' ? selectedDoctor.opd_fee : 0,
-              balanceDue: generatedToken.payment_status === 'paid' ? 0 : selectedDoctor.opd_fee,
-            }}
-          />
-        </div>
-      )}
-
-      {/* Hidden Consent Form Template for OPD Printing */}
-      {shouldPrintConsentForm && selectedPatient && selectedDoctor && (
-        <div style={{ display: 'none' }}>
-          <ConsentFormTemplate
-            ref={consentFormRef}
-            consentType="opd"
-            patientName={selectedPatient.name}
-            patientAge={selectedPatient.age}
-            patientGender={selectedPatient.gender}
-            patientContact={selectedPatient.contact}
-            doctorName={selectedDoctor.name}
-            procedureName={`OPD Consultation - ${selectedDoctor.department} Department`}
-            date={new Date().toLocaleDateString('en-PK')}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,6 @@ import { Bed, Building, User, Printer } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useReactToPrint } from 'react-to-print';
-import AdmissionFormTemplate from '@/components/documents/AdmissionFormTemplate';
-import ConsentFormTemplate from '@/components/documents/ConsentFormTemplate';
-import ReceiptTemplate from '@/components/documents/ReceiptTemplate';
 
 interface Doctor {
   id: string;
@@ -62,12 +58,6 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
-  const [shouldPrint, setShouldPrint] = useState(false);
-  const [shouldPrintConsent, setShouldPrintConsent] = useState(false);
-  const [shouldPrintReceipt, setShouldPrintReceipt] = useState(false);
-  const admissionFormRef = useRef<HTMLDivElement>(null);
-  const consentFormRef = useRef<HTMLDivElement>(null);
-  const receiptRef = useRef<HTMLDivElement>(null);
 
   // Fetch doctors and rooms from database
   useEffect(() => {
@@ -168,42 +158,161 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
     }
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => admissionFormRef.current,
-    documentTitle: `Admission-Form-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Admission form printed successfully');
-      setShouldPrint(false);
-    },
-  });
-
-  const handlePrintConsent = useReactToPrint({
-    content: () => consentFormRef.current,
-    documentTitle: `Admission-Consent-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Consent form printed successfully');
-      setShouldPrintConsent(false);
-    },
-  });
-
-  const handlePrintReceipt = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: `Admission-Receipt-${selectedPatient?.name || 'Unknown'}`,
-    onAfterPrint: () => {
-      toast.success('Deposit receipt printed successfully');
-      setShouldPrintReceipt(false);
-    },
-  });
-
   const printAdmissionForm = () => {
     if (!generatedAdmission || !selectedPatient || !selectedDoctor || !selectedRoom) {
       toast.error('Missing admission details');
       return;
     }
-    setShouldPrint(true);
-    setTimeout(() => {
-      handlePrint();
-    }, 100);
+
+    const formContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Admission Form - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .form-title { background: #2563eb; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .section { margin-bottom: 20px; }
+          .section-title { background: #f0f0f0; padding: 8px 12px; font-weight: bold; border-left: 4px solid #2563eb; margin-bottom: 10px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+          .info-item { padding: 8px; border: 1px solid #ddd; }
+          .info-item label { font-weight: bold; color: #666; font-size: 12px; display: block; }
+          .info-item span { font-size: 14px; }
+          .signature-section { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+          .signature-box { text-align: center; }
+          .signature-line { border-bottom: 2px solid #333; height: 50px; margin-bottom: 5px; }
+          .signature-label { font-size: 12px; color: #666; }
+          .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="form-title">HOSPITAL ADMISSION FORM</div>
+
+        <div class="section">
+          <div class="section-title">PATIENT INFORMATION</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Patient Name</label>
+              <span>${selectedPatient.name}</span>
+            </div>
+            <div class="info-item">
+              <label>Age / Gender</label>
+              <span>${selectedPatient.age} years / ${selectedPatient.gender}</span>
+            </div>
+            <div class="info-item">
+              <label>Contact Number</label>
+              <span>${selectedPatient.contact}</span>
+            </div>
+            <div class="info-item">
+              <label>Emergency Contact</label>
+              <span>${selectedPatient.emergencyContact || 'N/A'}</span>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+              <label>Address</label>
+              <span>${selectedPatient.address || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">ADMISSION DETAILS</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Admission ID</label>
+              <span>${generatedAdmission.id.slice(-8).toUpperCase()}</span>
+            </div>
+            <div class="info-item">
+              <label>Admission Date</label>
+              <span>${new Date(generatedAdmission.admission_date).toLocaleDateString('en-GB')}</span>
+            </div>
+            <div class="info-item">
+              <label>Admission Type</label>
+              <span>${admissionType === 'OPD' ? 'From OPD' : admissionType === 'Emergency' ? 'Emergency' : 'Direct Admission'}</span>
+            </div>
+            <div class="info-item">
+              <label>Department</label>
+              <span>${selectedDoctor.department}</span>
+            </div>
+            <div class="info-item">
+              <label>Attending Doctor</label>
+              <span>Dr. ${selectedDoctor.name}</span>
+            </div>
+            <div class="info-item">
+              <label>Reason for Admission</label>
+              <span>${notes || selectedPatient.problem || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">ROOM & BED ALLOCATION</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Room Number</label>
+              <span>${selectedRoom.room_number}</span>
+            </div>
+            <div class="info-item">
+              <label>Room Type</label>
+              <span>${selectedRoom.type}</span>
+            </div>
+            <div class="info-item">
+              <label>Bed Number</label>
+              <span>${generatedAdmission.bed_number}</span>
+            </div>
+            <div class="info-item">
+              <label>Daily Rate</label>
+              <span>${formatCurrency(selectedRoom.price_per_day)}</span>
+            </div>
+            <div class="info-item">
+              <label>Deposit Paid</label>
+              <span>${formatCurrency(generatedAdmission.deposit)}</span>
+            </div>
+            <div class="info-item">
+              <label>Status</label>
+              <span style="color: green; font-weight: bold;">ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Patient / Attendant Signature</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Doctor's Signature</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Admission Officer</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>This is an official hospital document. Please retain for your records.</p>
+          <p>Generated: ${new Date().toLocaleString('en-GB')}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(formContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Admission form printed successfully');
+    }
   };
 
   const printConsentForm = () => {
@@ -211,10 +320,121 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
       toast.error('Missing admission details');
       return;
     }
-    setShouldPrintConsent(true);
-    setTimeout(() => {
-      handlePrintConsent();
-    }, 100);
+
+    const consentContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Admission Consent - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .consent-title { background: #e74c3c; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .patient-info { border: 2px solid #e74c3c; padding: 20px; margin-bottom: 30px; background: #fff5f5; }
+          .patient-info h3 { margin: 0 0 15px 0; color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 8px; }
+          .patient-info p { margin: 8px 0; font-size: 14px; }
+          .consent-text { line-height: 1.8; text-align: justify; margin-bottom: 30px; }
+          .consent-text ul { margin: 15px 0; padding-left: 25px; }
+          .consent-text li { margin: 8px 0; }
+          .checkbox-section { border: 1px solid #ddd; padding: 15px; margin-bottom: 30px; background: #f9f9f9; }
+          .checkbox-item { margin: 10px 0; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+          .checkbox-box { width: 18px; height: 18px; border: 2px solid #333; display: inline-block; }
+          .signature-section { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+          .signature-box { text-align: center; }
+          .signature-line { border-bottom: 2px solid #333; height: 60px; margin-bottom: 10px; }
+          .signature-label { font-size: 13px; font-weight: bold; }
+          .signature-fields { font-size: 12px; color: #666; margin-top: 5px; }
+          .footer-note { margin-top: 40px; padding: 15px; background: #f5f5f5; border: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="consent-title">HOSPITAL ADMISSION CONSENT FORM</div>
+
+        <div style="text-align: right; margin-bottom: 20px; font-size: 14px;">
+          <strong>Date:</strong> ${new Date(generatedAdmission.admission_date).toLocaleDateString('en-GB')}
+        </div>
+
+        <div class="patient-info">
+          <h3>PATIENT INFORMATION</h3>
+          <p><strong>Patient Name:</strong> ${selectedPatient.name}</p>
+          <p><strong>Age:</strong> ${selectedPatient.age} years</p>
+          <p><strong>Gender:</strong> ${selectedPatient.gender}</p>
+          <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          <p><strong>Department:</strong> ${selectedDoctor.department}</p>
+          <p><strong>Attending Doctor:</strong> Dr. ${selectedDoctor.name}</p>
+        </div>
+
+        <div class="consent-text">
+          <h3>CONSENT STATEMENT</h3>
+          <p>I, the undersigned, hereby give my consent for admission of the patient named above to North Karachi Hospital.</p>
+          <p>I understand that:</p>
+          <ul>
+            <li>The patient requires hospitalization for medical care</li>
+            <li>Hospital rules and regulations must be followed</li>
+            <li>Medical procedures and treatments may be performed as necessary</li>
+            <li>Visitors must follow hospital visiting hours and policies</li>
+            <li>I am responsible for hospital charges and fees</li>
+            <li>I will inform staff of any changes in the patient's condition</li>
+            <li>I have the right to discharge the patient against medical advice</li>
+          </ul>
+          <p>I voluntarily consent to this hospital admission and agree to the terms stated above.</p>
+        </div>
+
+        <div class="checkbox-section">
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I have read and understood the above consent statement
+          </div>
+          <div class="checkbox-item">
+            <span class="checkbox-box"></span>
+            I understand the hospital rules, visiting hours, and policies
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Patient / Guardian Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Relationship: _________________<br>
+              CNIC: ________________________
+            </div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Witness Signature</div>
+            <div class="signature-fields">
+              Name: _______________________<br>
+              Designation: _________________<br>
+              Date: ________________________
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          <strong>Note:</strong> This consent form is a legal document. Please read it carefully before signing.<br>
+          If you have any questions, please ask the medical staff before signing.
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(consentContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Consent form printed successfully');
+    }
   };
 
   const printDepositReceipt = () => {
@@ -222,10 +442,97 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
       toast.error('Missing admission details');
       return;
     }
-    setShouldPrintReceipt(true);
-    setTimeout(() => {
-      handlePrintReceipt();
-    }, 100);
+
+    const receiptContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Deposit Receipt - ${selectedPatient.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; color: #333; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .receipt-title { background: #2563eb; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
+          .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+          .info-box { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          .info-box p { margin: 5px 0; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background: #2563eb; color: white; padding: 12px; text-align: left; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+          .total-row { font-weight: bold; font-size: 16px; background: #f0f7ff; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          .status-badge { display: inline-block; padding: 8px 20px; border-radius: 15px; font-weight: bold; background: #d4edda; color: #155724; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>NORTH KARACHI HOSPITAL</h1>
+          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
+          <p>Ph: 36989080</p>
+        </div>
+
+        <div class="receipt-title">ADMISSION DEPOSIT RECEIPT</div>
+
+        <div class="info-section">
+          <div class="info-box">
+            <p><strong>Receipt No:</strong> ADM-${generatedAdmission.id.slice(-8).toUpperCase()}</p>
+            <p><strong>Date:</strong> ${new Date(generatedAdmission.admission_date).toLocaleDateString('en-GB')}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <div class="info-box">
+            <p><strong>Patient:</strong> ${selectedPatient.name}</p>
+            <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
+            <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>Admission Deposit</strong><br>
+                <span style="font-size: 13px; color: #666;">
+                  Room: ${selectedRoom.room_number} (${selectedRoom.type})<br>
+                  Bed Number: ${generatedAdmission.bed_number}<br>
+                  Daily Rate: ${formatCurrency(selectedRoom.price_per_day)}
+                </span>
+              </td>
+              <td style="text-align: right; vertical-align: top;">${formatCurrency(generatedAdmission.deposit)}</td>
+            </tr>
+            <tr class="total-row">
+              <td style="text-align: right;"><strong>TOTAL DEPOSIT:</strong></td>
+              <td style="text-align: right;"><strong>${formatCurrency(generatedAdmission.deposit)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <span class="status-badge">PAID</span>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for choosing North Karachi Hospital</p>
+          <p>This is a computer generated receipt. Please retain for your records.</p>
+          <p>This deposit is adjustable against final hospital bill.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(receiptContent);
+      printWindow.document.close();
+      printWindow.print();
+      toast.success('Deposit receipt printed successfully');
+    }
   };
 
   if (!selectedPatient) {
@@ -452,74 +759,6 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
         </Card>
       )}
 
-      {/* Hidden Admission Form Template for Printing */}
-      {shouldPrint && selectedPatient && selectedDoctor && selectedRoom && generatedAdmission && (
-        <div style={{ display: 'none' }}>
-          <AdmissionFormTemplate
-            ref={admissionFormRef}
-            data={{
-              patientName: selectedPatient.name,
-              age: selectedPatient.age,
-              gender: selectedPatient.gender === 'Male' ? 'M' : selectedPatient.gender === 'Female' ? 'F' : undefined,
-              address: selectedPatient.address,
-              phone: selectedPatient.contact,
-              cellPhone: selectedPatient.emergencyContact,
-              regNumber: generatedAdmission.id.slice(-8).toUpperCase(),
-              department: selectedDoctor.department,
-              consultant: selectedDoctor.name,
-              admissionDateTime: new Date(generatedAdmission.admission_date).toLocaleString('en-GB'),
-              modeOfAdmission:
-                admissionType === 'OPD' ? 'From OPD' :
-                admissionType === 'Emergency' ? 'Emergency' :
-                'Refered',
-              admissionFor: notes || selectedPatient.problem,
-            }}
-          />
-        </div>
-      )}
-
-      {/* Hidden Consent Form Template for Printing */}
-      {shouldPrintConsent && selectedPatient && selectedDoctor && generatedAdmission && (
-        <div style={{ display: 'none' }}>
-          <ConsentFormTemplate
-            ref={consentFormRef}
-            consentType="admission"
-            patientName={selectedPatient.name}
-            patientAge={selectedPatient.age}
-            patientGender={selectedPatient.gender}
-            patientContact={selectedPatient.contact}
-            doctorName={selectedDoctor.name}
-            procedureName={`Hospital Admission - ${selectedDoctor.department}`}
-            date={new Date(generatedAdmission.admission_date).toLocaleDateString('en-PK')}
-          />
-        </div>
-      )}
-
-      {/* Hidden Receipt Template for Deposit Printing */}
-      {shouldPrintReceipt && selectedPatient && selectedRoom && generatedAdmission && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            data={{
-              receiptNumber: `ADM-${generatedAdmission.id.slice(-8).toUpperCase()}`,
-              date: generatedAdmission.admission_date,
-              patientName: selectedPatient.name,
-              patientContact: selectedPatient.contact,
-              patientCnic: selectedPatient.cnicNumber,
-              items: [
-                {
-                  description: `Admission Deposit\nRoom: ${selectedRoom.room_number} (${selectedRoom.type})\nBed: ${generatedAdmission.bed_number}\nRate: ${formatCurrency(selectedRoom.price_per_day)}/day`,
-                  amount: generatedAdmission.deposit,
-                },
-              ],
-              total: generatedAdmission.deposit,
-              paymentStatus: 'paid',
-              amountPaid: generatedAdmission.deposit,
-              balanceDue: 0,
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
