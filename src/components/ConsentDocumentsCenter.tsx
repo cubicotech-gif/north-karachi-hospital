@@ -31,9 +31,8 @@ interface ConsentDocumentsCenterProps {
 
 const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps) => {
 
-  // Common print styles with Nastaleeq font
+  // Common print styles
   const getPrintStyles = () => `
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
     @page {
       size: A4;
@@ -84,8 +83,8 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     }
 
     .hospital-name-urdu {
-      font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
-      font-size: 32px;
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-size: 26px;
       font-weight: bold;
       color: #1a5f2a;
       direction: rtl;
@@ -106,8 +105,8 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     }
 
     .form-title-urdu {
-      font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
-      font-size: 24px;
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-size: 20px;
       font-weight: bold;
       color: #1a5f2a;
       direction: rtl;
@@ -122,13 +121,13 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     .urdu-section {
       direction: rtl;
       text-align: right;
-      font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+      font-family: 'Tahoma', 'Arial', sans-serif;
       padding: 20px;
       background: #fafafa;
       border: 1px solid #ddd;
       border-radius: 5px;
       margin-bottom: 20px;
-      line-height: 2.2;
+      line-height: 1.8;
     }
 
     .urdu-text {
@@ -191,7 +190,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     }
 
     .signature-label-urdu {
-      font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+      font-family: 'Tahoma', 'Arial', sans-serif;
       font-size: 14px;
       direction: rtl;
     }
@@ -518,7 +517,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
           </div>
 
           <div style="margin-top: 30px; text-align: center;">
-            <div style="font-family: 'Noto Nastaliq Urdu', serif; direction: rtl; font-size: 14px;">
+            <div style="font-family: 'Tahoma', 'Arial', sans-serif; direction: rtl; font-size: 14px;">
               شناختی کارڈ نمبر (اگر دستیاب ہو): _______________
             </div>
             <div style="font-size: 12px; color: #666; margin-top: 5px;">
@@ -576,7 +575,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
               <p className="text-sm text-yellow-600 mt-1">
                 Please select a patient from "Patient Registration" module first
               </p>
-              <p className="text-sm mt-1" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+              <p className="text-sm mt-1" style={{ fontFamily: 'Tahoma, Arial, sans-serif', direction: 'rtl' }}>
                 براہ کرم پہلے مریض رجسٹریشن سے مریض منتخب کریں
               </p>
             </div>
@@ -600,7 +599,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">Treatment Consent</h3>
-                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Tahoma, Arial, sans-serif', direction: 'rtl' }}>
                           اجازت نامہ برائے علاج
                         </p>
                       </div>
@@ -628,7 +627,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">T.L Consent</h3>
-                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Tahoma, Arial, sans-serif', direction: 'rtl' }}>
                           بچے کی بندش کا اجازت نامہ
                         </p>
                       </div>
@@ -656,7 +655,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">LAMA Consent</h3>
-                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+                        <p className="text-sm text-gray-500 font-urdu" style={{ fontFamily: 'Tahoma, Arial, sans-serif', direction: 'rtl' }}>
                           اپنی مرضی سے ڈسچارج
                         </p>
                       </div>
@@ -681,7 +680,7 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
               <div className="text-center py-12 text-gray-500">
                 <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">More Documents Coming Soon</p>
-                <p className="text-sm" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+                <p className="text-sm" style={{ fontFamily: 'Tahoma, Arial, sans-serif', direction: 'rtl' }}>
                   مزید دستاویزات جلد آرہی ہیں
                 </p>
                 <p className="text-xs text-gray-400 mt-2">

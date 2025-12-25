@@ -756,10 +756,6 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                   <Printer className="h-3 w-3 mr-2" />
                   Admission Form
                 </Button>
-                <Button onClick={printConsentForm} variant="outline" size="sm">
-                  <Printer className="h-3 w-3 mr-2" />
-                  Consent Form
-                </Button>
                 <Button onClick={printDepositReceipt} variant="outline" size="sm">
                   <Printer className="h-3 w-3 mr-2" />
                   Deposit Receipt
