@@ -223,7 +223,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           </div>
           <div class="info-box">
             <p><strong>Patient:</strong> ${selectedPatient.name}</p>
-            <p style="color: #1565c0; font-weight: bold;"><strong>MR#:</strong> ${selectedPatient.mr_number || 'N/A'}</p>
+            <p style="color: #1565c0; font-weight: bold;"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</p>
             <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
             <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
           </div>
@@ -357,7 +357,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           <div class="patient-section">
             <div class="patient-grid">
               <div class="patient-item"><span class="patient-label">Patient Name:</span><span>${selectedPatient.name}</span></div>
-              <div class="patient-item" style="background: #e3f2fd; padding: 8px; border-radius: 4px;"><span class="patient-label" style="color: #1565c0;">MR Number:</span><span style="font-weight: bold; color: #1565c0;">${selectedPatient.mr_number || 'N/A'}</span></div>
+              <div class="patient-item" style="background: #e3f2fd; padding: 8px; border-radius: 4px;"><span class="patient-label" style="color: #1565c0;">MR Number:</span><span style="font-weight: bold; color: #1565c0;">${selectedPatient.mrNumber || 'N/A'}</span></div>
               <div class="patient-item"><span class="patient-label">Age / Gender:</span><span>${selectedPatient.age} years / ${selectedPatient.gender}</span></div>
               <div class="patient-item"><span class="patient-label">Contact:</span><span>${selectedPatient.contact}</span></div>
               <div class="patient-item"><span class="patient-label">Tests:</span><span>${testNames}</span></div>
@@ -446,7 +446,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
         <div style="margin-bottom: 20px; background: #e8f4fd; padding: 15px; border-radius: 5px;">
           <strong>Patient Information:</strong><br>
           Name: ${selectedPatient.name}<br>
-          <span style="color: #1565c0; font-weight: bold; font-size: 14px;">MR#: ${selectedPatient.mr_number || 'N/A'}</span><br>
+          <span style="color: #1565c0; font-weight: bold; font-size: 14px;">MR#: ${selectedPatient.mrNumber || 'N/A'}</span><br>
           Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
           Contact: ${selectedPatient.contact}
         </div>
@@ -513,7 +513,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p><strong>Name:</strong> {selectedPatient.name}</p>
-              <p className="text-blue-600 font-semibold"><strong>MR Number:</strong> {selectedPatient.mr_number || 'N/A'}</p>
+              <p className="text-blue-600 font-semibold"><strong>MR Number:</strong> {selectedPatient.mrNumber || 'N/A'}</p>
               <p><strong>Age:</strong> {selectedPatient.age} years</p>
               <p><strong>Gender:</strong> {selectedPatient.gender}</p>
             </div>
