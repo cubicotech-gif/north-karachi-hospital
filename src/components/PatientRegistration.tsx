@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Users, Search, Plus, UserPlus, Edit, Trash2, X } from 'lucide-react';
-import { Patient, validateCNIC, formatCNIC } from '@/lib/hospitalData';
+import { Users, Search, Plus, UserPlus, Edit, Trash2, X, Printer, CreditCard } from 'lucide-react';
+import { Patient, validateCNIC, formatCNIC, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -22,6 +22,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [newlyRegisteredPatient, setNewlyRegisteredPatient] = useState<Patient | null>(null);
   const [newPatient, setNewPatient] = useState<Partial<Patient>>({
     name: '',
     age: 0,
@@ -208,9 +209,10 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         toast.success('Patient updated successfully!');
         setEditingPatient(null);
       } else {
-        // CREATE new patient
+        // CREATE new patient with auto-generated MR number
         const dataWithDate = {
           ...patientData,
+          mr_number: generateMRNumber(),
           registration_date: new Date().toISOString().split('T')[0]
         };
 
@@ -243,7 +245,8 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         };
 
         setPatients([createdPatient, ...patients]);
-        toast.success('Patient registered successfully!');
+        toast.success(`Patient registered successfully! MR#: ${createdPatient.mrNumber}`);
+        setNewlyRegisteredPatient(createdPatient);
         onNewPatient(createdPatient);
       }
       
@@ -314,6 +317,139 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     }
   };
 
+  // Print MR Card function
+  const printMRCard = (patient: Patient) => {
+    const cardContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>MR Card - ${patient.mrNumber}</title>
+        <style>
+          @page { size: 85mm 54mm; margin: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            background: #fff;
+          }
+          .card {
+            width: 85mm;
+            height: 54mm;
+            padding: 4mm;
+            border: 2px solid #1a5f2a;
+            border-radius: 3mm;
+            background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%);
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            gap: 3mm;
+            border-bottom: 1px solid #1a5f2a;
+            padding-bottom: 2mm;
+            margin-bottom: 2mm;
+          }
+          .logo {
+            width: 12mm;
+            height: 12mm;
+            object-fit: contain;
+          }
+          .hospital-name {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1a5f2a;
+          }
+          .hospital-name-urdu {
+            font-size: 9pt;
+            color: #1a5f2a;
+            direction: rtl;
+          }
+          .mr-number {
+            background: #1a5f2a;
+            color: white;
+            padding: 2mm 4mm;
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 2mm;
+            margin: 2mm 0;
+            font-family: 'Courier New', monospace;
+          }
+          .patient-info {
+            font-size: 8pt;
+            line-height: 1.4;
+          }
+          .patient-name {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+          }
+          .info-row {
+            display: flex;
+            gap: 3mm;
+          }
+          .label {
+            color: #666;
+            min-width: 15mm;
+          }
+          .footer {
+            font-size: 6pt;
+            color: #888;
+            text-align: center;
+            margin-top: 2mm;
+            border-top: 1px dashed #ccc;
+            padding-top: 1mm;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <img src="/logo.png" class="logo" onerror="this.style.display='none'" />
+            <div>
+              <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
+              <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
+            </div>
+          </div>
+
+          <div class="mr-number">${patient.mrNumber}</div>
+
+          <div class="patient-info">
+            <div class="patient-name">${patient.name}</div>
+            <div class="info-row">
+              <span class="label">Age/Gender:</span>
+              <span>${patient.age} years / ${patient.gender}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Contact:</span>
+              <span>${patient.contact}</span>
+            </div>
+            ${patient.bloodGroup ? `
+            <div class="info-row">
+              <span class="label">Blood:</span>
+              <span>${patient.bloodGroup}</span>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="footer">
+            Keep this card safe. Present at every visit. | یہ کارڈ محفوظ رکھیں
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(cardContent);
+      printWindow.document.close();
+      printWindow.onload = () => printWindow.print();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -347,6 +483,68 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Success Card - Shows after new patient registration */}
+          {newlyRegisteredPatient && (
+            <div className="mb-6 p-4 border-2 border-green-500 rounded-lg bg-green-50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-green-500 text-white p-2 rounded-full">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-green-700">Patient Registered Successfully!</h3>
+                    <p className="text-sm text-green-600">MR Card is ready to print</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setNewlyRegisteredPatient(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg border border-green-200 mb-3">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-700 text-white px-4 py-2 rounded font-mono font-bold text-lg">
+                    {newlyRegisteredPatient.mrNumber}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-lg">{newlyRegisteredPatient.name}</p>
+                    <p className="text-sm text-gray-600">
+                      {newlyRegisteredPatient.age} years • {newlyRegisteredPatient.gender} • {newlyRegisteredPatient.contact}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => printMRCard(newlyRegisteredPatient)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Print MR Card
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    onPatientSelect(newlyRegisteredPatient);
+                    setNewlyRegisteredPatient(null);
+                  }}
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  Continue to OPD
+                </Button>
+              </div>
+
+              <p className="text-xs text-green-600 mt-2">
+                Give this MR card to the patient. They will use it for all future visits.
+              </p>
+            </div>
+          )}
+
           {showRegisterForm && (
             <form onSubmit={handleRegisterOrUpdate} className="space-y-4 mb-6 p-4 border rounded-lg bg-gray-50">
               <div className="flex items-center justify-between mb-4">
@@ -598,25 +796,39 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex flex-col gap-2 ml-4">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={(e) => handleEdit(patient, e)}
-                          className="hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printMRCard(patient);
+                          }}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
+                          <CreditCard className="h-3 w-3 mr-1" />
+                          Print MR Card
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleDelete(patient.id, patient.name, e)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => handleEdit(patient, e)}
+                            className="hover:bg-blue-50"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => handleDelete(patient.id, patient.name, e)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>

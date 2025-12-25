@@ -22,7 +22,8 @@ import {
   DoorOpen,
   TrendingUp,
   Activity,
-  UserCog
+  UserCog,
+  FileCheck
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
@@ -47,10 +48,11 @@ import BillingInvoices from '@/components/BillingInvoices';
 import HospitalSettings from '@/components/HospitalSettings';
 import DocumentsManagement from '@/components/DocumentsManagement';
 import PatientDocumentPortfolio from '@/components/PatientDocumentPortfolio';
+import ConsentDocumentsCenter from '@/components/ConsentDocumentsCenter';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio' | 'consent';
 
 const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string) => Promise<boolean> }) => {
   const [username, setUsername] = useState('');
@@ -143,6 +145,7 @@ const App = () => {
     { id: 'billing' as ModuleType, name: 'Billing & Invoices', icon: FileText },
     { id: 'documents' as ModuleType, name: 'Documents & Paperwork', icon: FileText },
     { id: 'portfolio' as ModuleType, name: 'Patient Document Portfolio', icon: User },
+    { id: 'consent' as ModuleType, name: 'Consent & Documents', icon: FileCheck },
     { id: 'doctors' as ModuleType, name: 'Doctor Management', icon: Stethoscope },
     { id: 'rooms' as ModuleType, name: 'Room Management', icon: Building },
     { id: 'departments' as ModuleType, name: 'Department Management', icon: Building },
@@ -328,6 +331,8 @@ const App = () => {
         return <DocumentsManagement />;
       case 'portfolio':
         return <PatientDocumentPortfolio selectedPatient={selectedPatient} />;
+      case 'consent':
+        return <ConsentDocumentsCenter selectedPatient={selectedPatient} />;
       case 'settings':
         return <HospitalSettings />;
       default:

@@ -656,10 +656,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                     Record Payment
                   </Button>
                 )}
-                <Button onClick={printLabConsentForm} variant="outline" size="sm">
-                  <Printer className="h-3 w-3 mr-2" />
-                  Print Consent Form
-                </Button>
                 <Button onClick={printLabBill} variant="outline" size="sm">
                   <Printer className="h-3 w-3 mr-2" />
                   Print Bill
