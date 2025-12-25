@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   User, Calendar, FileText, Bed, TestTube, Activity, Clock, Printer,
   Search, CreditCard, Phone, MapPin, Heart, Users, DollarSign,
-  AlertCircle, CheckCircle, XCircle, ChevronRight, RefreshCw
+  AlertCircle, CheckCircle, XCircle, ChevronRight, RefreshCw, FileCheck,
+  ClipboardList, Download
 } from 'lucide-react';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
@@ -169,6 +170,209 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
       printWindow.document.close();
       printWindow.onload = () => printWindow.print();
     }
+  };
+
+  // Print consent forms
+  const printConsentForm = (type: 'treatment' | 'tl' | 'lama') => {
+    if (!selectedPatient) return;
+
+    const today = new Date().toLocaleDateString('en-PK');
+    const titles: Record<string, { en: string; ur: string }> = {
+      treatment: { en: 'Treatment Consent Form', ur: 'علاج کی رضامندی فارم' },
+      tl: { en: 'Tubal Ligation Consent Form', ur: 'ٹیوبل لیگیشن رضامندی فارم' },
+      lama: { en: 'LAMA - Leave Against Medical Advice', ur: 'طبی مشورے کے خلاف رخصتی' }
+    };
+
+    const title = titles[type];
+
+    const formContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${title.en} - ${selectedPatient.name}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; }
+          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 15px; margin-bottom: 20px; }
+          .hospital-name { font-size: 22pt; font-weight: bold; color: #1a5f2a; }
+          .hospital-name-urdu { font-size: 18pt; color: #1a5f2a; direction: rtl; }
+          .title { font-size: 16pt; font-weight: bold; margin-top: 15px; color: #333; }
+          .title-urdu { font-size: 14pt; direction: rtl; color: #666; }
+          .patient-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .info-row { display: flex; margin-bottom: 8px; }
+          .info-label { font-weight: bold; width: 150px; }
+          .content { margin: 20px 0; }
+          .content p { margin-bottom: 10px; }
+          .bilingual { display: flex; gap: 20px; margin-bottom: 15px; }
+          .english { flex: 1; }
+          .urdu { flex: 1; direction: rtl; text-align: right; }
+          .signature-area { margin-top: 40px; display: flex; justify-content: space-between; }
+          .signature-box { text-align: center; width: 200px; }
+          .signature-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 9pt; color: #666; text-align: center; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
+          <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
+          <div class="title">${title.en}</div>
+          <div class="title-urdu">${title.ur}</div>
+        </div>
+
+        <div class="patient-info">
+          <div class="info-row"><span class="info-label">MR Number:</span><span>${selectedPatient.mrNumber || 'N/A'}</span></div>
+          <div class="info-row"><span class="info-label">Patient Name:</span><span>${selectedPatient.name}</span></div>
+          <div class="info-row"><span class="info-label">Age/Gender:</span><span>${selectedPatient.age} years / ${selectedPatient.gender}</span></div>
+          <div class="info-row"><span class="info-label">Guardian (C/O):</span><span>${selectedPatient.careOf || 'N/A'}</span></div>
+          <div class="info-row"><span class="info-label">Contact:</span><span>${selectedPatient.contact}</span></div>
+          <div class="info-row"><span class="info-label">Date:</span><span>${today}</span></div>
+        </div>
+
+        <div class="content">
+          ${type === 'treatment' ? `
+            <div class="bilingual">
+              <div class="english">
+                <p>I, the undersigned patient/guardian, hereby consent to the medical treatment, procedures, and care recommended by the medical staff of North Karachi Hospital.</p>
+                <p>I understand that:</p>
+                <ul>
+                  <li>The nature of my condition has been explained to me</li>
+                  <li>The proposed treatment and its benefits have been discussed</li>
+                  <li>Possible risks and complications have been explained</li>
+                  <li>Alternative treatments, if any, have been discussed</li>
+                </ul>
+                <p>I give my full consent to proceed with the recommended treatment.</p>
+              </div>
+              <div class="urdu">
+                <p>میں، زیر دستخطی مریض/سرپرست، نارتھ کراچی ہسپتال کے طبی عملے کی تجویز کردہ طبی علاج، طریقہ کار اور دیکھ بھال کے لیے رضامندی دیتا/دیتی ہوں۔</p>
+                <p>میں سمجھتا/سمجھتی ہوں کہ:</p>
+                <ul>
+                  <li>میری حالت کی نوعیت مجھے سمجھائی گئی ہے</li>
+                  <li>تجویز کردہ علاج اور اس کے فوائد پر بات ہوئی ہے</li>
+                  <li>ممکنہ خطرات اور پیچیدگیاں بیان کی گئی ہیں</li>
+                  <li>متبادل علاج، اگر کوئی ہے، پر بھی بات ہوئی ہے</li>
+                </ul>
+                <p>میں تجویز کردہ علاج کے ساتھ آگے بڑھنے کی مکمل رضامندی دیتا/دیتی ہوں۔</p>
+              </div>
+            </div>
+          ` : type === 'tl' ? `
+            <div class="bilingual">
+              <div class="english">
+                <p>I, the undersigned, hereby give my consent for Tubal Ligation (permanent sterilization) procedure.</p>
+                <p>I understand that:</p>
+                <ul>
+                  <li>This is a permanent method of contraception</li>
+                  <li>The procedure involves blocking or cutting the fallopian tubes</li>
+                  <li>This procedure is intended to be permanent and irreversible</li>
+                  <li>There are risks associated with any surgical procedure</li>
+                  <li>Alternative methods of contraception are available</li>
+                </ul>
+                <p>I have made this decision voluntarily without any coercion.</p>
+              </div>
+              <div class="urdu">
+                <p>میں، زیر دستخطی، ٹیوبل لیگیشن (مستقل نس بندی) کے طریقہ کار کے لیے اپنی رضامندی دیتا/دیتی ہوں۔</p>
+                <p>میں سمجھتا/سمجھتی ہوں کہ:</p>
+                <ul>
+                  <li>یہ مانع حمل کا مستقل طریقہ ہے</li>
+                  <li>اس طریقہ کار میں فیلوپین ٹیوب کو بند یا کاٹنا شامل ہے</li>
+                  <li>یہ طریقہ کار مستقل اور ناقابل واپسی ہے</li>
+                  <li>کسی بھی سرجیکل طریقہ کار سے خطرات وابستہ ہیں</li>
+                  <li>مانع حمل کے متبادل طریقے دستیاب ہیں</li>
+                </ul>
+                <p>میں نے یہ فیصلہ اپنی مرضی سے بغیر کسی جبر کے کیا ہے۔</p>
+              </div>
+            </div>
+          ` : `
+            <div class="bilingual">
+              <div class="english">
+                <p><strong>LEAVE AGAINST MEDICAL ADVICE (LAMA)</strong></p>
+                <p>I, the undersigned patient/guardian, hereby declare that I am leaving North Karachi Hospital against the advice of the treating physician(s).</p>
+                <p>I understand that:</p>
+                <ul>
+                  <li>The medical staff has advised me to continue treatment</li>
+                  <li>Leaving may result in worsening of my condition</li>
+                  <li>There may be serious health consequences</li>
+                  <li>I am taking full responsibility for this decision</li>
+                </ul>
+                <p>I release the hospital and its staff from any liability.</p>
+              </div>
+              <div class="urdu">
+                <p><strong>طبی مشورے کے خلاف رخصتی</strong></p>
+                <p>میں، زیر دستخطی مریض/سرپرست، اعلان کرتا/کرتی ہوں کہ میں نارتھ کراچی ہسپتال سے معالج ڈاکٹروں کے مشورے کے خلاف جا رہا/رہی ہوں۔</p>
+                <p>میں سمجھتا/سمجھتی ہوں کہ:</p>
+                <ul>
+                  <li>طبی عملے نے مجھے علاج جاری رکھنے کا مشورہ دیا ہے</li>
+                  <li>چھوڑنے سے میری حالت بگڑ سکتی ہے</li>
+                  <li>صحت کے سنگین نتائج ہو سکتے ہیں</li>
+                  <li>میں اس فیصلے کی پوری ذمہ داری لے رہا/رہی ہوں</li>
+                </ul>
+                <p>میں ہسپتال اور اس کے عملے کو کسی بھی ذمہ داری سے بری کرتا/کرتی ہوں۔</p>
+              </div>
+            </div>
+          `}
+        </div>
+
+        <div class="signature-area">
+          <div class="signature-box">
+            <div class="signature-line">Patient/Guardian Signature<br/>مریض/سرپرست کے دستخط</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line">Witness Signature<br/>گواہ کے دستخط</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line">Doctor's Signature<br/>ڈاکٹر کے دستخط</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>North Karachi Hospital | C-122, Sector 11-B, North Karachi | Ph: 36989080</p>
+          <p>Document generated on: ${new Date().toLocaleString('en-PK')}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(formContent);
+      printWindow.document.close();
+      printWindow.onload = () => printWindow.print();
+    }
+  };
+
+  // Get document types available for this patient
+  const getPatientDocuments = () => {
+    const docs = [];
+
+    // Always available consent forms
+    docs.push({ id: 'treatment', name: 'Treatment Consent', nameUr: 'علاج کی رضامندی', type: 'consent', available: true });
+    docs.push({ id: 'tl', name: 'T.L. Consent', nameUr: 'ٹی ایل رضامندی', type: 'consent', available: true });
+    docs.push({ id: 'lama', name: 'LAMA Form', nameUr: 'لاما فارم', type: 'consent', available: true });
+
+    // OPD receipts
+    if (history.opdTokens?.data?.length > 0) {
+      docs.push({ id: 'opd-receipts', name: 'OPD Receipts', nameUr: 'او پی ڈی رسیدیں', type: 'receipt', count: history.opdTokens.data.length, available: true });
+    }
+
+    // Lab reports
+    if (history.labOrders?.data?.length > 0) {
+      docs.push({ id: 'lab-reports', name: 'Lab Reports', nameUr: 'لیب رپورٹس', type: 'report', count: history.labOrders.data.length, available: true });
+    }
+
+    // Admission papers
+    if (history.admissions?.data?.length > 0) {
+      docs.push({ id: 'admission-papers', name: 'Admission Papers', nameUr: 'داخلے کے کاغذات', type: 'admission', count: history.admissions.data.length, available: true });
+    }
+
+    // Treatment records
+    if (history.treatments?.data?.length > 0) {
+      docs.push({ id: 'treatment-records', name: 'Treatment Records', nameUr: 'علاج کے ریکارڈ', type: 'treatment', count: history.treatments.data.length, available: true });
+    }
+
+    return docs;
   };
 
   // Format date and time
@@ -721,13 +925,14 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
               <TabsTrigger value="opd">OPD ({history.opdTokens?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="admissions">Admissions ({history.admissions?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="treatments">Treatments ({history.treatments?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="labs">Labs ({history.labOrders?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="appointments">Appointments ({history.appointments?.data?.length || 0})</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
 
             {/* Timeline Tab */}
@@ -959,6 +1164,125 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                     </Card>
                   ))
                 )}
+              </div>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents">
+              <div className="space-y-6 mt-4">
+                {/* Consent Forms Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FileCheck className="h-5 w-5 text-emerald-600" />
+                    Consent Forms
+                    <span className="text-sm font-normal text-gray-500">(Print with patient info)</span>
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Card className="p-4 hover:bg-emerald-50 cursor-pointer transition-colors border-2 hover:border-emerald-300" onClick={() => printConsentForm('treatment')}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Treatment Consent</p>
+                          <p className="text-sm text-gray-500" style={{ direction: 'rtl' }}>علاج کی رضامندی</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-emerald-600" />
+                      </div>
+                    </Card>
+                    <Card className="p-4 hover:bg-emerald-50 cursor-pointer transition-colors border-2 hover:border-emerald-300" onClick={() => printConsentForm('tl')}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">T.L. Consent</p>
+                          <p className="text-sm text-gray-500" style={{ direction: 'rtl' }}>ٹیوبل لیگیشن</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-emerald-600" />
+                      </div>
+                    </Card>
+                    <Card className="p-4 hover:bg-red-50 cursor-pointer transition-colors border-2 hover:border-red-300" onClick={() => printConsentForm('lama')}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">LAMA Form</p>
+                          <p className="text-sm text-gray-500" style={{ direction: 'rtl' }}>طبی مشورے کے خلاف</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-red-600" />
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Patient Records Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5 text-blue-600" />
+                    Patient Records
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {history.opdTokens?.data?.length > 0 && (
+                      <Card className="p-4 bg-blue-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">OPD Receipts</p>
+                            <p className="text-sm text-gray-600">{history.opdTokens.data.length} records available</p>
+                          </div>
+                          <Badge variant="outline" className="text-blue-600">{history.opdTokens.data.length}</Badge>
+                        </div>
+                      </Card>
+                    )}
+                    {history.labOrders?.data?.length > 0 && (
+                      <Card className="p-4 bg-green-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Lab Reports</p>
+                            <p className="text-sm text-gray-600">{history.labOrders.data.length} reports available</p>
+                          </div>
+                          <Badge variant="outline" className="text-green-600">{history.labOrders.data.length}</Badge>
+                        </div>
+                      </Card>
+                    )}
+                    {history.admissions?.data?.length > 0 && (
+                      <Card className="p-4 bg-purple-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Admission Papers</p>
+                            <p className="text-sm text-gray-600">{history.admissions.data.length} admissions</p>
+                          </div>
+                          <Badge variant="outline" className="text-purple-600">{history.admissions.data.length}</Badge>
+                        </div>
+                      </Card>
+                    )}
+                    {history.treatments?.data?.length > 0 && (
+                      <Card className="p-4 bg-red-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Treatment Records</p>
+                            <p className="text-sm text-gray-600">{history.treatments.data.length} treatments</p>
+                          </div>
+                          <Badge variant="outline" className="text-red-600">{history.treatments.data.length}</Badge>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                  {history.opdTokens?.data?.length === 0 && history.labOrders?.data?.length === 0 &&
+                   history.admissions?.data?.length === 0 && history.treatments?.data?.length === 0 && (
+                    <div className="text-center py-6 text-gray-500">
+                      <FileText className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                      <p>No records available yet</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Actions */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-lg mb-3">Quick Print Actions</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => printMRCard(selectedPatient)}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Print MR Card
+                    </Button>
+                    <Button variant="outline" onClick={printCompleteProfile}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Complete File
+                    </Button>
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
