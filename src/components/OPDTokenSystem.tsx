@@ -354,102 +354,284 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       return;
     }
 
+    const currentDate = new Date().toLocaleDateString('en-GB');
+
     const printContent = `
-      <html>
-        <head>
-          <title>OPD Consent Form - ${selectedPatient.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 700px; margin: 0 auto; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
-            .hospital-name { font-size: 24px; font-weight: bold; }
-            .hospital-urdu { font-size: 18px; color: #666; }
-            .consent-title { background: #e74c3c; color: white; padding: 12px; text-align: center; font-size: 18px; font-weight: bold; margin: 20px 0; }
-            .patient-box { border: 2px solid #e74c3c; padding: 15px; margin: 20px 0; background: #fff5f5; }
-            .consent-text { line-height: 1.8; text-align: justify; margin: 20px 0; }
-            .checkbox-item { margin: 15px 0; display: flex; align-items: flex-start; gap: 10px; }
-            .checkbox { width: 20px; height: 20px; border: 2px solid #333; display: inline-block; }
-            .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
-            .sig-block { width: 45%; }
-            .sig-line { border-top: 1px solid #333; margin-top: 60px; padding-top: 10px; }
-            .footer { margin-top: 30px; padding: 15px; background: #f5f5f5; font-size: 11px; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-              <div>C-122, Sector 11-B, North Karachi | Ph: 36989080</div>
-            </div>
-
-            <div class="consent-title">OPD CONSULTATION CONSENT FORM</div>
-
-            <div style="text-align: right; margin-bottom: 20px;">
-              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}
-            </div>
-
-            <div class="patient-box">
-              <h3 style="margin: 0 0 10px 0; color: #e74c3c;">PATIENT INFORMATION</h3>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div><strong>Name:</strong> ${selectedPatient.name}</div>
-                <div><strong>Age:</strong> ${selectedPatient.age} years</div>
-                <div><strong>Gender:</strong> ${selectedPatient.gender}</div>
-                <div><strong>Contact:</strong> ${selectedPatient.contact}</div>
+      <!DOCTYPE html>
+      <html dir="ltr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Consent Form - ${selectedPatient.name}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+          }
+          .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 0 auto;
+            background: white;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #1a5f2a;
+            margin-bottom: 15px;
+          }
+          .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+          .logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+          }
+          .hospital-info { text-align: left; }
+          .hospital-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a5f2a;
+            margin-bottom: 3px;
+          }
+          .hospital-name-urdu {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a5f2a;
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial;
+          }
+          .hospital-address { font-size: 11px; color: #555; }
+          .header-right { text-align: right; }
+          .date-box {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+          }
+          .consent-title {
+            background: linear-gradient(135deg, #1a5f2a 0%, #2d8f4a 100%);
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 15px 0;
+            border-radius: 5px;
+          }
+          .consent-title-urdu {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial;
+            font-size: 18px;
+            direction: rtl;
+          }
+          .patient-section {
+            background: #f8fdf9;
+            border: 2px solid #1a5f2a;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+          }
+          .patient-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .patient-item { display: flex; gap: 5px; }
+          .patient-label {
+            font-weight: bold;
+            color: #1a5f2a;
+            min-width: 120px;
+          }
+          .urdu-section {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial;
+            background: #fffef5;
+            border: 1px solid #e0d5a0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            line-height: 2;
+          }
+          .urdu-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a5f2a;
+            border-bottom: 2px solid #1a5f2a;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+          }
+          .urdu-text { font-size: 14px; margin-bottom: 10px; }
+          .urdu-field {
+            display: inline-block;
+            border-bottom: 1px solid #333;
+            min-width: 150px;
+            margin: 0 5px;
+          }
+          .english-section {
+            background: #f5f9ff;
+            border: 1px solid #cce0ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+          }
+          .english-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a5f2a;
+            border-bottom: 2px solid #1a5f2a;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+          }
+          .english-text { font-size: 11px; line-height: 1.6; color: #444; }
+          .english-field {
+            display: inline-block;
+            border-bottom: 1px solid #333;
+            min-width: 120px;
+            margin: 0 3px;
+          }
+          .signature-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px dashed #ccc;
+          }
+          .signature-box { text-align: center; }
+          .signature-line {
+            border-bottom: 2px solid #333;
+            height: 50px;
+            margin-bottom: 8px;
+          }
+          .signature-label { font-weight: bold; font-size: 11px; margin-bottom: 3px; }
+          .signature-label-urdu {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial;
+            direction: rtl;
+            font-size: 13px;
+          }
+          .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { width: 100%; min-height: auto; padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="logo-section">
+              <img src="/logo.png" alt="Hospital Logo" class="logo" onerror="this.style.display='none'">
+              <div class="hospital-info">
+                <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
+                <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
+                <div class="hospital-address">C-122, Sector 11-B, North Karachi Township, Karachi | Ph: 36989080</div>
               </div>
-              <div style="margin-top: 10px;"><strong>Doctor:</strong> Dr. ${selectedDoctor.name} (${selectedDoctor.department})</div>
             </div>
-
-            <div class="consent-text">
-              <p>I, the undersigned, hereby give my consent for OPD consultation and examination with Dr. ${selectedDoctor.name}.</p>
-
-              <p><strong>I understand that:</strong></p>
-              <ul>
-                <li>The doctor will examine and assess the patient's medical condition</li>
-                <li>Diagnostic tests or procedures may be recommended</li>
-                <li>Treatment or medication may be prescribed based on the diagnosis</li>
-                <li>I have the right to ask questions about the examination and treatment</li>
-                <li>All medical information will be kept confidential</li>
-                <li>I may be required to follow-up as advised by the doctor</li>
-              </ul>
-
-              <p>I voluntarily consent to this consultation and authorize the medical examination.</p>
-            </div>
-
-            <div class="checkbox-item">
-              <span class="checkbox"></span>
-              <span>I have read and understood the above consent statement</span>
-            </div>
-            <div class="checkbox-item">
-              <span class="checkbox"></span>
-              <span>I understand the risks, benefits, and alternatives explained to me</span>
-            </div>
-
-            <div class="signatures">
-              <div class="sig-block">
-                <div class="sig-line">
-                  <strong>Patient / Guardian Signature</strong><br>
-                  Name: _______________________<br>
-                  CNIC: _______________________<br>
-                  Relationship: ________________
-                </div>
+            <div class="header-right">
+              <div class="date-box">
+                <strong>Date / تاریخ:</strong> ${currentDate}
               </div>
-              <div class="sig-block">
-                <div class="sig-line">
-                  <strong>Witness Signature</strong><br>
-                  Name: _______________________<br>
-                  Designation: _________________<br>
-                  Date: _______________________
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <strong>Note:</strong> This consent form is a legal document. Please read it carefully before signing.<br>
-              If you have any questions, please ask the medical staff before signing.
             </div>
           </div>
-        </body>
+
+          <div class="consent-title">
+            <div class="consent-title-urdu">اجازت نامہ برائے علاج / پروسیجر / ڈلیوری / بیہوشی / آپریشن</div>
+            <div style="font-size: 12px; margin-top: 5px;">CONSENT FORM FOR TREATMENT / PROCEDURE / DELIVERY / ANESTHESIA / OPERATION</div>
+          </div>
+
+          <div class="patient-section">
+            <div class="patient-grid">
+              <div class="patient-item">
+                <span class="patient-label">Patient Name:</span>
+                <span>${selectedPatient.name}</span>
+              </div>
+              <div class="patient-item">
+                <span class="patient-label">Age / Gender:</span>
+                <span>${selectedPatient.age} years / ${selectedPatient.gender}</span>
+              </div>
+              <div class="patient-item">
+                <span class="patient-label">Contact:</span>
+                <span>${selectedPatient.contact}</span>
+              </div>
+              <div class="patient-item">
+                <span class="patient-label">Doctor:</span>
+                <span>Dr. ${selectedDoctor.name} (${selectedDoctor.department})</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="urdu-section">
+            <div class="urdu-title">بیان حلفی / اقرار نامہ</div>
+            <div class="urdu-text">
+              میں مسمی / مسمات <span class="urdu-field">${selectedPatient.name}</span>
+              ولد / زوجہ <span class="urdu-field"></span>
+            </div>
+            <div class="urdu-text">
+              نام سرپرست <span class="urdu-field"></span>
+              ولد / زوجہ <span class="urdu-field"></span>
+            </div>
+            <div class="urdu-text">
+              مریض سے رشتہ <span class="urdu-field"></span>
+            </div>
+            <div class="urdu-text" style="margin-top: 15px;">
+              بالغ / عاقل / باقائم ہوش و حواس اقرار کرتا ہوں / کرتی ہوں کہ ڈاکٹر صاحب نے مجھے میرے مرض اور علاج کے بارے میں تفصیل سے آگاہ کر دیا ہے۔ اور میں نے مکمل طور پر سمجھ لیا ہے اور یہ کہ میں اس بات کی اجازت دیتا ہوں / دیتی ہوں کہ دورانِ علاج، علاج / پروسیجر / ڈلیوری / بیہوشی / آپریشن سے ہونے والی کسی بھی قسم کی ناگزیر پیچیدگی کی صورت میں ڈاکٹر / عملہ یا ہسپتال کی انتظامیہ ذمہ دار نہ ہوگی۔
+            </div>
+            <div class="urdu-text">
+              مزید یہ کہ کسی غیر متوقع پیچیدگی کی صورت میں مریض کو کسی دوسرے ہسپتال بھیجا جا سکتا ہے۔ ہسپتال چھوڑنے سے قبل بقایاجات ادا کرنا لازمی ہے۔
+            </div>
+          </div>
+
+          <div class="english-section">
+            <div class="english-title">Declaration / Consent (English Translation)</div>
+            <div class="english-text">
+              <p>I, Mr./Ms. <span class="english-field">${selectedPatient.name}</span> S/o / W/o <span class="english-field"></span></p>
+              <p style="margin-top: 8px;">Guardian Name <span class="english-field"></span> S/o / W/o <span class="english-field"></span></p>
+              <p style="margin-top: 8px;">Relationship to Patient <span class="english-field"></span></p>
+              <p style="margin-top: 12px;">
+                Being an adult, sane, and in full possession of my senses, I affirm that the doctor has informed me in detail about my illness and treatment. I have understood it completely, and I grant permission that in case of any unavoidable complication arising during the treatment, procedure, delivery, anesthesia, or operation, the doctor, staff, or hospital administration will not be held responsible.
+              </p>
+              <p style="margin-top: 8px;">
+                Furthermore, in case of any unexpected complication, the patient may be transferred to another hospital. It is mandatory to clear all dues before leaving the hospital.
+              </p>
+            </div>
+          </div>
+
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-line"></div>
+              <div class="signature-label-urdu">دستخط / نشان انگوٹھا (مریض)</div>
+              <div class="signature-label">Signature / Thumb Impression (Patient)</div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-line"></div>
+              <div class="signature-label-urdu">دستخط / نشان انگوٹھا (سرپرست)</div>
+              <div class="signature-label">Signature / Thumb Impression (Guardian)</div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>This consent form is a legal document. Please read carefully before signing.</p>
+            <p>یہ اجازت نامہ ایک قانونی دستاویز ہے۔ دستخط کرنے سے پہلے احتیاط سے پڑھیں۔</p>
+          </div>
+        </div>
+      </body>
       </html>
     `;
 
