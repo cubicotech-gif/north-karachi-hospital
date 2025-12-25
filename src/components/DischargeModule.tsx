@@ -29,6 +29,7 @@ interface Admission {
 
 interface Patient {
   id: string;
+  mr_number?: string;
   name: string;
   age: number;
   gender: string;
@@ -67,6 +68,7 @@ interface DischargeData {
 
 export default function DischargeModule() {
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [admissionPatients, setAdmissionPatients] = useState<{ [key: string]: Patient }>({});
   const [selectedAdmission, setSelectedAdmission] = useState<Admission | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -110,6 +112,16 @@ export default function DischargeModule() {
         return;
       }
       setAdmissions(data || []);
+
+      // Fetch patient details for each admission
+      const patientMap: { [key: string]: Patient } = {};
+      for (const admission of (data || [])) {
+        const { data: patientData } = await db.patients.getById(admission.patient_id);
+        if (patientData) {
+          patientMap[admission.id] = patientData;
+        }
+      }
+      setAdmissionPatients(patientMap);
     } catch (error) {
       console.error('Error fetching admissions:', error);
     }
@@ -227,23 +239,29 @@ export default function DischargeModule() {
           <div className="space-y-4">
             <Label>Select Patient to Discharge</Label>
             <div className="grid grid-cols-1 gap-3">
-              {admissions.map((admission) => (
-                <Card 
-                  key={admission.id} 
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedAdmission?.id === admission.id ? 'border-blue-500 border-2' : ''}`}
-                  onClick={() => handleSelectAdmission(admission)}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Admission ID: {admission.id.slice(-8)}</p>
-                      <p className="text-sm text-gray-600">
-                        Admitted: {new Date(admission.admission_date).toLocaleDateString()}
-                      </p>
+              {admissions.map((admission) => {
+                const admPatient = admissionPatients[admission.id];
+                return (
+                  <Card
+                    key={admission.id}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedAdmission?.id === admission.id ? 'border-blue-500 border-2' : ''}`}
+                    onClick={() => handleSelectAdmission(admission)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-lg">{admPatient?.name || 'Loading...'}</p>
+                        <p className="text-sm font-semibold text-blue-600">
+                          MR#: {admPatient?.mr_number || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Admitted: {new Date(admission.admission_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge>{admission.admission_type}</Badge>
                     </div>
-                    <Badge>{admission.admission_type}</Badge>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
               {admissions.length === 0 && (
                 <p className="text-center text-gray-500 py-8">No active admissions</p>
               )}
@@ -262,6 +280,7 @@ export default function DischargeModule() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p><strong>Name:</strong> {patient.name}</p>
+                  <p className="text-blue-600 font-semibold"><strong>MR Number:</strong> {patient.mr_number || 'N/A'}</p>
                   <p><strong>Age:</strong> {patient.age} years</p>
                   <p><strong>Gender:</strong> {patient.gender}</p>
                 </div>
@@ -458,7 +477,7 @@ export default function DischargeModule() {
               patientName: patient.name,
               age: patient.age,
               gender: patient.gender,
-              mrNumber: selectedAdmission.patient_id.slice(-8),
+              mrNumber: patient.mr_number || 'N/A',
               admissionDate: selectedAdmission.admission_date,
               dischargeDate: dischargeData.discharge_date,
               totalDays: dischargeData.total_days,

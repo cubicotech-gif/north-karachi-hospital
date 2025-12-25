@@ -212,6 +212,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <div class="info-section">
               <div class="info-label">Patient Details:</div>
               <div>Name: ${selectedPatient.name}</div>
+              <div style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mr_number || 'N/A'}</div>
               <div>Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}</div>
               <div>Contact: ${selectedPatient.contact}</div>
             </div>
@@ -296,6 +297,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <div class="patient-box">
               <strong>Patient Details:</strong><br>
               Name: ${selectedPatient.name}<br>
+              <span style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mr_number || 'N/A'}</span><br>
               Contact: ${selectedPatient.contact}<br>
               Age/Gender: ${selectedPatient.age} yrs / ${selectedPatient.gender}
             </div>
@@ -394,6 +396,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <div class="patient-box">
               <strong>Patient Information:</strong><br>
               Name: ${selectedPatient.name}<br>
+              <span style="color: #2563eb; font-weight: bold; font-size: 14px;">MR#: ${selectedPatient.mr_number || 'N/A'}</span><br>
               Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
               Contact: ${selectedPatient.contact}<br>
               Chief Complaint: ${selectedPatient.problem}
@@ -466,6 +469,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <CardContent>
           <div className="space-y-2">
             <p><strong>Name:</strong> {selectedPatient.name}</p>
+            <p className="text-blue-600 font-semibold"><strong>MR Number:</strong> {selectedPatient.mr_number || 'N/A'}</p>
             <p><strong>Age:</strong> {selectedPatient.age} years</p>
             <p><strong>Gender:</strong> {selectedPatient.gender}</p>
             <p><strong>Contact:</strong> {selectedPatient.contact}</p>
