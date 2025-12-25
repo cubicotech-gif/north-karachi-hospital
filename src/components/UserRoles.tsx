@@ -30,24 +30,28 @@ interface User {
 const rolePermissions = {
   Admin: [
     'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
-    'Lab Management', 'Lab Test Management', 'Room Management', 'Department Management',
-    'Doctor Management', 'User Management', 'Reports & Analytics', 'Billing & Invoices',
-    'Appointment Scheduling', 'Doctor Queue System'
+    'Lab Management', 'Treatment Management', 'Lab Test Management', 'Treatment Types Management',
+    'Room Management', 'Department Management', 'Doctor Management', 'User Management',
+    'Reports & Analytics', 'Billing & Invoices', 'Appointment Scheduling', 'Doctor Queue System',
+    'Documents Management', 'Document Portfolio', 'Consent Forms', 'Settings Management'
   ],
   Doctor: [
     'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
-    'Lab Management', 'Doctor Queue System', 'Reports & Analytics'
+    'Lab Management', 'Treatment Management', 'Doctor Queue System', 'Reports & Analytics',
+    'Document Portfolio', 'Consent Forms'
   ],
   Nurse: [
-    'Patient Registration', 'OPD Token System', 'Admission Management', 'Lab Management',
-    'Doctor Queue System'
+    'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
+    'Lab Management', 'Treatment Management', 'Doctor Queue System', 'Document Portfolio', 'Consent Forms'
   ],
   Receptionist: [
-    'Patient Registration', 'OPD Token System', 'Appointment Scheduling', 'Billing & Invoices',
-    'Lab Management', 'Doctor Queue System'
+    // All patient-facing modules except management/admin modules
+    'Patient Registration', 'OPD Token System', 'Admission Management', 'Discharge Management',
+    'Lab Management', 'Treatment Management', 'Appointment Scheduling', 'Billing & Invoices',
+    'Doctor Queue System', 'Documents Management', 'Document Portfolio', 'Consent Forms'
   ],
   'Lab Technician': [
-    'Lab Management', 'Lab Test Management', 'Patient Registration'
+    'Lab Management', 'Patient Registration', 'Document Portfolio'
   ]
 };
 
