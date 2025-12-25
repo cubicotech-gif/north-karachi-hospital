@@ -332,7 +332,7 @@ const App = () => {
       case 'portfolio':
         return <PatientDocumentPortfolio selectedPatient={selectedPatient} />;
       case 'consent':
-        return <ConsentDocumentsCenter />;
+        return <ConsentDocumentsCenter selectedPatient={selectedPatient} />;
       case 'settings':
         return <HospitalSettings />;
       default:

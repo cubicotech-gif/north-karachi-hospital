@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FileText,
-  Search,
   Printer,
   User,
   FileCheck,
@@ -15,7 +12,6 @@ import {
   Baby,
   ClipboardList
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface Patient {
@@ -29,40 +25,11 @@ interface Patient {
   address?: string;
 }
 
-const ConsentDocumentsCenter = () => {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(false);
+interface ConsentDocumentsCenterProps {
+  selectedPatient: Patient | null;
+}
 
-  // Search patients
-  useEffect(() => {
-    const searchPatients = async () => {
-      if (searchQuery.length < 2) {
-        setPatients([]);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('patients')
-          .select('*')
-          .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,cnic.ilike.%${searchQuery}%`)
-          .limit(10);
-
-        if (error) throw error;
-        setPatients(data || []);
-      } catch (error) {
-        console.error('Error searching patients:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(searchPatients, 300);
-    return () => clearTimeout(debounce);
-  }, [searchQuery]);
+const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps) => {
 
   // Common print styles with Nastaleeq font
   const getPrintStyles = () => `
@@ -588,79 +555,30 @@ const ConsentDocumentsCenter = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Patient Search Section */}
-          <div className="mb-6">
-            <Label className="text-sm font-medium mb-2 block">
-              Search Patient / مریض تلاش کریں
-            </Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Enter patient name, phone, or CNIC..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Search Results */}
-            {patients.length > 0 && (
-              <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto">
-                {patients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
-                      selectedPatient?.id === patient.id ? 'bg-green-50 border-green-200' : ''
-                    }`}
-                    onClick={() => {
-                      setSelectedPatient(patient);
-                      setSearchQuery('');
-                      setPatients([]);
-                      toast.success(`Selected: ${patient.name}`);
-                    }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{patient.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {patient.phone} | {patient.gender} | {patient.age} years
-                        </p>
-                      </div>
-                      <Badge variant="outline">{patient.cnic || 'No CNIC'}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {loading && (
-              <p className="text-sm text-gray-500 mt-2">Searching...</p>
-            )}
-          </div>
-
           {/* Selected Patient Display */}
-          {selectedPatient && (
+          {selectedPatient ? (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <User className="h-8 w-8 text-green-600" />
-                  <div>
-                    <p className="font-semibold text-lg">{selectedPatient.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {selectedPatient.phone} | {selectedPatient.gender} | {selectedPatient.age} years
-                      {selectedPatient.guardian_name && ` | Guardian: ${selectedPatient.guardian_name}`}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <User className="h-8 w-8 text-green-600" />
+                <div>
+                  <p className="font-semibold text-lg">{selectedPatient.name}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedPatient.phone} | {selectedPatient.gender} | {selectedPatient.age} years
+                    {selectedPatient.guardian_name && ` | Guardian: ${selectedPatient.guardian_name}`}
+                  </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedPatient(null)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  Clear
-                </Button>
+                <Badge className="ml-auto bg-green-600">Selected</Badge>
               </div>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+              <p className="text-yellow-700 font-medium">No Patient Selected</p>
+              <p className="text-sm text-yellow-600 mt-1">
+                Please select a patient from "Patient Registration" module first
+              </p>
+              <p className="text-sm mt-1" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
+                براہ کرم پہلے مریض رجسٹریشن سے مریض منتخب کریں
+              </p>
             </div>
           )}
 
@@ -757,17 +675,6 @@ const ConsentDocumentsCenter = () => {
                   </CardContent>
                 </Card>
               </div>
-
-              {!selectedPatient && (
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                  <p className="text-yellow-700">
-                    <span className="font-medium">Please select a patient first</span> to print consent forms
-                  </p>
-                  <p className="text-sm text-yellow-600 mt-1" style={{ fontFamily: 'Noto Nastaliq Urdu, serif', direction: 'rtl' }}>
-                    براہ کرم پہلے مریض منتخب کریں
-                  </p>
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="documents" className="mt-4">
