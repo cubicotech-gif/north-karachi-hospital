@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Activity, Printer, Trash2, Plus } from 'lucide-react';
+import { Activity, Printer, Trash2, Plus, UserCheck } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -51,6 +51,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [showForm, setShowForm] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
+  const [referredBy, setReferredBy] = useState<string>('');
 
   useEffect(() => {
     fetchDoctors();
@@ -256,7 +257,9 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
           </div>
           <div class="info-box">
             <p><strong>Patient:</strong> ${selectedPatient.name}</p>
+            ${selectedPatient.mrNumber ? `<p style="color: #1565c0; font-weight: bold;"><strong>MR#:</strong> ${selectedPatient.mrNumber}</p>` : ''}
             <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
+            ${referredBy ? `<p style="color: #d97706; font-weight: bold;"><strong>Referred By:</strong> ${referredBy}</p>` : ''}
             <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
           </div>
         </div>
@@ -484,6 +487,22 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                     placeholder="Additional notes"
                     rows={2}
                   />
+                </div>
+
+                {/* Referred By Field */}
+                <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <Label htmlFor="referredByTrt" className="flex items-center gap-2 mb-2">
+                    <UserCheck className="h-4 w-4 text-amber-600" />
+                    Referred By / حوالہ دہندہ
+                  </Label>
+                  <Input
+                    id="referredByTrt"
+                    value={referredBy}
+                    onChange={(e) => setReferredBy(e.target.value)}
+                    placeholder="Enter referral name (Doctor, Clinic, Hospital, Person)"
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
                 </div>
 
                 <div className="flex gap-2 mt-4">

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Printer, Clock, User, Stethoscope, CreditCard } from 'lucide-react';
+import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck } from 'lucide-react';
 import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -42,6 +44,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [loading, setLoading] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number>(0);
   const [showConsentModal, setShowConsentModal] = useState(false);
+  const [referredBy, setReferredBy] = useState<string>('');
 
   useEffect(() => {
     fetchDoctors();
@@ -215,6 +218,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <div style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mrNumber || 'N/A'}</div>
               <div>Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}</div>
               <div>Contact: ${selectedPatient.contact}</div>
+              ${referredBy ? `<div style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</div>` : ''}
             </div>
 
             <div class="info-section">
@@ -300,6 +304,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <span style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mrNumber || 'N/A'}</span><br>
               Contact: ${selectedPatient.contact}<br>
               Age/Gender: ${selectedPatient.age} yrs / ${selectedPatient.gender}
+              ${referredBy ? `<br><span style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</span>` : ''}
             </div>
 
             <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
@@ -400,6 +405,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
               Contact: ${selectedPatient.contact}<br>
               Chief Complaint: ${selectedPatient.problem}
+              ${referredBy ? `<br><span style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</span>` : ''}
             </div>
 
             <div class="section">
@@ -524,6 +530,22 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Referred By Field */}
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <Label htmlFor="referredBy" className="flex items-center gap-2 mb-2">
+                  <UserCheck className="h-4 w-4 text-amber-600" />
+                  Referred By / حوالہ دہندہ
+                </Label>
+                <Input
+                  id="referredBy"
+                  value={referredBy}
+                  onChange={(e) => setReferredBy(e.target.value)}
+                  placeholder="Enter referral name (Doctor, Clinic, Hospital, Person)"
+                  className="bg-white"
+                />
+                <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
+              </div>
+
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">Total OPD Fee</p>

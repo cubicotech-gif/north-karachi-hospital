@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TestTube, User, Printer, CreditCard, FileText } from 'lucide-react';
+import { TestTube, User, Printer, CreditCard, FileText, UserCheck } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -51,6 +53,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [loading, setLoading] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
+  const [referredBy, setReferredBy] = useState<string>('');
 
   // Fetch doctors and lab tests from database
   useEffect(() => {
@@ -226,6 +229,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
             <p style="color: #1565c0; font-weight: bold;"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</p>
             <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
             <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
+            ${referredBy ? `<p style="color: #d97706; font-weight: bold;"><strong>Referred By:</strong> ${referredBy}</p>` : ''}
           </div>
         </div>
 
@@ -362,6 +366,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
               <div class="patient-item"><span class="patient-label">Contact:</span><span>${selectedPatient.contact}</span></div>
               <div class="patient-item"><span class="patient-label">Tests:</span><span>${testNames}</span></div>
               ${selectedDoctor ? `<div class="patient-item"><span class="patient-label">Doctor:</span><span>Dr. ${selectedDoctor.name}</span></div>` : ''}
+              ${referredBy ? `<div class="patient-item" style="background: #fef3c7;"><span class="patient-label" style="color: #d97706;">Referred By:</span><span style="font-weight: bold; color: #d97706;">${referredBy}</span></div>` : ''}
             </div>
           </div>
 
@@ -449,6 +454,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           <span style="color: #1565c0; font-weight: bold; font-size: 14px;">MR#: ${selectedPatient.mrNumber || 'N/A'}</span><br>
           Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
           Contact: ${selectedPatient.contact}
+          ${referredBy ? `<br><span style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</span>` : ''}
         </div>
         
         <div style="margin-bottom: 30px;">
@@ -564,6 +570,22 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
               </Select>
             </div>
           )}
+
+          {/* Referred By Field */}
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <Label htmlFor="referredByLab" className="flex items-center gap-2 mb-2">
+              <UserCheck className="h-4 w-4 text-amber-600" />
+              Referred By / حوالہ دہندہ
+            </Label>
+            <Input
+              id="referredByLab"
+              value={referredBy}
+              onChange={(e) => setReferredBy(e.target.value)}
+              placeholder="Enter referral name (Doctor, Clinic, Hospital, Person)"
+              className="bg-white"
+            />
+            <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
+          </div>
         </CardContent>
       </Card>
 
