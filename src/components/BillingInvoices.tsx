@@ -224,7 +224,7 @@ export default function BillingInvoices() {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => receiptRef.current,
+    contentRef: receiptRef,
     documentTitle: `Receipt-${selectedInvoice?.id || 'Unknown'}`,
     onAfterPrint: () => {
       toast.success('Receipt printed successfully');

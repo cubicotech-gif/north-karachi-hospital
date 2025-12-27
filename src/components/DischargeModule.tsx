@@ -207,7 +207,7 @@ export default function DischargeModule() {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => summaryRef.current,
+    contentRef: summaryRef,
     documentTitle: `Discharge-Summary-${patient?.name || 'Unknown'}`,
     onAfterPrint: () => {
       toast.success('Discharge summary printed successfully');
