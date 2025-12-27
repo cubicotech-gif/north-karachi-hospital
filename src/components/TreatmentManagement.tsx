@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Activity, Printer, Trash2, Plus, UserCheck } from 'lucide-react';
+import { Activity, Printer, Trash2, Plus, UserCheck, CreditCard } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -204,6 +204,32 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     } catch (error) {
       console.error('Error deleting treatment:', error);
       toast.error('Failed to delete treatment');
+    }
+  };
+
+  const recordPaymentForTreatment = async (treatmentId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await db.treatments.update(treatmentId, {
+        payment_status: 'paid'
+      });
+
+      if (error) {
+        console.error('Error recording payment:', error);
+        toast.error('Failed to record payment');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Payment recorded successfully!');
+
+      // Refresh treatments list
+      fetchTreatments();
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -561,6 +587,18 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
+                          {treatment.payment_status !== 'paid' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => recordPaymentForTreatment(treatment.id)}
+                              disabled={loading}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CreditCard className="h-3 w-3 mr-1" />
+                              Record Payment
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"

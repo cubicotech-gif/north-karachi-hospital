@@ -33,6 +33,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   });
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Update selected patient when prop changes
   useEffect(() => {
@@ -511,18 +512,107 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     const pending: any[] = [];
 
     history.opdTokens?.data?.filter((o: any) => o.payment_status !== 'paid').forEach((o: any) => {
-      pending.push({ type: 'OPD', description: `Token #${o.token_number}`, amount: o.fee, date: o.date });
+      pending.push({ id: o.id, type: 'OPD', description: `Token #${o.token_number}`, amount: o.fee, date: o.date });
     });
 
     history.labOrders?.data?.filter((l: any) => l.payment_status !== 'paid').forEach((l: any) => {
-      pending.push({ type: 'Lab', description: `${l.tests?.length || 0} tests`, amount: l.total_amount, date: l.order_date });
+      pending.push({ id: l.id, type: 'Lab', description: `${l.tests?.length || 0} tests`, amount: l.total_amount, date: l.order_date });
     });
 
     history.treatments?.data?.filter((t: any) => t.payment_status !== 'paid').forEach((t: any) => {
-      pending.push({ type: 'Treatment', description: t.treatment_name, amount: t.price, date: t.date });
+      pending.push({ id: t.id, type: 'Treatment', description: t.treatment_name, amount: t.price, date: t.date });
     });
 
     return pending;
+  };
+
+  const recordPayment = async (itemId: string, itemType: 'OPD' | 'Lab' | 'Treatment') => {
+    setPaymentLoading(true);
+    try {
+      let error = null;
+
+      if (itemType === 'OPD') {
+        const result = await db.opdTokens.update(itemId, { payment_status: 'paid' });
+        error = result.error;
+      } else if (itemType === 'Lab') {
+        const result = await db.labOrders.update(itemId, { payment_status: 'paid' });
+        error = result.error;
+      } else if (itemType === 'Treatment') {
+        const result = await db.treatments.update(itemId, { payment_status: 'paid' });
+        error = result.error;
+      }
+
+      if (error) {
+        console.error('Error recording payment:', error);
+        toast.error('Failed to record payment');
+        setPaymentLoading(false);
+        return;
+      }
+
+      toast.success('Payment recorded successfully!');
+
+      // Reload patient history
+      loadPatientHistory();
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const recordAllPayments = async () => {
+    const pendingItems = getPendingItems();
+
+    if (pendingItems.length === 0) {
+      toast.info('No pending payments');
+      return;
+    }
+
+    if (!confirm(`Record payment for all ${pendingItems.length} pending items (Total: ${formatCurrency(pendingItems.reduce((sum, item) => sum + item.amount, 0))})?`)) {
+      return;
+    }
+
+    setPaymentLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of pendingItems) {
+      try {
+        let error = null;
+
+        if (item.type === 'OPD') {
+          const result = await db.opdTokens.update(item.id, { payment_status: 'paid' });
+          error = result.error;
+        } else if (item.type === 'Lab') {
+          const result = await db.labOrders.update(item.id, { payment_status: 'paid' });
+          error = result.error;
+        } else if (item.type === 'Treatment') {
+          const result = await db.treatments.update(item.id, { payment_status: 'paid' });
+          error = result.error;
+        }
+
+        if (error) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    setPaymentLoading(false);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} payment(s) recorded successfully!`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} payment(s) failed`);
+    }
+
+    // Reload patient history
+    loadPatientHistory();
   };
 
   const printCompleteProfile = () => {
@@ -901,15 +991,40 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           {/* Pending Items Alert */}
           {pendingItems.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <h4 className="font-semibold text-red-700">Pending Payments ({pendingItems.length})</h4>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <h4 className="font-semibold text-red-700">Pending Payments ({pendingItems.length})</h4>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={recordAllPayments}
+                  disabled={paymentLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Pay All ({formatCurrency(pendingItems.reduce((sum, item) => sum + item.amount, 0))})
+                </Button>
               </div>
               <div className="space-y-2">
                 {pendingItems.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span>{item.type}: {item.description}</span>
-                    <span className="font-semibold">{formatCurrency(item.amount)}</span>
+                  <div key={idx} className="flex justify-between items-center text-sm bg-white p-2 rounded border border-red-100">
+                    <div className="flex-1">
+                      <span className="font-medium">{item.type}:</span> {item.description}
+                      <span className="text-xs text-gray-500 ml-2">({new Date(item.date).toLocaleDateString('en-PK')})</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold">{formatCurrency(item.amount)}</span>
+                      <Button
+                        size="sm"
+                        onClick={() => recordPayment(item.id, item.type)}
+                        disabled={paymentLoading}
+                        className="bg-green-600 hover:bg-green-700 h-8 px-3"
+                      >
+                        <CreditCard className="h-3 w-3 mr-1" />
+                        Pay
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
