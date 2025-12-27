@@ -180,63 +180,77 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>OPD Token - ${generatedToken.token_number}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
-            .hospital-name { font-size: 22px; font-weight: bold; color: #333; margin: 5px 0; }
-            .hospital-urdu { font-size: 18px; color: #666; }
-            .subtitle { color: #666; font-size: 14px; }
-            .queue-box { background: #e74c3c; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
-            .queue-number { font-size: 48px; font-weight: bold; margin: 0; }
-            .queue-label { font-size: 14px; margin: 5px 0 0 0; }
-            .info-section { margin: 15px 0; }
-            .info-label { font-weight: bold; color: #333; }
-            .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 11px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+            .hospital-name { font-size: 14px; font-weight: bold; }
+            .hospital-urdu { font-size: 12px; }
+            .subtitle { font-size: 10px; margin-top: 2px; }
+            .queue-box { background: #000; color: white; padding: 3mm; text-align: center; margin: 3mm 0; }
+            .queue-number { font-size: 36px; font-weight: bold; }
+            .queue-label { font-size: 10px; }
+            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
+            .info-section { margin: 2mm 0; font-size: 10px; line-height: 1.4; }
+            .info-label { font-weight: bold; }
+            .mr-number { font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-              <div class="subtitle">OPD Token / او پی ڈی ٹوکن</div>
-            </div>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="subtitle">OPD Token / او پی ڈی ٹوکن</div>
+          </div>
 
-            <div class="queue-box">
-              <p class="queue-number">${queueNumber}</p>
-              <p class="queue-label">QUEUE NUMBER</p>
-            </div>
+          <div class="queue-box">
+            <div class="queue-number">${queueNumber}</div>
+            <div class="queue-label">QUEUE NUMBER</div>
+          </div>
 
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-              <div><strong>Token:</strong> ${generatedToken.token_number}</div>
-              <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</div>
-            </div>
+          <div class="info-row">
+            <span><strong>Token:</strong> ${generatedToken.token_number}</span>
+            <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
+          </div>
 
-            <div class="info-section">
-              <div class="info-label">Patient Details:</div>
-              <div>Name: ${selectedPatient.name}</div>
-              <div style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mrNumber || 'N/A'}</div>
-              <div>Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}</div>
-              <div>Contact: ${selectedPatient.contact}</div>
-              ${referredBy ? `<div style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</div>` : ''}
-            </div>
+          <div class="divider"></div>
 
-            <div class="info-section">
-              <div class="info-label">Doctor Details:</div>
-              <div>Dr. ${selectedDoctor.name}</div>
-              <div>${selectedDoctor.department}</div>
-              <div>${selectedDoctor.specialization}</div>
-            </div>
+          <div class="info-section">
+            <div class="info-label">Patient:</div>
+            <div>${selectedPatient.name}</div>
+            <div class="mr-number">MR#: ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+            ${referredBy ? `<div><strong>Ref:</strong> ${referredBy}</div>` : ''}
+          </div>
 
-            <div class="info-section">
-              <div><strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}</div>
-              <div><strong>Payment:</strong> ${generatedToken.payment_status.toUpperCase()}</div>
-            </div>
+          <div class="divider"></div>
 
-            <div class="footer">
-              Please wait for your turn. Show this token to the doctor.<br>
-              براہ کرم اپنی باری کا انتظار کریں۔
-            </div>
+          <div class="info-section">
+            <div class="info-label">Doctor:</div>
+            <div>Dr. ${selectedDoctor.name}</div>
+            <div>${selectedDoctor.department}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-row">
+            <span><strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}</span>
+            <span><strong>${generatedToken.payment_status.toUpperCase()}</strong></span>
+          </div>
+
+          <div class="footer">
+            Please wait for your turn<br>
+            براہ کرم اپنی باری کا انتظار کریں
           </div>
         </body>
       </html>
@@ -264,84 +278,79 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>OPD Receipt - ${receiptNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 500px; margin: 0 auto; border: 2px solid #333; padding: 25px; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
-            .hospital-name { font-size: 24px; font-weight: bold; color: #333; }
-            .hospital-urdu { font-size: 18px; color: #666; }
-            .address { font-size: 12px; color: #666; margin-top: 5px; }
-            .receipt-title { background: #e74c3c; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
-            .info-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 5px 0; border-bottom: 1px dashed #ddd; }
-            .patient-box { background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px; }
-            .amount-box { background: #e8f5e9; padding: 15px; margin: 15px 0; border-radius: 5px; text-align: center; }
-            .total { font-size: 28px; font-weight: bold; color: #2e7d32; }
-            .status { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
-            .paid { background: #4caf50; color: white; }
-            .unpaid { background: #f44336; color: white; }
-            .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
-            .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; padding-top: 5px; font-size: 12px; }
-            .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-              <div class="address">C-122, Sector 11-B, North Karachi | Ph: 36989080</div>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">RECEIPT / رسید</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+            ${referredBy ? `<div><strong>Ref:</strong> ${referredBy}</div>` : ''}
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="item-row">
+            <span>OPD Fee - Dr. ${selectedDoctor.name}</span>
+            <span>${formatCurrency(selectedDoctor.opd_fee)}</span>
+          </div>
+          <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number} | Queue #${queueNumber}</div>
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(selectedDoctor.opd_fee)}</span>
             </div>
+          </div>
 
-            <div class="receipt-title">RECEIPT / رسید</div>
+          <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+            ${isPaid ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
 
-            <div class="info-row">
-              <span><strong>Receipt No:</strong> ${receiptNumber}</span>
-              <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
-            </div>
-
-            <div class="patient-box">
-              <strong>Patient Details:</strong><br>
-              Name: ${selectedPatient.name}<br>
-              <span style="color: #2563eb; font-weight: bold;">MR#: ${selectedPatient.mrNumber || 'N/A'}</span><br>
-              Contact: ${selectedPatient.contact}<br>
-              Age/Gender: ${selectedPatient.age} yrs / ${selectedPatient.gender}
-              ${referredBy ? `<br><span style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</span>` : ''}
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-              <tr style="background: #f0f0f0;">
-                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Description</th>
-                <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Amount</th>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border: 1px solid #ddd;">
-                  OPD Consultation Fee<br>
-                  <small>Dr. ${selectedDoctor.name} - ${selectedDoctor.department}</small><br>
-                  <small>Token #${generatedToken.token_number} | Queue #${queueNumber}</small>
-                </td>
-                <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
-                  ${formatCurrency(selectedDoctor.opd_fee)}
-                </td>
-              </tr>
-            </table>
-
-            <div class="amount-box">
-              <div>Total Amount / کل رقم</div>
-              <div class="total">${formatCurrency(selectedDoctor.opd_fee)}</div>
-              <div class="status ${isPaid ? 'paid' : 'unpaid'}">
-                ${isPaid ? 'PAID / ادا شدہ' : 'UNPAID / غیر ادا شدہ'}
-              </div>
-            </div>
-
-            <div class="signatures">
-              <div class="sig-line">Patient Signature<br>مریض کے دستخط</div>
-              <div class="sig-line">Cashier<br>کیشیئر</div>
-            </div>
-
-            <div class="footer">
-              Thank you for choosing North Karachi Hospital<br>
-              نارتھ کراچی ہسپتال کا انتخاب کرنے کا شکریہ<br>
-              <small>Printed: ${new Date().toLocaleString('en-PK')}</small>
-            </div>
+          <div class="footer">
+            Thank you / شکریہ<br>
+            ${new Date().toLocaleString('en-PK')}
           </div>
         </body>
       </html>
@@ -363,81 +372,95 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 700px; margin: 0 auto; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
-            .hospital-name { font-size: 28px; font-weight: bold; color: #333; }
-            .hospital-urdu { font-size: 18px; color: #666; }
-            .info-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .patient-box { background: #f5f5f5; padding: 15px; border-left: 4px solid #e74c3c; margin-bottom: 25px; }
-            .section { margin-bottom: 25px; }
-            .section-title { font-weight: bold; font-size: 16px; color: #333; margin-bottom: 10px; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; }
-            .write-area { min-height: 80px; border: 1px solid #ddd; padding: 10px; margin-top: 10px; }
-            .signature { margin-top: 60px; text-align: right; }
-            .signature-line { border-top: 1px solid #333; width: 250px; margin-left: auto; padding-top: 10px; }
+            @page { size: A4; margin: 8mm; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 11px;
+              line-height: 1.3;
+              width: 100%;
+              max-width: 210mm;
+            }
+            .header { text-align: center; border-bottom: 2px solid #007B8A; padding-bottom: 8px; margin-bottom: 10px; }
+            .hospital-name { font-size: 20px; font-weight: bold; color: #005F6B; }
+            .hospital-urdu { font-size: 14px; color: #007B8A; }
+            .subtitle { font-size: 11px; color: #666; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; }
+            .patient-box { background: #f8f9fa; padding: 8px; border-left: 3px solid #007B8A; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
+            .section { margin-bottom: 8px; }
+            .section-title { font-weight: bold; font-size: 11px; color: #005F6B; border-bottom: 1px solid #007B8A; padding-bottom: 3px; margin-bottom: 5px; }
+            .write-area { min-height: 50px; border: 1px solid #ddd; padding: 5px; background: #fafafa; }
+            .write-area.large { min-height: 120px; }
+            .write-area.medium { min-height: 70px; }
+            .two-col { display: flex; gap: 10px; }
+            .two-col > div { flex: 1; }
+            .signature { margin-top: 15px; text-align: right; }
+            .signature-line { border-top: 1px solid #333; width: 180px; margin-left: auto; padding-top: 5px; font-size: 10px; }
+            .rx-symbol { font-size: 16px; font-weight: bold; color: #007B8A; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-              <div style="font-size: 14px; color: #666;">Prescription & Medical Record</div>
-            </div>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="subtitle">Prescription & Medical Record</div>
+          </div>
 
-            <div class="info-row">
-              <div>
-                <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}<br>
-                <strong>Token No:</strong> ${generatedToken?.token_number || 'N/A'}<br>
-                <strong>Queue No:</strong> ${queueNumber}
-              </div>
-              <div style="text-align: right;">
-                <strong style="font-size: 18px;">Dr. ${selectedDoctor.name}</strong><br>
-                ${selectedDoctor.department}<br>
-                ${selectedDoctor.specialization}
-              </div>
+          <div class="info-row">
+            <div>
+              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')} |
+              <strong>Token:</strong> ${generatedToken?.token_number || 'N/A'} |
+              <strong>Queue:</strong> ${queueNumber}
             </div>
-
-            <div class="patient-box">
-              <strong>Patient Information:</strong><br>
-              Name: ${selectedPatient.name}<br>
-              <span style="color: #2563eb; font-weight: bold; font-size: 14px;">MR#: ${selectedPatient.mrNumber || 'N/A'}</span><br>
-              Age: ${selectedPatient.age} years | Gender: ${selectedPatient.gender}<br>
-              Contact: ${selectedPatient.contact}<br>
-              Chief Complaint: ${selectedPatient.problem}
-              ${referredBy ? `<br><span style="color: #d97706; font-weight: bold;">Referred By: ${referredBy}</span>` : ''}
+            <div style="text-align: right;">
+              <strong>Dr. ${selectedDoctor.name}</strong> | ${selectedDoctor.department} | ${selectedDoctor.specialization}
             </div>
+          </div>
 
+          <div class="patient-box">
+            <strong>Patient:</strong> ${selectedPatient.name} |
+            <strong style="color: #007B8A;">MR#: ${selectedPatient.mrNumber || 'N/A'}</strong> |
+            <strong>Age:</strong> ${selectedPatient.age}Y |
+            <strong>Gender:</strong> ${selectedPatient.gender} |
+            <strong>Contact:</strong> ${selectedPatient.contact}
+            ${referredBy ? ` | <strong>Referred By:</strong> ${referredBy}` : ''}
+            <br><strong>Chief Complaint:</strong> ${selectedPatient.problem || 'N/A'}
+          </div>
+
+          <div class="two-col">
             <div class="section">
               <div class="section-title">Clinical Examination</div>
-              <div class="write-area" style="min-height: 100px;"></div>
+              <div class="write-area medium"></div>
             </div>
-
             <div class="section">
               <div class="section-title">Diagnosis</div>
-              <div class="write-area" style="min-height: 80px;"></div>
+              <div class="write-area medium"></div>
             </div>
+          </div>
 
-            <div class="section">
-              <div class="section-title">℞ Prescription</div>
-              <div class="write-area" style="min-height: 180px;"></div>
-            </div>
+          <div class="section">
+            <div class="section-title"><span class="rx-symbol">℞</span> Prescription</div>
+            <div class="write-area large"></div>
+          </div>
 
+          <div class="two-col">
             <div class="section">
               <div class="section-title">Lab Tests / Investigations</div>
-              <div class="write-area" style="min-height: 100px;"></div>
+              <div class="write-area"></div>
             </div>
-
             <div class="section">
               <div class="section-title">Advice & Follow-up</div>
-              <div class="write-area" style="min-height: 80px;"></div>
+              <div class="write-area"></div>
             </div>
+          </div>
 
-            <div class="signature">
-              <div class="signature-line">
-                <strong>Dr. ${selectedDoctor.name}</strong><br>
-                ${selectedDoctor.specialization}
-              </div>
+          <div class="signature">
+            <div class="signature-line">
+              <strong>Dr. ${selectedDoctor.name}</strong><br>
+              ${selectedDoctor.specialization}
             </div>
           </div>
         </body>

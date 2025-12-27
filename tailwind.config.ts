@@ -21,6 +21,19 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // Trustworthy Teals palette
+        teal: {
+          50: "#E8F7FC",
+          100: "#A2DFF7",
+          200: "#6BCBEB",
+          300: "#3A9AD9",
+          400: "#007B8A",
+          500: "#005F6B",
+          600: "#004D57",
+          700: "#003B43",
+          800: "#00292F",
+          900: "#00171B",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

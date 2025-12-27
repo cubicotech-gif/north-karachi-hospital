@@ -106,12 +106,12 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Hospital Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-white p-4 rounded-full shadow-lg border-4 border-emerald-100">
+            <div className="bg-white p-4 rounded-full shadow-lg border-4 border-teal-100">
               <img
                 src="/logo.png"
                 alt="North Karachi Hospital"
@@ -120,18 +120,18 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
                   e.currentTarget.style.display = 'none';
                 }}
               />
-              <Hospital className="h-20 w-20 text-emerald-600 hidden" />
+              <Hospital className="h-20 w-20 text-teal-400 hidden" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-emerald-800">North Karachi Hospital</h1>
-          <p className="text-lg text-emerald-600 font-medium" style={{ direction: 'rtl' }}>نارتھ کراچی ہسپتال</p>
+          <h1 className="text-3xl font-bold text-teal-500">North Karachi Hospital</h1>
+          <p className="text-lg text-teal-400 font-medium" style={{ direction: 'rtl' }}>نارتھ کراچی ہسپتال</p>
           <p className="text-gray-500 text-sm mt-2">Hospital Management System</p>
         </div>
 
         <Card className="shadow-xl border-0">
-          <CardHeader className="text-center bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-t-lg">
+          <CardHeader className="text-center bg-gradient-to-r from-teal-400 to-teal-500 text-white rounded-t-lg">
             <CardTitle className="text-xl">Staff Login</CardTitle>
-            <p className="text-emerald-100 text-sm">Enter your credentials to access the system</p>
+            <p className="text-teal-100 text-sm">Enter your credentials to access the system</p>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleLogin} className="space-y-4">
@@ -145,7 +145,7 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
                   placeholder="Enter your username"
                   disabled={isLoading}
                   autoFocus
-                  className="mt-1 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                  className="mt-1 border-gray-300 focus:border-teal-400 focus:ring-teal-400"
                 />
               </div>
               <div>
@@ -157,12 +157,12 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string, password: string
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   disabled={isLoading}
-                  className="mt-1 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                  className="mt-1 border-gray-300 focus:border-teal-400 focus:ring-teal-400"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 text-lg"
+                className="w-full bg-teal-400 hover:bg-teal-500 text-white py-5 text-lg"
                 disabled={isLoading}
               >
                 {isLoading ? 'Logging in...' : 'Login'}
@@ -270,13 +270,13 @@ const App = () => {
   const renderDashboard = () => (
     <div className="space-y-6">
       {/* Welcome Card */}
-      <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0">
+      <Card className="bg-gradient-to-r from-teal-400 to-teal-500 text-white border-0">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Welcome to North Karachi Hospital</h2>
-              <p className="text-emerald-100 mt-1">Hospital Management System Dashboard</p>
-              <p className="text-sm text-emerald-200 mt-2">
+              <p className="text-teal-100 mt-1">Hospital Management System Dashboard</p>
+              <p className="text-sm text-teal-100 mt-2">
                 Logged in as: <strong>{user?.fullName}</strong> ({user?.role})
               </p>
             </div>
@@ -308,15 +308,15 @@ const App = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-emerald-500 hover:shadow-lg transition-shadow">
+        <Card className="border-l-4 border-l-teal-300 hover:shadow-lg transition-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">OPD Tokens</p>
                 <p className="text-3xl font-bold text-gray-900">--</p>
               </div>
-              <div className="p-3 bg-emerald-100 rounded-full">
-                <FileText className="h-6 w-6 text-emerald-600" />
+              <div className="p-3 bg-teal-100 rounded-full">
+                <FileText className="h-6 w-6 text-teal-400" />
               </div>
             </div>
           </CardContent>
@@ -359,7 +359,7 @@ const App = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
-              { id: 'patients', name: 'New Patient', icon: UserPlus, color: 'emerald' },
+              { id: 'patients', name: 'New Patient', icon: UserPlus, color: 'teal' },
               { id: 'opd', name: 'OPD Token', icon: Clipboard, color: 'blue' },
               { id: 'allpatients', name: 'Find Patient', icon: FolderOpen, color: 'indigo' },
               { id: 'lab', name: 'Lab Order', icon: TestTube, color: 'purple' },
@@ -423,7 +423,7 @@ const App = () => {
             <p className="text-red-600 text-lg font-semibold mb-2">Access Denied</p>
             <p className="text-gray-600">You do not have permission to access this module.</p>
             <p className="text-sm text-gray-500 mt-2">Contact your administrator for access.</p>
-            <Button onClick={() => setCurrentModule('dashboard')} className="mt-4 bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={() => setCurrentModule('dashboard')} className="mt-4 bg-teal-400 hover:bg-teal-500">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -489,7 +489,7 @@ const App = () => {
   // Loading Screen
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
           <img
             src="/logo.png"
@@ -497,8 +497,8 @@ const App = () => {
             className="h-16 w-16 mx-auto mb-4 animate-pulse"
             onError={(e) => e.currentTarget.style.display = 'none'}
           />
-          <Hospital className="h-16 w-16 mx-auto mb-4 text-emerald-600 animate-pulse hidden" />
-          <p className="text-emerald-700 font-medium">Loading North Karachi Hospital...</p>
+          <Hospital className="h-16 w-16 mx-auto mb-4 text-teal-400 animate-pulse hidden" />
+          <p className="text-teal-500 font-medium">Loading North Karachi Hospital...</p>
         </div>
       </div>
     );
@@ -522,7 +522,7 @@ const App = () => {
         <Toaster />
         <div className="min-h-screen bg-gray-100">
           {/* Professional Header */}
-          <header className="bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-lg">
+          <header className="bg-gradient-to-r from-teal-500 to-teal-400 text-white shadow-lg">
             <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 {/* Logo and Title */}
@@ -537,7 +537,7 @@ const App = () => {
                   </div>
                   <div>
                     <h1 className="text-xl font-bold">North Karachi Hospital</h1>
-                    <p className="text-xs text-emerald-200">Hospital Management System</p>
+                    <p className="text-xs text-teal-100">Hospital Management System</p>
                   </div>
                 </div>
 
@@ -560,7 +560,7 @@ const App = () => {
                   <div className="flex items-center gap-3 pl-4 border-l border-white/20">
                     <div className="text-right hidden sm:block">
                       <p className="text-sm font-medium">{user.fullName}</p>
-                      <p className="text-xs text-emerald-200">{user.role}</p>
+                      <p className="text-xs text-teal-100">{user.role}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -599,12 +599,12 @@ const App = () => {
                               variant="ghost"
                               className={`w-full justify-start text-sm font-medium transition-colors ${
                                 isActive
-                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  ? 'bg-teal-50 text-teal-500 hover:bg-teal-100'
                                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                               }`}
                               onClick={() => setCurrentModule(module.id)}
                             >
-                              <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
+                              <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-teal-400' : 'text-gray-400'}`} />
                               {module.name}
                             </Button>
                           );

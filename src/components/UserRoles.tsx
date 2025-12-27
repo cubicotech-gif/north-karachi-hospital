@@ -22,7 +22,7 @@ interface User {
   cnic_number: string;
   password?: string;
   active: boolean;
-  created_date: string;
+  created_at: string;
   permissions: string[];
 }
 
@@ -135,8 +135,8 @@ export default function UserRoles() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!formData.password || formData.password.length < 6) {
+      toast.error('Password is required (minimum 6 characters)');
       return;
     }
     if (users.some(user => user.username === formData.username)) {
@@ -147,8 +147,14 @@ export default function UserRoles() {
     setLoading(true);
     try {
       const userData = {
-        ...formData,
-        created_date: new Date().toISOString().split('T')[0],
+        username: formData.username,
+        full_name: formData.full_name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        contact: formData.contact,
+        cnic_number: formData.cnic_number,
+        active: formData.active,
         permissions: formData.permissions || rolePermissions[formData.role as keyof typeof rolePermissions]
       };
       const { data, error } = await db.users.create(userData);
@@ -433,7 +439,7 @@ export default function UserRoles() {
                         <p><strong>Email:</strong> {user.email}</p>
                         {user.contact && <p><strong>Contact:</strong> {user.contact}</p>}
                         {user.cnic_number && <p><strong>CNIC:</strong> {user.cnic_number}</p>}
-                        <p><strong>Created:</strong> {new Date(user.created_date).toLocaleDateString()}</p>
+                        <p><strong>Created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                       </div>
 
                       <div>

@@ -33,13 +33,13 @@ interface DischargeSummaryTemplateProps {
 const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white p-4 mx-auto" style={{ maxWidth: '210mm', fontSize: '10px' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 5mm;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -51,21 +51,21 @@ const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemp
             }
 
             .section-title {
-              background-color: #2563eb;
+              background-color: #007B8A;
               color: white;
-              padding: 6px 12px;
+              padding: 3px 8px;
               font-weight: bold;
-              margin-top: 12px;
-              margin-bottom: 8px;
-              font-size: 14px;
+              margin-top: 6px;
+              margin-bottom: 4px;
+              font-size: 10px;
             }
 
             .section-content {
-              padding: 8px 12px;
+              padding: 4px 8px;
               background-color: #f9fafb;
-              border-left: 3px solid #2563eb;
-              font-size: 13px;
-              line-height: 1.6;
+              border-left: 2px solid #007B8A;
+              font-size: 9px;
+              line-height: 1.4;
             }
           `}
         </style>
@@ -74,14 +74,14 @@ const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemp
         <Letterhead showUrdu={true} variant="full" />
 
         {/* Document Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">DISCHARGE SUMMARY</h2>
-          <p className="text-sm text-gray-600 mt-1">Summary No: {data.summaryNumber}</p>
+        <div className="text-center mb-3">
+          <h2 className="text-lg font-bold text-gray-800">DISCHARGE SUMMARY</h2>
+          <p className="text-xs text-gray-600">Summary No: {data.summaryNumber}</p>
         </div>
 
         {/* Patient Information */}
-        <div className="border-2 border-gray-800 p-4 mb-6">
-          <div className="grid grid-cols-2 gap-y-2 gap-x-6 text-sm">
+        <div className="border border-gray-800 p-2 mb-3">
+          <div className="grid grid-cols-2 gap-y-1 gap-x-4 text-xs">
             <div>
               <strong>Patient Name:</strong> {data.patientName}
             </div>
@@ -216,27 +216,26 @@ const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemp
         )}
 
         {/* Doctor Signature */}
-        <div className="mt-12 pt-6 border-t-2 border-gray-800">
-          <div className="grid grid-cols-2 gap-8">
+        <div className="mt-6 pt-3 border-t border-gray-800">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm mb-2 text-gray-600">Prepared by:</p>
-              <div className="h-16 border-b-2 border-gray-400"></div>
-              <p className="text-xs mt-1 text-gray-500">Medical Officer Signature</p>
+              <p className="text-xs mb-1 text-gray-600">Prepared by:</p>
+              <div className="h-10 border-b border-gray-400"></div>
+              <p className="text-xs mt-1 text-gray-500">Medical Officer</p>
             </div>
 
             <div className="text-right">
-              <p className="text-sm mb-2 text-gray-600">Verified & Approved by:</p>
-              <div className="h-16 border-b-2 border-gray-600"></div>
-              <p className="font-bold mt-2">{data.consultantName}</p>
-              <p className="text-xs text-gray-500">Consultant Signature & Stamp</p>
+              <p className="text-xs mb-1 text-gray-600">Approved by:</p>
+              <div className="h-10 border-b border-gray-600"></div>
+              <p className="font-bold text-xs mt-1">{data.consultantName}</p>
+              <p className="text-xs text-gray-500">Consultant</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 pt-4 border-t border-gray-300 text-xs text-gray-500 text-center">
-          <p>Discharge Summary Generated: {new Date().toLocaleString('en-GB')}</p>
-          <p className="mt-1 font-semibold">This is an official medical document. Keep it safe for future reference.</p>
+        <div className="mt-3 pt-2 border-t border-gray-300 text-xs text-gray-500 text-center">
+          <p>Generated: {new Date().toLocaleString('en-GB')} | Keep this document safe</p>
         </div>
       </div>
     );
