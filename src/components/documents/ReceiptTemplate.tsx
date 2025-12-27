@@ -1,5 +1,4 @@
 import React, { forwardRef, useEffect, useState } from 'react';
-import Letterhead from './Letterhead';
 import { db } from '@/lib/supabase';
 import QRCode from 'qrcode';
 
@@ -30,246 +29,142 @@ interface ReceiptTemplateProps {
 const ReceiptTemplate = forwardRef<HTMLDivElement, ReceiptTemplateProps>(
   ({ data }, ref) => {
     const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-    const [footerText, setFooterText] = useState<string>('');
-    const [footerUrdu, setFooterUrdu] = useState<string>('');
 
     useEffect(() => {
       // Generate QR Code for receipt verification
       const generateQRCode = async () => {
         try {
           const qrData = `RCP:${data.receiptNumber}|${data.date}|${data.total}`;
-          const url = await QRCode.toDataURL(qrData, { width: 120 });
+          const url = await QRCode.toDataURL(qrData, { width: 80 });
           setQrCodeUrl(url);
         } catch (error) {
           console.error('Error generating QR code:', error);
         }
       };
 
-      // Load footer text from settings
-      const loadFooter = async () => {
-        try {
-          const { data: settings } = await db.hospitalSettings.get();
-          if (settings) {
-            setFooterText(settings.print_footer || '');
-            setFooterUrdu(settings.print_footer_urdu || '');
-          }
-        } catch (error) {
-          console.error('Error loading footer:', error);
-        }
-      };
-
       generateQRCode();
-      loadFooter();
     }, [data.receiptNumber, data.date, data.total]);
 
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white" style={{ width: '80mm', padding: '3mm', fontFamily: 'Arial, sans-serif' }}>
         <style>
           {`
             @media print {
               @page {
-                size: A4;
-                margin: 15mm;
+                size: 80mm auto;
+                margin: 0;
               }
-
               body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-              }
-
-              .no-print {
-                display: none !important;
-              }
-
-              .print-only {
-                display: block !important;
-              }
-            }
-
-            @media screen {
-              .print-only {
-                display: none;
               }
             }
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={true} variant="full" />
+        {/* Header */}
+        <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '2mm', marginBottom: '2mm' }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>North Karachi Hospital</div>
+          <div style={{ fontSize: '11px' }}>نارتھ کراچی ہسپتال</div>
+          <div style={{ fontSize: '8px', marginTop: '1mm' }}>C-122, Sector 11-B, North Karachi | 36989080</div>
+        </div>
+
+        {/* Receipt Title */}
+        <div style={{ background: '#000', color: '#fff', padding: '2mm', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', margin: '2mm 0' }}>
+          RECEIPT / رسید
+        </div>
 
         {/* Duplicate Watermark */}
         {data.isDuplicate && (
-          <div className="text-center mb-4">
-            <span className="inline-block px-4 py-1 bg-red-100 text-red-700 font-bold text-sm rounded border-2 border-red-300">
-              DUPLICATE COPY
-            </span>
+          <div style={{ textAlign: 'center', padding: '1mm', background: '#f00', color: '#fff', fontSize: '9px', fontWeight: 'bold', marginBottom: '2mm' }}>
+            DUPLICATE COPY
           </div>
         )}
 
-        {/* Receipt Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">RECEIPT / رسید</h2>
+        {/* Receipt Info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', margin: '1mm 0' }}>
+          <span><strong>No:</strong> {data.receiptNumber}</span>
+          <span><strong>Date:</strong> {new Date(data.date).toLocaleDateString('en-GB')}</span>
         </div>
 
-        {/* Receipt Details */}
-        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-          <div>
-            <p><strong>Receipt No:</strong> {data.receiptNumber}</p>
-            <p className="text-right" dir="rtl"><strong>رسید نمبر:</strong> {data.receiptNumber}</p>
-          </div>
-          <div className="text-right">
-            <p><strong>Date:</strong> {new Date(data.date).toLocaleDateString('en-GB')}</p>
-            <p dir="rtl"><strong>تاریخ:</strong> {new Date(data.date).toLocaleDateString('en-GB')}</p>
-          </div>
-        </div>
+        <div style={{ borderTop: '1px dashed #000', margin: '2mm 0' }}></div>
 
         {/* Patient Information */}
-        <div className="border-2 border-gray-300 rounded-lg p-4 mb-6">
-          <h3 className="font-bold text-lg mb-3 text-gray-800">Patient Details / مریض کی تفصیلات</h3>
-          <div className="space-y-2 text-sm">
-            <div className="grid grid-cols-2 gap-4">
-              <p><strong>Name:</strong> {data.patientName}</p>
-              <p className="text-right" dir="rtl"><strong>نام:</strong> {data.patientName}</p>
+        <div style={{ fontSize: '9px', lineHeight: '1.4', margin: '2mm 0' }}>
+          <div><strong>Patient:</strong> {data.patientName}</div>
+          {data.patientCnic && <div><strong>CNIC:</strong> {data.patientCnic}</div>}
+          {data.patientContact && <div><strong>Contact:</strong> {data.patientContact}</div>}
+        </div>
+
+        <div style={{ borderTop: '1px dashed #000', margin: '2mm 0' }}></div>
+
+        {/* Items */}
+        <div style={{ fontSize: '9px' }}>
+          {data.items.map((item, index) => (
+            <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '1mm 0', borderBottom: '1px dotted #ccc' }}>
+              <span style={{ flex: 1 }}>{item.description}</span>
+              <span>Rs. {item.amount.toLocaleString()}</span>
             </div>
+          ))}
+        </div>
 
-            {data.patientCnic && (
-              <div className="grid grid-cols-2 gap-4">
-                <p><strong>CNIC:</strong> {data.patientCnic}</p>
-                <p className="text-right" dir="rtl"><strong>شناختی کارڈ:</strong> {data.patientCnic}</p>
-              </div>
-            )}
-
-            {data.patientContact && (
-              <div className="grid grid-cols-2 gap-4">
-                <p><strong>Contact:</strong> {data.patientContact}</p>
-                <p className="text-right" dir="rtl"><strong>رابطہ:</strong> {data.patientContact}</p>
-              </div>
-            )}
+        {/* Total Section */}
+        <div style={{ margin: '2mm 0', padding: '2mm', background: '#f0f0f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
+            <span>TOTAL / کل:</span>
+            <span>Rs. {data.total.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* Payment Details */}
-        <div className="mb-6">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2 text-left">Description / تفصیل</th>
-                <th className="border border-gray-300 px-4 py-2 text-right w-32">Amount / رقم</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item, index) => (
-                <tr key={index}>
-                  <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">
-                    Rs. {item.amount.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              <tr className="bg-gray-50 font-bold">
-                <td className="border border-gray-300 px-4 py-3 text-right">
-                  Total / کل رقم:
-                </td>
-                <td className="border border-gray-300 px-4 py-3 text-right text-lg">
-                  Rs. {data.total.toLocaleString()}
-                </td>
-              </tr>
-
-              {data.amountPaid !== undefined && data.amountPaid < data.total && (
-                <>
-                  <tr>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
-                      Amount Paid / ادا شدہ رقم:
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-right">
-                      Rs. {data.amountPaid.toLocaleString()}
-                    </td>
-                  </tr>
-                  <tr className="bg-yellow-50">
-                    <td className="border border-gray-300 px-4 py-2 text-right font-semibold">
-                      Balance Due / باقی رقم:
-                    </td>
-                    <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-600">
-                      Rs. {(data.balanceDue || 0).toLocaleString()}
-                    </td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Balance Due */}
+        {data.amountPaid !== undefined && data.amountPaid < data.total && (
+          <div style={{ fontSize: '9px', margin: '1mm 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Paid:</span>
+              <span>Rs. {data.amountPaid.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#c00' }}>
+              <span>Balance:</span>
+              <span>Rs. {(data.balanceDue || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        )}
 
         {/* Payment Status */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <p className="text-sm">
-              <strong>Payment Status / ادائیگی کی حیثیت:</strong>{' '}
-              <span
-                className={`inline-block px-3 py-1 rounded font-semibold ${
-                  data.paymentStatus === 'paid'
-                    ? 'bg-green-100 text-green-700'
-                    : data.paymentStatus === 'partial'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {data.paymentStatus === 'paid' ? 'PAID / ادا شدہ' :
-                 data.paymentStatus === 'partial' ? 'PARTIAL / جزوی' :
-                 'UNPAID / غیر ادا شدہ'}
-              </span>
-            </p>
-
-            {data.paymentMethod && (
-              <p className="text-sm mt-2">
-                <strong>Payment Method:</strong> {data.paymentMethod}
-              </p>
-            )}
-          </div>
-
-          {qrCodeUrl && (
-            <div className="text-right">
-              <img src={qrCodeUrl} alt="QR Code" className="inline-block h-24 w-24" />
-              <p className="text-xs text-gray-500 mt-1">Scan to verify</p>
-            </div>
-          )}
+        <div style={{
+          textAlign: 'center',
+          padding: '2mm',
+          marginTop: '2mm',
+          fontWeight: 'bold',
+          fontSize: '11px',
+          background: data.paymentStatus === 'paid' ? '#000' : 'transparent',
+          color: data.paymentStatus === 'paid' ? '#fff' : '#000',
+          border: data.paymentStatus !== 'paid' ? '2px solid #000' : 'none'
+        }}>
+          {data.paymentStatus === 'paid' ? '✓ PAID / ادا شدہ' :
+           data.paymentStatus === 'partial' ? '◐ PARTIAL / جزوی' :
+           '✗ UNPAID / غیر ادا شدہ'}
         </div>
 
         {/* Notes */}
         {data.notes && (
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm"><strong>Notes:</strong> {data.notes}</p>
+          <div style={{ fontSize: '8px', margin: '2mm 0', padding: '1mm', background: '#f5f5f5' }}>
+            <strong>Note:</strong> {data.notes}
           </div>
         )}
 
-        {/* Signature Section */}
-        <div className="mt-12 grid grid-cols-2 gap-8">
-          <div>
-            <div className="border-t-2 border-gray-400 pt-2">
-              <p className="text-sm text-center">Patient Signature / مریض کے دستخط</p>
-            </div>
+        {/* QR Code */}
+        {qrCodeUrl && (
+          <div style={{ textAlign: 'center', margin: '2mm 0' }}>
+            <img src={qrCodeUrl} alt="QR" style={{ width: '60px', height: '60px' }} />
           </div>
-          <div>
-            <div className="border-t-2 border-gray-400 pt-2">
-              <p className="text-sm text-center">
-                Authorized Signature / مجاز دستخط
-                {data.receivedBy && <span className="block text-xs mt-1">({data.receivedBy})</span>}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Footer */}
-        {(footerText || footerUrdu) && (
-          <div className="mt-8 pt-4 border-t border-gray-300 text-center text-sm text-gray-600">
-            {footerText && <p>{footerText}</p>}
-            {footerUrdu && <p dir="rtl" className="mt-1">{footerUrdu}</p>}
-          </div>
-        )}
-
-        {/* Print Info */}
-        <div className="mt-4 text-xs text-gray-400 text-center">
-          <p>Printed on: {new Date().toLocaleString('en-GB')}</p>
-          {data.isDuplicate && <p className="font-semibold">This is a duplicate copy</p>}
+        <div style={{ textAlign: 'center', fontSize: '8px', marginTop: '3mm', paddingTop: '2mm', borderTop: '1px dashed #000' }}>
+          Thank you / شکریہ<br/>
+          {new Date().toLocaleString('en-GB')}
+          {data.isDuplicate && <div style={{ fontWeight: 'bold', marginTop: '1mm' }}>DUPLICATE</div>}
         </div>
       </div>
     );
