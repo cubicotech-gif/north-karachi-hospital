@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import Letterhead from './Letterhead';
 
 interface Medication {
   name: string;
@@ -32,13 +31,13 @@ interface PrescriptionTemplateProps {
 const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -53,13 +52,12 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
               font-family: Georgia, serif;
               font-size: 48px;
               font-weight: bold;
-              color: #2563eb;
+              color: #007B8A;
             }
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={true} variant="full" />
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Prescription Number and Date */}
         <div className="flex justify-between items-center mb-4 text-sm">

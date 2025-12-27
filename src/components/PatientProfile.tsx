@@ -192,15 +192,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>${title.en} - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 15px; margin-bottom: 20px; }
-          .hospital-name { font-size: 22pt; font-weight: bold; color: #1a5f2a; }
-          .hospital-name-urdu { font-size: 18pt; color: #1a5f2a; direction: rtl; }
-          .title { font-size: 16pt; font-weight: bold; margin-top: 15px; color: #333; }
-          .title-urdu { font-size: 14pt; direction: rtl; color: #666; }
-          .patient-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; padding: 5mm; padding-top: 127mm; }
+          .title-box { text-align: center; background: #007B8A; color: white; padding: 10px; margin-bottom: 20px; }
+          .title { font-size: 16pt; font-weight: bold; }
+          .title-urdu { font-size: 14pt; }
+          .patient-info { background: #E8F7FC; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #007B8A; }
           .info-row { display: flex; margin-bottom: 8px; }
           .info-label { font-weight: bold; width: 150px; }
           .content { margin: 20px 0; }
@@ -216,9 +214,8 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
+        <!-- Pre-printed letterhead space - content starts 5 inches from top -->
+        <div class="title-box">
           <div class="title">${title.en}</div>
           <div class="title-urdu">${title.ur}</div>
         </div>
@@ -538,39 +535,38 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>Complete Patient File - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 10px; margin-bottom: 20px; }
-          .hospital-name { font-size: 20pt; font-weight: bold; color: #1a5f2a; }
-          .subtitle { color: #666; font-size: 10pt; }
-          .mr-box { background: #1a5f2a; color: white; padding: 8px 15px; font-size: 14pt; font-weight: bold; display: inline-block; border-radius: 5px; margin: 10px 0; font-family: 'Courier New', monospace; }
-          .section { margin: 20px 0; page-break-inside: avoid; }
-          .section-title { font-size: 12pt; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 5px; margin-bottom: 10px; }
-          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; padding: 5mm; padding-top: 127mm; }
+          .title-bar { text-align: center; background: #007B8A; color: white; padding: 10px; margin-bottom: 15px; }
+          .title-bar h1 { font-size: 14pt; margin-bottom: 5px; }
+          .mr-box { background: #005F6B; color: white; padding: 5px 15px; font-size: 14pt; font-weight: bold; display: inline-block; border-radius: 5px; font-family: 'Courier New', monospace; }
+          .section { margin: 15px 0; page-break-inside: avoid; }
+          .section-title { font-size: 12pt; font-weight: bold; color: #007B8A; border-bottom: 2px solid #007B8A; padding-bottom: 5px; margin-bottom: 10px; }
+          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #E8F7FC; padding: 15px; border-radius: 5px; }
           .info-item { }
           .info-label { font-size: 9pt; color: #666; }
           .info-value { font-weight: bold; }
-          .timeline-item { border-left: 3px solid #1a5f2a; padding-left: 15px; margin-bottom: 15px; }
+          .timeline-item { border-left: 3px solid #007B8A; padding-left: 15px; margin-bottom: 15px; }
           .timeline-date { font-size: 9pt; color: #666; }
-          .timeline-type { font-weight: bold; color: #1a5f2a; }
+          .timeline-type { font-weight: bold; color: #007B8A; }
           .timeline-details { font-size: 10pt; margin-top: 5px; }
           .financial-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-          .financial-box { background: #f5f5f5; padding: 10px; border-radius: 5px; text-align: center; }
+          .financial-box { background: #E8F7FC; padding: 10px; border-radius: 5px; text-align: center; }
           .financial-amount { font-size: 14pt; font-weight: bold; }
           .financial-label { font-size: 9pt; color: #666; }
           .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 9pt; color: #666; text-align: center; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10pt; }
-          th { background: #f5f5f5; }
+          th { background: #E8F7FC; }
           .status-paid { color: green; }
           .status-pending { color: red; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="subtitle">نارتھ کراچی ہسپتال | Complete Patient Medical Record</div>
+        <!-- Pre-printed letterhead space - content starts 5 inches from top -->
+        <div class="title-bar">
+          <h1>Complete Patient Medical Record</h1>
           <div class="mr-box">${selectedPatient.mrNumber || 'N/A'}</div>
         </div>
 

@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import Letterhead from './Letterhead';
 
 interface PregnancyHistory {
   dateOfBirth: string;
@@ -60,13 +59,13 @@ interface MaternityProfileTemplateProps {
 const MaternityProfileTemplate = forwardRef<HTMLDivElement, MaternityProfileTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-6 max-w-5xl mx-auto">
+      <div ref={ref} className="bg-white max-w-5xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 10mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -103,8 +102,7 @@ const MaternityProfileTemplate = forwardRef<HTMLDivElement, MaternityProfileTemp
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={false} variant="compact" />
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Patient Profile Section */}
         <div className="profile-box mb-4">

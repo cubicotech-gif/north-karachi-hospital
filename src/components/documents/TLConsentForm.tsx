@@ -1,6 +1,4 @@
-import React, { forwardRef, useEffect, useState } from 'react';
-import Letterhead from './Letterhead';
-import { db } from '@/lib/supabase';
+import React, { forwardRef } from 'react';
 
 interface TLConsentFormData {
   patientName: string;
@@ -20,13 +18,13 @@ interface TLConsentFormProps {
 const TLConsentForm = forwardRef<HTMLDivElement, TLConsentFormProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -45,8 +43,7 @@ const TLConsentForm = forwardRef<HTMLDivElement, TLConsentFormProps>(
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={false} variant="compact" />
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Form Title */}
         <div className="border-2 border-black p-3 mb-6 text-center">

@@ -339,31 +339,23 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
         <meta charset="UTF-8">
         <title>Consent Form - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; background: white; }
-          .page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background: white; }
-          .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid #1a5f2a; margin-bottom: 15px; }
-          .logo-section { display: flex; align-items: center; gap: 15px; }
-          .logo { width: 80px; height: 80px; object-fit: contain; }
-          .hospital-info { text-align: left; }
-          .hospital-name { font-size: 22px; font-weight: bold; color: #1a5f2a; margin-bottom: 3px; }
-          .hospital-name-urdu { font-size: 18px; font-weight: bold; color: #1a5f2a; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; }
-          .hospital-address { font-size: 11px; color: #555; }
-          .header-right { text-align: right; }
-          .date-box { background: #f0f0f0; padding: 8px 15px; border-radius: 5px; font-size: 12px; }
-          .consent-title { background: linear-gradient(135deg, #1a5f2a 0%, #2d8f4a 100%); color: white; padding: 12px 20px; text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; border-radius: 5px; }
+          .page { width: 210mm; min-height: 297mm; padding: 5mm; padding-top: 127mm; margin: 0 auto; background: white; }
+          .date-box { background: #E8F7FC; padding: 8px 15px; border-radius: 5px; font-size: 12px; text-align: right; margin-bottom: 10px; }
+          .consent-title { background: #007B8A; color: white; padding: 12px 20px; text-align: center; font-size: 16px; font-weight: bold; margin: 10px 0; border-radius: 5px; }
           .consent-title-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; font-size: 18px; direction: rtl; }
-          .patient-section { background: #f8fdf9; border: 2px solid #1a5f2a; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+          .patient-section { background: #E8F7FC; border: 2px solid #007B8A; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
           .patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
           .patient-item { display: flex; gap: 5px; }
-          .patient-label { font-weight: bold; color: #1a5f2a; min-width: 120px; }
+          .patient-label { font-weight: bold; color: #007B8A; min-width: 120px; }
           .urdu-section { direction: rtl; text-align: right; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; background: #fffef5; border: 1px solid #e0d5a0; border-radius: 8px; padding: 15px; margin-bottom: 15px; line-height: 2; }
-          .urdu-title { font-size: 16px; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 8px; margin-bottom: 12px; }
+          .urdu-title { font-size: 16px; font-weight: bold; color: #007B8A; border-bottom: 2px solid #007B8A; padding-bottom: 8px; margin-bottom: 12px; }
           .urdu-text { font-size: 14px; margin-bottom: 10px; }
           .urdu-field { display: inline-block; border-bottom: 1px solid #333; min-width: 150px; margin: 0 5px; }
           .english-section { background: #f5f9ff; border: 1px solid #cce0ff; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-          .english-title { font-size: 14px; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 8px; margin-bottom: 12px; }
+          .english-title { font-size: 14px; font-weight: bold; color: #007B8A; border-bottom: 2px solid #007B8A; padding-bottom: 8px; margin-bottom: 12px; }
           .english-text { font-size: 11px; line-height: 1.6; color: #444; }
           .english-field { display: inline-block; border-bottom: 1px solid #333; min-width: 120px; margin: 0 3px; }
           .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 25px; padding-top: 15px; border-top: 2px dashed #ccc; }
@@ -372,24 +364,13 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           .signature-label { font-weight: bold; font-size: 11px; margin-bottom: 3px; }
           .signature-label-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; direction: rtl; font-size: 13px; }
           .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #666; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { width: 100%; min-height: auto; padding: 0; } }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { width: 100%; min-height: auto; padding: 5mm; padding-top: 127mm; } }
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="header">
-            <div class="logo-section">
-              <img src="/logo.png" alt="Hospital Logo" class="logo" onerror="this.style.display='none'">
-              <div class="hospital-info">
-                <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-                <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
-                <div class="hospital-address">C-122, Sector 11-B, North Karachi Township, Karachi | Ph: 36989080</div>
-              </div>
-            </div>
-            <div class="header-right">
-              <div class="date-box"><strong>Date / تاریخ:</strong> ${currentDate}</div>
-            </div>
-          </div>
+          <!-- Pre-printed letterhead space - content starts 5 inches from top -->
+          <div class="date-box"><strong>Date / تاریخ:</strong> ${currentDate}</div>
 
           <div class="consent-title">
             <div class="consent-title-urdu">اجازت نامہ برائے علاج / پروسیجر / ڈلیوری / بیہوشی / آپریشن</div>

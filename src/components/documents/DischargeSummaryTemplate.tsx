@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import Letterhead from './Letterhead';
 
 interface DischargeSummaryData {
   summaryNumber: string;
@@ -33,13 +32,13 @@ interface DischargeSummaryTemplateProps {
 const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-4 mx-auto" style={{ maxWidth: '210mm', fontSize: '10px' }}>
+      <div ref={ref} className="bg-white mx-auto" style={{ maxWidth: '210mm', fontSize: '10px', padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 5mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -70,8 +69,7 @@ const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemp
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={true} variant="full" />
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Document Title */}
         <div className="text-center mb-3">

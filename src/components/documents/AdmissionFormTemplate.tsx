@@ -27,13 +27,13 @@ interface AdmissionFormTemplateProps {
 const AdmissionFormTemplate = forwardRef<HTMLDivElement, AdmissionFormTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-6 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -69,20 +69,7 @@ const AdmissionFormTemplate = forwardRef<HTMLDivElement, AdmissionFormTemplatePr
           `}
         </style>
 
-        {/* Hospital Header with Logo */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-24 h-24 flex items-center justify-center bg-gray-100 rounded-full border-2 border-gray-300">
-            <div className="text-center">
-              <div className="text-red-600 text-4xl font-bold">NKH</div>
-            </div>
-          </div>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-800">North Karachi Hospital</h1>
-            <p className="text-sm text-gray-600">C-122, Sector 11-B, North Karachi Township, Karachi Ph:36989080</p>
-          </div>
-        </div>
-
-        <div className="border-t-4 border-gray-800 mb-6"></div>
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Patient Information */}
         <div className="mb-6 space-y-3 text-sm">

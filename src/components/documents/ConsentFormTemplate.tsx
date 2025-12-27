@@ -99,28 +99,35 @@ I voluntarily consent to this hospital admission and agree to the terms stated a
   };
 
   return (
-    <div ref={ref} style={{ padding: '40px', fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', borderBottom: '3px solid #e74c3c', paddingBottom: '20px', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', margin: '0 0 10px 0' }}>
-          NORTH KARACHI HOSPITAL
-        </h1>
-        <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
-          C-122, Sector 11-B, North Karachi Township, Karachi
-        </p>
-        <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
-          Ph: 36989080
-        </p>
-        <div style={{
-          marginTop: '15px',
-          padding: '10px',
-          backgroundColor: '#e74c3c',
-          color: 'white',
-          fontSize: '18px',
-          fontWeight: 'bold'
-        }}>
-          {getConsentTitle()}
-        </div>
+    <div ref={ref} style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '5mm', paddingTop: '127mm' }}>
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4;
+              margin: 0;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        `}
+      </style>
+
+      {/* Pre-printed letterhead space - content starts 5 inches from top */}
+
+      {/* Consent Title */}
+      <div style={{
+        padding: '10px',
+        backgroundColor: '#007B8A',
+        color: 'white',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: '20px'
+      }}>
+        {getConsentTitle()}
       </div>
 
       {/* Date */}
@@ -130,17 +137,17 @@ I voluntarily consent to this hospital admission and agree to the terms stated a
 
       {/* Patient Information */}
       <div style={{
-        border: '2px solid #e74c3c',
+        border: '2px solid #007B8A',
         padding: '20px',
         marginBottom: '30px',
-        backgroundColor: '#fff5f5'
+        backgroundColor: '#E8F7FC'
       }}>
         <h3 style={{
           fontSize: '16px',
           fontWeight: 'bold',
           marginBottom: '15px',
-          color: '#e74c3c',
-          borderBottom: '2px solid #e74c3c',
+          color: '#007B8A',
+          borderBottom: '2px solid #007B8A',
           paddingBottom: '8px'
         }}>
           PATIENT INFORMATION

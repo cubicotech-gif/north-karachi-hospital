@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import Letterhead from './Letterhead';
 
 interface TestResult {
   testName: string;
@@ -58,13 +57,13 @@ const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplateProps>(
     };
 
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 0;
               }
               body {
                 -webkit-print-color-adjust: exact;
@@ -82,7 +81,7 @@ const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplateProps>(
             }
 
             .lab-table th {
-              background-color: #1e40af;
+              background-color: #007B8A;
               color: white;
               padding: 10px;
               text-align: left;
@@ -106,12 +105,11 @@ const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplateProps>(
           `}
         </style>
 
-        {/* Letterhead */}
-        <Letterhead showUrdu={false} variant="full" />
+        {/* Pre-printed letterhead space - content starts 5 inches from top */}
 
         {/* Document Title */}
-        <div className="text-center mb-6 pb-4 border-b-2 border-blue-600">
-          <h2 className="text-2xl font-bold text-blue-800">LABORATORY REPORT</h2>
+        <div className="text-center mb-6 pb-4 border-b-2 border-teal-600">
+          <h2 className="text-2xl font-bold text-teal-800">LABORATORY REPORT</h2>
           <p className="text-sm text-gray-600 mt-1">Report No: {data.reportNumber}</p>
         </div>
 
@@ -150,8 +148,8 @@ const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplateProps>(
 
         {/* Test Category */}
         {data.testCategory && (
-          <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-600">
-            <p className="font-bold text-blue-800">Test Category: {data.testCategory}</p>
+          <div className="mb-4 p-3 bg-teal-50 border-l-4 border-teal-600">
+            <p className="font-bold text-teal-800">Test Category: {data.testCategory}</p>
           </div>
         )}
 

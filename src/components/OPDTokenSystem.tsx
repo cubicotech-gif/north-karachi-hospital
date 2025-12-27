@@ -372,7 +372,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            @page { size: A4; margin: 8mm; }
+            @page { size: A4; margin: 0; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
@@ -380,11 +380,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               line-height: 1.3;
               width: 100%;
               max-width: 210mm;
+              padding: 5mm;
+              padding-top: 127mm; /* 5 inches for pre-printed letterhead */
             }
-            .header { text-align: center; border-bottom: 2px solid #007B8A; padding-bottom: 8px; margin-bottom: 10px; }
-            .hospital-name { font-size: 20px; font-weight: bold; color: #005F6B; }
-            .hospital-urdu { font-size: 14px; color: #007B8A; }
-            .subtitle { font-size: 11px; color: #666; }
             .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; }
             .patient-box { background: #f8f9fa; padding: 8px; border-left: 3px solid #007B8A; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
             .section { margin-bottom: 8px; }
@@ -403,11 +401,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="hospital-name">North Karachi Hospital</div>
-            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-            <div class="subtitle">Prescription & Medical Record</div>
-          </div>
+          <!-- Pre-printed letterhead space - content starts 5 inches from top -->
 
           <div class="info-row">
             <div>

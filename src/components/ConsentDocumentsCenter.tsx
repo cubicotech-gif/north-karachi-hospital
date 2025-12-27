@@ -31,12 +31,12 @@ interface ConsentDocumentsCenterProps {
 
 const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps) => {
 
-  // Common print styles
+  // Common print styles - Pre-printed letterhead (5-inch top margin, no header)
   const getPrintStyles = () => `
 
     @page {
       size: A4;
-      margin: 15mm;
+      margin: 0;
     }
 
     * {
@@ -56,51 +56,23 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     .page {
       width: 210mm;
       min-height: 297mm;
-      padding: 10mm;
+      padding: 5mm;
+      padding-top: 127mm; /* 5 inches for pre-printed letterhead */
       margin: 0 auto;
       background: white;
     }
 
+    /* Header is hidden - using pre-printed letterhead */
     .header {
-      text-align: center;
-      border-bottom: 3px solid #1a5f2a;
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-
-    .logo {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      margin-bottom: 10px;
-    }
-
-    .hospital-name {
-      font-size: 28px;
-      font-weight: bold;
-      color: #1a5f2a;
-      margin: 5px 0;
-    }
-
-    .hospital-name-urdu {
-      font-family: 'Tahoma', 'Arial', sans-serif;
-      font-size: 26px;
-      font-weight: bold;
-      color: #1a5f2a;
-      direction: rtl;
-    }
-
-    .hospital-tagline {
-      font-size: 12px;
-      color: #666;
+      display: none;
     }
 
     .form-title {
       text-align: center;
-      margin: 20px 0;
+      margin: 10px 0 20px 0;
       padding: 10px;
-      background: #f0f7f0;
-      border: 2px solid #1a5f2a;
+      background: #007B8A;
+      color: white;
       border-radius: 5px;
     }
 
@@ -108,13 +80,11 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
       font-family: 'Tahoma', 'Arial', sans-serif;
       font-size: 20px;
       font-weight: bold;
-      color: #1a5f2a;
       direction: rtl;
     }
 
     .form-title-english {
       font-size: 16px;
-      color: #333;
       margin-top: 5px;
     }
 
@@ -145,8 +115,8 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
 
     .english-section {
       padding: 20px;
-      background: #f9f9f9;
-      border: 1px solid #ddd;
+      background: #E8F7FC;
+      border: 1px solid #007B8A;
       border-radius: 5px;
       margin-bottom: 20px;
     }
@@ -154,9 +124,9 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     .english-title {
       font-size: 16px;
       font-weight: bold;
-      color: #1a5f2a;
+      color: #007B8A;
       margin-bottom: 10px;
-      border-bottom: 1px solid #1a5f2a;
+      border-bottom: 1px solid #007B8A;
       padding-bottom: 5px;
     }
 
