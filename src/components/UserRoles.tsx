@@ -135,8 +135,8 @@ export default function UserRoles() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!formData.password || formData.password.length < 6) {
+      toast.error('Password is required (minimum 6 characters)');
       return;
     }
     if (users.some(user => user.username === formData.username)) {
