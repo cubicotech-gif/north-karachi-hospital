@@ -301,7 +301,7 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
 
   // Print handlers using useReactToPrint
   const handlePrintReceipt = useReactToPrint({
-    content: () => receiptRef.current,
+    contentRef: receiptRef,
     documentTitle: `Receipt-${selectedPatient?.name || 'Patient'}`,
     onAfterPrint: () => {
       toast.success('Receipt printed successfully');
@@ -310,7 +310,7 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
   });
 
   const handlePrintConsent = useReactToPrint({
-    content: () => consentFormRef.current,
+    contentRef: consentFormRef,
     documentTitle: `Consent-${selectedPatient?.name || 'Patient'}`,
     onAfterPrint: () => {
       toast.success('Consent form printed successfully');
@@ -319,7 +319,7 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
   });
 
   const handlePrintAdmission = useReactToPrint({
-    content: () => admissionFormRef.current,
+    contentRef: admissionFormRef,
     documentTitle: `Admission-${selectedPatient?.name || 'Patient'}`,
     onAfterPrint: () => {
       toast.success('Admission form printed successfully');
@@ -328,7 +328,7 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
   });
 
   const handlePrintDischarge = useReactToPrint({
-    content: () => dischargeFormRef.current,
+    contentRef: dischargeFormRef,
     documentTitle: `Discharge-${selectedPatient?.name || 'Patient'}`,
     onAfterPrint: () => {
       toast.success('Discharge summary printed successfully');

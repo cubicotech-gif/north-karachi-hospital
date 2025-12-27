@@ -17,22 +17,24 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'patients': ['Patient Registration'],
   'allpatients': ['Patient Registration'], // Same permission as patient registration
   'opd': ['OPD Token System'],
-  'treatment': ['Treatment Management', 'OPD Token System', 'Patient Registration'],
-  'treatmenttypes': ['Treatment Management', 'User Management'], // Treatment Types management
+  'treatment': ['Treatment Management'],
+  'treatmenttypes': ['Treatment Types Management'], // Admin only
   'admission': ['Admission Management'],
-  'discharge': ['Discharge Management', 'Admission Management'],
+  'discharge': ['Discharge Management'],
   'lab': ['Lab Management'],
-  'labtests': ['Lab Test Management'],
-  'doctors': ['Doctor Management'],
-  'rooms': ['Room Management'],
-  'departments': ['Department Management'],
-  'users': ['User Management'],
+  'labtests': ['Lab Test Management'], // Admin only
+  'doctors': ['Doctor Management'], // Admin only
+  'rooms': ['Room Management'], // Admin only
+  'departments': ['Department Management'], // Admin only
+  'users': ['User Management'], // Admin only
   'appointments': ['Appointment Scheduling'],
   'queue': ['Doctor Queue System'],
-  'reports': ['Reports & Analytics'],
+  'reports': ['Reports & Analytics'], // Admin only
   'billing': ['Billing & Invoices'],
-  'documents': ['documents'],
-  'portfolio': ['Patient Registration', 'OPD Token System', 'Lab Management', 'Treatment Management', 'Admission Management', 'Discharge Management']
+  'documents': ['Documents Management'],
+  'portfolio': ['Document Portfolio'],
+  'consent': ['Consent Forms'],
+  'settings': ['Settings Management'] // Admin only
 };
 
 export const useAuth = () => {
