@@ -598,8 +598,116 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           </div>
         </div>
 
+        <!-- Admissions Section -->
+        ${history.admissions?.data?.length > 0 ? `
         <div class="section">
-          <div class="section-title">Visit History (${timeline.length} records)</div>
+          <div class="section-title">Admissions (${history.admissions.data.length} records)</div>
+          ${history.admissions.data.map((a: any) => `
+            <div style="background: #f8f9fa; padding: 12px; margin-bottom: 10px; border-left: 4px solid #007B8A; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <strong style="color: #007B8A;">Admission: ${formatDate(a.admission_date)}</strong>
+                <span class="${a.status === 'discharged' ? 'status-paid' : 'status-pending'}">${a.status?.toUpperCase() || 'ACTIVE'}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 10pt;">
+                <div><strong>Type:</strong> ${a.admission_type || 'N/A'}</div>
+                <div><strong>Room:</strong> ${a.rooms?.room_number || 'N/A'} (${a.rooms?.room_type || ''})</div>
+                <div><strong>Deposit:</strong> ${formatCurrency(a.deposit || 0)}</div>
+                <div><strong>Doctor:</strong> Dr. ${a.doctors?.name || 'N/A'}</div>
+                ${a.discharge_date ? `<div><strong>Discharged:</strong> ${formatDate(a.discharge_date)}</div>` : ''}
+                ${a.discharge_condition ? `<div><strong>Condition:</strong> ${a.discharge_condition}</div>` : ''}
+              </div>
+              ${a.diagnosis ? `<div style="margin-top: 8px;"><strong>Diagnosis:</strong> ${a.diagnosis}</div>` : ''}
+              ${a.notes ? `<div style="margin-top: 5px;"><strong>Notes:</strong> ${a.notes}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <!-- Treatments Section -->
+        ${history.treatments?.data?.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Treatments (${history.treatments.data.length} records)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Treatment Name</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.treatments.data.map((t: any) => `
+                <tr>
+                  <td>${formatDate(t.date)}</td>
+                  <td><strong>${t.treatment_name || 'N/A'}</strong></td>
+                  <td>${t.treatment_type || 'N/A'}</td>
+                  <td style="max-width: 200px;">${t.description || t.notes || 'N/A'}</td>
+                  <td>${formatCurrency(t.price || 0)}</td>
+                  <td class="${t.payment_status === 'paid' ? 'status-paid' : 'status-pending'}">${t.payment_status || 'pending'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Lab Tests Section -->
+        ${history.labOrders?.data?.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Laboratory Tests (${history.labOrders.data.length} orders)</div>
+          ${history.labOrders.data.map((lab: any) => `
+            <div style="background: #f8f9fa; padding: 12px; margin-bottom: 10px; border-left: 4px solid #3A9AD9; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <strong style="color: #3A9AD9;">Order Date: ${formatDate(lab.order_date)}</strong>
+                <span class="${lab.status === 'completed' ? 'status-paid' : 'status-pending'}">${lab.status?.toUpperCase() || 'PENDING'}</span>
+              </div>
+              <div style="font-size: 10pt;">
+                <div><strong>Tests:</strong> ${lab.tests?.map((t: any) => t.test_name || t.name).join(', ') || 'N/A'}</div>
+                <div><strong>Total Amount:</strong> ${formatCurrency(lab.total_amount || 0)} | <strong>Payment:</strong> <span class="${lab.payment_status === 'paid' ? 'status-paid' : 'status-pending'}">${lab.payment_status || 'pending'}</span></div>
+                ${lab.doctors ? `<div><strong>Ordered by:</strong> Dr. ${lab.doctors.name}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <!-- OPD Visits Section -->
+        ${history.opdTokens?.data?.length > 0 ? `
+        <div class="section">
+          <div class="section-title">OPD Visits (${history.opdTokens.data.length} visits)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Token #</th>
+                <th>Doctor</th>
+                <th>Department</th>
+                <th>Fee</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.opdTokens.data.map((opd: any) => `
+                <tr>
+                  <td>${formatDate(opd.date)}</td>
+                  <td><strong>${opd.token_number}</strong></td>
+                  <td>Dr. ${opd.doctors?.name || 'N/A'}</td>
+                  <td>${opd.doctors?.department || 'N/A'}</td>
+                  <td>${formatCurrency(opd.fee || 0)}</td>
+                  <td class="${opd.payment_status === 'paid' ? 'status-paid' : 'status-pending'}">${opd.payment_status || 'pending'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Visit Timeline Summary -->
+        <div class="section">
+          <div class="section-title">Complete Visit History (${timeline.length} records)</div>
           ${timeline.length === 0 ? '<p style="color: #666;">No medical history recorded</p>' : `
           <table>
             <thead>
