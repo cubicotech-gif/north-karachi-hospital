@@ -304,7 +304,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; background: white; }
-          .page { width: 210mm; min-height: 297mm; padding: 5mm; padding-top: 127mm; margin: 0 auto; background: white; }
+          .page { width: 210mm; min-height: 297mm; padding: 8mm; padding-top: 76mm; margin: 0 auto; background: white; }
           .date-box { background: #E8F7FC; padding: 8px 15px; border-radius: 5px; font-size: 12px; text-align: right; margin-bottom: 10px; }
           .consent-title { background: #007B8A; color: white; padding: 12px 20px; text-align: center; font-size: 16px; font-weight: bold; margin: 10px 0; border-radius: 5px; }
           .consent-title-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; font-size: 18px; direction: rtl; }
@@ -326,7 +326,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           .signature-label { font-weight: bold; font-size: 11px; margin-bottom: 3px; }
           .signature-label-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; direction: rtl; font-size: 13px; }
           .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #666; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { width: 100%; min-height: auto; padding: 5mm; padding-top: 127mm; } }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { width: 100%; min-height: auto; padding: 8mm; padding-top: 76mm; } }
         </style>
       </head>
       <body>

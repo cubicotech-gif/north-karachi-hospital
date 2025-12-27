@@ -32,7 +32,7 @@ interface DischargeSummaryTemplateProps {
 const DischargeSummaryTemplate = forwardRef<HTMLDivElement, DischargeSummaryTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white mx-auto" style={{ maxWidth: '210mm', fontSize: '10px', padding: '5mm', paddingTop: '127mm' }}>
+      <div ref={ref} className="bg-white mx-auto" style={{ maxWidth: '210mm', fontSize: '10px', padding: '8mm', paddingTop: '76mm' }}>
         <style>
           {`
             @media print {

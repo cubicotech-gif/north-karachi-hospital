@@ -99,7 +99,7 @@ I voluntarily consent to this hospital admission and agree to the terms stated a
   };
 
   return (
-    <div ref={ref} style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '5mm', paddingTop: '127mm' }}>
+    <div ref={ref} style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '8mm', paddingTop: '76mm' }}>
       <style>
         {`
           @media print {

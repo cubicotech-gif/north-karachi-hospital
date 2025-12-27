@@ -59,7 +59,7 @@ interface MaternityProfileTemplateProps {
 const MaternityProfileTemplate = forwardRef<HTMLDivElement, MaternityProfileTemplateProps>(
   ({ data }, ref) => {
     return (
-      <div ref={ref} className="bg-white max-w-5xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
+      <div ref={ref} className="bg-white max-w-5xl mx-auto" style={{ padding: '8mm', paddingTop: '76mm' }}>
         <style>
           {`
             @media print {

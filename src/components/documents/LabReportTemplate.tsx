@@ -57,7 +57,7 @@ const LabReportTemplate = forwardRef<HTMLDivElement, LabReportTemplateProps>(
     };
 
     return (
-      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '5mm', paddingTop: '127mm' }}>
+      <div ref={ref} className="bg-white max-w-4xl mx-auto" style={{ padding: '8mm', paddingTop: '76mm' }}>
         <style>
           {`
             @media print {

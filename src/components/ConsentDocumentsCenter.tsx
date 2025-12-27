@@ -56,8 +56,8 @@ const ConsentDocumentsCenter = ({ selectedPatient }: ConsentDocumentsCenterProps
     .page {
       width: 210mm;
       min-height: 297mm;
-      padding: 5mm;
-      padding-top: 127mm; /* 5 inches for pre-printed letterhead */
+      padding: 8mm;
+      padding-top: 76mm; /* 3 inches for pre-printed letterhead */
       margin: 0 auto;
       background: white;
     }

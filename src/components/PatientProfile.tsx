@@ -194,7 +194,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <style>
           @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; padding: 5mm; padding-top: 127mm; }
+          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; padding: 8mm; padding-top: 76mm; }
           .title-box { text-align: center; background: #007B8A; color: white; padding: 10px; margin-bottom: 20px; }
           .title { font-size: 16pt; font-weight: bold; }
           .title-urdu { font-size: 14pt; }
@@ -537,7 +537,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <style>
           @page { size: A4; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; padding: 5mm; padding-top: 127mm; }
+          body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; padding: 8mm; padding-top: 76mm; }
           .title-bar { text-align: center; background: #007B8A; color: white; padding: 10px; margin-bottom: 15px; }
           .title-bar h1 { font-size: 14pt; margin-bottom: 5px; }
           .mr-box { background: #005F6B; color: white; padding: 5px 15px; font-size: 14pt; font-weight: bold; display: inline-block; border-radius: 5px; font-family: 'Courier New', monospace; }

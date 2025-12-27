@@ -380,8 +380,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               line-height: 1.3;
               width: 100%;
               max-width: 210mm;
-              padding: 5mm;
-              padding-top: 127mm; /* 5 inches for pre-printed letterhead */
+              padding: 8mm;
+              padding-top: 76mm; /* 3 inches for pre-printed letterhead */
             }
             .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; }
             .patient-box { background: #f8f9fa; padding: 8px; border-left: 3px solid #007B8A; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
