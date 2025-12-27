@@ -54,12 +54,19 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const [referredBy, setReferredBy] = useState<string>('');
+  const [patientLabOrders, setPatientLabOrders] = useState<LabOrder[]>([]);
 
   // Fetch doctors and lab tests from database
   useEffect(() => {
     fetchDoctors();
     fetchLabTests();
   }, []);
+
+  useEffect(() => {
+    if (selectedPatient) {
+      fetchPatientLabOrders();
+    }
+  }, [selectedPatient]);
 
   const fetchDoctors = async () => {
     try {
@@ -166,6 +173,57 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     setShowConsentModal(false);
     setPendingOrderData(null);
     toast.info('Lab order cancelled - consent not provided');
+  };
+
+  const fetchPatientLabOrders = async () => {
+    if (!selectedPatient) return;
+
+    try {
+      const { data, error } = await db.labOrders.getAll();
+      if (error) {
+        console.error('Error fetching patient lab orders:', error);
+        return;
+      }
+
+      const patientSpecificOrders = data?.filter(
+        order => order.patient_id === selectedPatient.id
+      ) || [];
+
+      // Sort by date descending (newest first)
+      patientSpecificOrders.sort((a, b) => {
+        return new Date(b.order_date).getTime() - new Date(a.order_date).getTime();
+      });
+
+      setPatientLabOrders(patientSpecificOrders);
+    } catch (error) {
+      console.error('Error fetching patient lab orders:', error);
+    }
+  };
+
+  const recordPaymentForLabOrder = async (orderId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await db.labOrders.update(orderId, {
+        payment_status: 'paid'
+      });
+
+      if (error) {
+        console.error('Error recording payment:', error);
+        toast.error('Failed to record payment');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Payment recorded successfully!');
+
+      // Refresh patient lab orders list
+      fetchPatientLabOrders();
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayment = () => {
@@ -691,6 +749,63 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                   Print Lab Slip
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Previous Lab Orders - Payment History */}
+      {patientLabOrders.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Previous Lab Orders ({patientLabOrders.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {patientLabOrders.map((order) => {
+                const orderDoctor = doctors.find(d => d.id === order.doctor_id);
+                return (
+                  <Card key={order.id} className={`p-4 ${order.status === 'pending' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline">Order #{order.id.slice(-6).toUpperCase()}</Badge>
+                          <Badge className={order.status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                            {order.status === 'paid' ? 'PAID' : 'PENDING'}
+                          </Badge>
+                          <span className="text-sm text-gray-600">{new Date(order.order_date).toLocaleDateString('en-PK')}</span>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <p><strong>Tests:</strong> {order.tests?.length || 0} tests ordered</p>
+                          {orderDoctor && <p><strong>Doctor:</strong> Dr. {orderDoctor.name}</p>}
+                          <p><strong>Total Amount:</strong> {formatCurrency(order.total_amount)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {order.status === 'pending' && (
+                          <Button
+                            onClick={() => recordPaymentForLabOrder(order.id)}
+                            disabled={loading}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Record Payment
+                          </Button>
+                        )}
+                        {order.status === 'paid' && (
+                          <div className="flex items-center gap-1 text-green-700 font-semibold">
+                            <CreditCard className="h-4 w-4" />
+                            Paid
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

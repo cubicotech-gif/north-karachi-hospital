@@ -45,6 +45,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [queueNumber, setQueueNumber] = useState<number>(0);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [referredBy, setReferredBy] = useState<string>('');
+  const [patientTokens, setPatientTokens] = useState<OPDToken[]>([]);
 
   useEffect(() => {
     fetchDoctors();
@@ -55,6 +56,12 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       getQueueNumber(selectedDoctor.id);
     }
   }, [selectedDoctor]);
+
+  useEffect(() => {
+    if (selectedPatient) {
+      fetchPatientTokens();
+    }
+  }, [selectedPatient]);
 
   const fetchDoctors = async () => {
     try {
@@ -141,6 +148,57 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const handleConsentDeclined = () => {
     setShowConsentModal(false);
     toast.info('OPD consultation cancelled - consent not provided');
+  };
+
+  const fetchPatientTokens = async () => {
+    if (!selectedPatient) return;
+
+    try {
+      const { data, error } = await db.opdTokens.getAll();
+      if (error) {
+        console.error('Error fetching patient tokens:', error);
+        return;
+      }
+
+      const patientSpecificTokens = data?.filter(
+        token => token.patient_id === selectedPatient.id
+      ) || [];
+
+      // Sort by date descending (newest first)
+      patientSpecificTokens.sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+
+      setPatientTokens(patientSpecificTokens);
+    } catch (error) {
+      console.error('Error fetching patient tokens:', error);
+    }
+  };
+
+  const recordPaymentForToken = async (tokenId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await db.opdTokens.update(tokenId, {
+        payment_status: 'paid'
+      });
+
+      if (error) {
+        console.error('Error recording payment:', error);
+        toast.error('Failed to record payment');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Payment recorded successfully!');
+
+      // Refresh patient tokens list
+      fetchPatientTokens();
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayment = async () => {
@@ -643,6 +701,63 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                   Print Receipt
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Previous OPD Visits - Payment History */}
+      {patientTokens.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Previous OPD Visits ({patientTokens.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {patientTokens.map((token) => {
+                const tokenDoctor = doctors.find(d => d.id === token.doctor_id);
+                return (
+                  <Card key={token.id} className={`p-4 ${token.payment_status === 'pending' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline">Token #{token.token_number}</Badge>
+                          <Badge className={token.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                            {token.payment_status === 'paid' ? 'PAID' : 'PENDING'}
+                          </Badge>
+                          <span className="text-sm text-gray-600">{new Date(token.date).toLocaleDateString('en-PK')}</span>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          <p><strong>Doctor:</strong> Dr. {tokenDoctor?.name || 'N/A'}</p>
+                          <p><strong>Department:</strong> {tokenDoctor?.department || 'N/A'}</p>
+                          <p><strong>Fee:</strong> {formatCurrency(token.fee)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {token.payment_status === 'pending' && (
+                          <Button
+                            onClick={() => recordPaymentForToken(token.id)}
+                            disabled={loading}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Record Payment
+                          </Button>
+                        )}
+                        {token.payment_status === 'paid' && (
+                          <div className="flex items-center gap-1 text-green-700 font-semibold">
+                            <CreditCard className="h-4 w-4" />
+                            Paid
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
