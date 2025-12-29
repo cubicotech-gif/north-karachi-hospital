@@ -430,7 +430,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            @page { size: A4; margin: 8mm; }
+            @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
@@ -439,22 +439,19 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               width: 100%;
               max-width: 210mm;
             }
-            .header { text-align: center; border-bottom: 2px solid #007B8A; padding-bottom: 8px; margin-bottom: 10px; }
-            .hospital-name { font-size: 20px; font-weight: bold; color: #005F6B; }
-            .hospital-urdu { font-size: 14px; color: #007B8A; }
-            .subtitle { font-size: 11px; color: #666; }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
             .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; }
-            .patient-box { background: #f8f9fa; padding: 8px; border-left: 3px solid #007B8A; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
+            .patient-box { background: #f5f5f5; padding: 8px; border-left: 3px solid #000; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
             .section { margin-bottom: 8px; }
-            .section-title { font-weight: bold; font-size: 11px; color: #005F6B; border-bottom: 1px solid #007B8A; padding-bottom: 3px; margin-bottom: 5px; }
-            .write-area { min-height: 50px; border: 1px solid #ddd; padding: 5px; background: #fafafa; }
+            .section-title { font-weight: bold; font-size: 11px; color: #000; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 5px; }
+            .write-area { min-height: 50px; border: 1px solid #666; padding: 5px; background: #fafafa; }
             .write-area.large { min-height: 120px; }
             .write-area.medium { min-height: 70px; }
             .two-col { display: flex; gap: 10px; }
             .two-col > div { flex: 1; }
             .signature { margin-top: 15px; text-align: right; }
             .signature-line { border-top: 1px solid #333; width: 180px; margin-left: auto; padding-top: 5px; font-size: 10px; }
-            .rx-symbol { font-size: 16px; font-weight: bold; color: #007B8A; }
+            .rx-symbol { font-size: 16px; font-weight: bold; color: #000; }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
@@ -462,9 +459,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         </head>
         <body>
           <div class="header">
-            <div class="hospital-name">North Karachi Hospital</div>
-            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
-            <div class="subtitle">Prescription & Medical Record</div>
+            <div style="font-size: 14px; font-weight: bold; color: #000;">PRESCRIPTION & MEDICAL RECORD</div>
           </div>
 
           <div class="info-row">
@@ -480,7 +475,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
           <div class="patient-box">
             <strong>Patient:</strong> ${selectedPatient.name} |
-            <strong style="color: #007B8A;">MR#: ${selectedPatient.mrNumber || 'N/A'}</strong> |
+            <strong style="color: #000;">MR#: ${selectedPatient.mrNumber || 'N/A'}</strong> |
             <strong>Age:</strong> ${selectedPatient.age}Y |
             <strong>Gender:</strong> ${selectedPatient.gender} |
             <strong>Contact:</strong> ${selectedPatient.contact}

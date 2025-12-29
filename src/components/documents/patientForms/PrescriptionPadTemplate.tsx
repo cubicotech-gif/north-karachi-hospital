@@ -15,129 +15,149 @@ const PrescriptionPadTemplate = forwardRef<HTMLDivElement, PrescriptionPadTempla
     const prescriptionForms = Array.from({ length: 4 }, (_, i) => i + 1);
 
     return (
-      <div ref={ref} className="bg-white p-6" style={{ width: '210mm', minHeight: '297mm' }}>
-        {prescriptionForms.map((formNum) => (
-          <div key={formNum} className="mb-6 border-2 border-teal-600 p-4" style={{ pageBreakInside: 'avoid' }}>
-            {/* Prescription Header */}
-            <div className="border-b-2 border-teal-600 pb-2 mb-3">
-              <h1 className="text-2xl font-bold text-teal-700">NORTH KARACHI HOSPITAL</h1>
-              <p className="text-xs text-gray-600">Prescription Form</p>
-            </div>
+      <div ref={ref} style={{ width: '210mm', minHeight: '297mm', padding: '0', margin: '0', backgroundColor: 'white' }}>
+        <style>{`
+          @page {
+            size: A4;
+            margin: 50mm 25mm 25mm 25mm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            .avoid-break {
+              page-break-inside: avoid;
+            }
+          }
+        `}</style>
 
-            {/* Patient Info */}
-            <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">MR#:</span>
-                {patientData ? (
-                  <span>{patientData.mr_number}</span>
-                ) : (
-                  <div className="flex-1 border-b border-gray-600"></div>
-                )}
+        <div style={{ padding: '0', fontFamily: 'Arial, sans-serif', color: '#000' }}>
+          {prescriptionForms.map((formNum) => (
+            <div key={formNum} style={{ marginBottom: '24px', border: '2px solid #000', padding: '16px' }} className="avoid-break">
+              {/* Prescription Header */}
+              <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '12px' }}>
+                <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#000', margin: '0' }}>Prescription Form</h1>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Date:</span>
-                <div className="flex-1 border-b border-gray-600"></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Patient Name:</span>
-                {patientData ? (
-                  <span>{patientData.name}</span>
-                ) : (
-                  <div className="flex-1 border-b border-gray-600"></div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Age/Gender:</span>
-                {patientData ? (
-                  <span>{patientData.age} / {patientData.gender}</span>
-                ) : (
-                  <div className="flex-1 border-b border-gray-600"></div>
-                )}
-              </div>
-            </div>
 
-            {/* Rx Symbol */}
-            <div className="mb-2">
-              <p className="text-4xl font-serif italic text-blue-700">℞</p>
-            </div>
-
-            {/* Prescription Lines */}
-            <div className="mb-3 min-h-[120px]">
-              <div className="space-y-2">
-                {Array.from({ length: 8 }, (_, i) => i + 1).map((line) => (
-                  <div key={line} className="flex items-start gap-2">
-                    <span className="text-xs text-gray-500 w-4">{line}.</span>
-                    <div className="flex-1 border-b border-gray-400"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Instructions */}
-            <div className="mb-3">
-              <div className="flex items-center gap-2 text-sm mb-1">
-                <span className="font-semibold">Special Instructions:</span>
-                <div className="flex-1 border-b border-gray-400"></div>
-              </div>
-              <div className="border-b border-gray-400 h-5"></div>
-            </div>
-
-            {/* Follow-up */}
-            <div className="mb-3 text-sm">
-              <div className="flex items-center gap-3">
-                <span className="font-semibold">Follow-up:</span>
-                <label className="flex items-center gap-1">
-                  <div className="w-4 h-4 border-2 border-gray-600"></div>
-                  <span className="text-xs">Not required</span>
-                </label>
-                <label className="flex items-center gap-1">
-                  <div className="w-4 h-4 border-2 border-gray-600"></div>
-                  <span className="text-xs">After</span>
-                </label>
-                <div className="w-16 border-b border-gray-600"></div>
-                <span className="text-xs">days/weeks</span>
-              </div>
-            </div>
-
-            {/* Doctor Info */}
-            <div className="border-t border-gray-400 pt-3 mt-3">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold">Doctor's Name:</span>
-                    <div className="flex-1 border-b border-gray-600"></div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Qualification:</span>
-                    <div className="flex-1 border-b border-gray-600"></div>
-                  </div>
+              {/* Patient Info */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '600' }}>MR#:</span>
+                  {patientData ? (
+                    <span>{patientData.mr_number}</span>
+                  ) : (
+                    <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                  )}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold">PMDC Reg#:</span>
-                    <div className="flex-1 border-b border-gray-600"></div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">Signature:</span>
-                    <div className="flex-1 border-b border-gray-600"></div>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '600' }}>Date:</span>
+                  <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '600' }}>Patient Name:</span>
+                  {patientData ? (
+                    <span>{patientData.name}</span>
+                  ) : (
+                    <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '600' }}>Age/Gender:</span>
+                  {patientData ? (
+                    <span>{patientData.age} / {patientData.gender}</span>
+                  ) : (
+                    <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="mt-2 text-center text-xs text-gray-500">
-              <p>Contact: [Hospital Phone] | Emergency: [Emergency Line]</p>
-            </div>
+              {/* Rx Symbol */}
+              <div style={{ marginBottom: '8px' }}>
+                <p style={{ fontSize: '32px', fontFamily: 'serif', fontStyle: 'italic', color: '#000', margin: '0' }}>℞</p>
+              </div>
 
-            {/* Copy Indicator */}
-            <div className="absolute top-2 right-2 text-xs text-gray-400">
-              {formNum === 1 && '(Original - Patient Copy)'}
-              {formNum === 2 && '(Duplicate - File Copy)'}
-              {formNum > 2 && '(Additional Copy)'}
+              {/* Prescription Lines */}
+              <div style={{ marginBottom: '12px', minHeight: '120px' }}>
+                <div>
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((line) => (
+                    <div key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <span style={{ fontSize: '10px', color: '#666', width: '16px' }}>{line}.</span>
+                      <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: '600' }}>Special Instructions:</span>
+                  <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                </div>
+                <div style={{ borderBottom: '1px solid #666', height: '20px' }}></div>
+              </div>
+
+              {/* Follow-up */}
+              <div style={{ marginBottom: '12px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontWeight: '600' }}>Follow-up:</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid #000' }}></div>
+                    <span style={{ fontSize: '10px' }}>Not required</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid #000' }}></div>
+                    <span style={{ fontSize: '10px' }}>After</span>
+                  </label>
+                  <div style={{ width: '64px', borderBottom: '1px solid #000' }}></div>
+                  <span style={{ fontSize: '10px' }}>days/weeks</span>
+                </div>
+              </div>
+
+              {/* Doctor Info */}
+              <div style={{ borderTop: '1px solid #666', paddingTop: '12px', marginTop: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: '600' }}>Doctor's Name:</span>
+                      <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: '600' }}>Qualification:</span>
+                      <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: '600' }}>PMDC Reg#:</span>
+                      <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: '600' }}>Signature:</span>
+                      <div style={{ flex: '1', borderBottom: '1px solid #000' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ marginTop: '8px', textAlign: 'center', fontSize: '10px', color: '#666' }}>
+                <p style={{ margin: '0' }}>Contact: [Hospital Phone] | Emergency: [Emergency Line]</p>
+              </div>
+
+              {/* Copy Indicator */}
+              <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '10px', color: '#666' }}>
+                {formNum === 1 && '(Original - Patient Copy)'}
+                {formNum === 2 && '(Duplicate - File Copy)'}
+                {formNum > 2 && '(Additional Copy)'}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +9,22 @@ import {
   User, Calendar, FileText, Bed, TestTube, Activity, Clock, Printer,
   Search, CreditCard, Phone, MapPin, Heart, Users, DollarSign,
   AlertCircle, CheckCircle, XCircle, ChevronRight, RefreshCw, FileCheck,
-  ClipboardList, Download
+  ClipboardList, Download, Eye, X
 } from 'lucide-react';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+
+// Import patient file form templates
+import FileCoverSheet from '@/components/documents/patientForms/FileCoverSheet';
+import VisitNotesTemplate from '@/components/documents/patientForms/VisitNotesTemplate';
+import VitalsChartTemplate from '@/components/documents/patientForms/VitalsChartTemplate';
+import DiagnosisRecordTemplate from '@/components/documents/patientForms/DiagnosisRecordTemplate';
+import MedicationChartTemplate from '@/components/documents/patientForms/MedicationChartTemplate';
+import AllergiesConditionsTemplate from '@/components/documents/patientForms/AllergiesConditionsTemplate';
+import PrescriptionPadTemplate from '@/components/documents/patientForms/PrescriptionPadTemplate';
+import FollowupChecklistTemplate from '@/components/documents/patientForms/FollowupChecklistTemplate';
 
 interface PatientProfileProps {
   selectedPatient: Patient | null;
@@ -34,6 +45,22 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Detail modal states
+  const [selectedOPDDetail, setSelectedOPDDetail] = useState<any>(null);
+  const [selectedLabDetail, setSelectedLabDetail] = useState<any>(null);
+  const [selectedTreatmentDetail, setSelectedTreatmentDetail] = useState<any>(null);
+  const [selectedAdmissionDetail, setSelectedAdmissionDetail] = useState<any>(null);
+
+  // Refs for patient file forms printing
+  const coverSheetRef = useRef<HTMLDivElement>(null);
+  const visitNotesRef = useRef<HTMLDivElement>(null);
+  const vitalsChartRef = useRef<HTMLDivElement>(null);
+  const diagnosisRecordRef = useRef<HTMLDivElement>(null);
+  const medicationChartRef = useRef<HTMLDivElement>(null);
+  const allergiesConditionsRef = useRef<HTMLDivElement>(null);
+  const prescriptionPadRef = useRef<HTMLDivElement>(null);
+  const followupChecklistRef = useRef<HTMLDivElement>(null);
 
   // Update selected patient when prop changes
   useEffect(() => {
@@ -173,6 +200,367 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     }
   };
 
+  // Print handler functions for patient file forms
+  const handlePrintFileCoverSheet = useReactToPrint({
+    contentRef: coverSheetRef,
+    documentTitle: 'Patient-File-Cover-Sheet',
+    onAfterPrint: () => toast.success('File Cover Sheet printed'),
+  });
+
+  const handlePrintVisitNotes = useReactToPrint({
+    contentRef: visitNotesRef,
+    documentTitle: 'Visit-Notes-Template',
+    onAfterPrint: () => toast.success('Visit Notes printed'),
+  });
+
+  const handlePrintVitalsChart = useReactToPrint({
+    contentRef: vitalsChartRef,
+    documentTitle: 'Vitals-Chart-Template',
+    onAfterPrint: () => toast.success('Vitals Chart printed'),
+  });
+
+  const handlePrintDiagnosisRecord = useReactToPrint({
+    contentRef: diagnosisRecordRef,
+    documentTitle: 'Diagnosis-Record-Template',
+    onAfterPrint: () => toast.success('Diagnosis Record printed'),
+  });
+
+  const handlePrintMedicationChart = useReactToPrint({
+    contentRef: medicationChartRef,
+    documentTitle: 'Medication-Chart-Template',
+    onAfterPrint: () => toast.success('Medication Chart printed'),
+  });
+
+  const handlePrintAllergiesConditions = useReactToPrint({
+    contentRef: allergiesConditionsRef,
+    documentTitle: 'Allergies-Conditions-Template',
+    onAfterPrint: () => toast.success('Allergies & Conditions printed'),
+  });
+
+  const handlePrintPrescriptionPad = useReactToPrint({
+    contentRef: prescriptionPadRef,
+    documentTitle: 'Prescription-Pad-Template',
+    onAfterPrint: () => toast.success('Prescription Pad printed'),
+  });
+
+  const handlePrintFollowupChecklist = useReactToPrint({
+    contentRef: followupChecklistRef,
+    documentTitle: 'Followup-Checklist-Template',
+    onAfterPrint: () => toast.success('Follow-up Checklist printed'),
+  });
+
+  // Print all patient file forms at once
+  const handlePrintAllPatientFileForms = () => {
+    if (!selectedPatient) return;
+    toast.info('Printing all patient file forms...');
+    setTimeout(() => handlePrintFileCoverSheet(), 100);
+    setTimeout(() => handlePrintAllergiesConditions(), 1000);
+    setTimeout(() => handlePrintVisitNotes(), 2000);
+    setTimeout(() => handlePrintVitalsChart(), 3000);
+    setTimeout(() => handlePrintDiagnosisRecord(), 4000);
+    setTimeout(() => handlePrintMedicationChart(), 5000);
+    setTimeout(() => handlePrintPrescriptionPad(), 6000);
+    setTimeout(() => handlePrintFollowupChecklist(), 7000);
+  };
+
+  // Reprint OPD Receipt
+  const reprintOPDReceipt = (opdRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `OPD-${opdRecord.id.slice(-8).toUpperCase()}`;
+    const isPaid = opdRecord.payment_status === 'paid';
+    const doctorName = opdRecord.doctors?.name || 'N/A';
+    const fee = opdRecord.fee || 0;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>OPD Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(opdRecord.date || opdRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="item-row">
+            <span>OPD Fee - Dr. ${doctorName}</span>
+            <span>${formatCurrency(fee)}</span>
+          </div>
+          <div style="font-size: 8px; color: #666;">Token #${opdRecord.token_number}</div>
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(fee)}</span>
+            </div>
+          </div>
+
+          <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+            ${isPaid ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
+  };
+
+  // Reprint Lab Receipt
+  const reprintLabReceipt = (labRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `LAB-${labRecord.id.slice(-8).toUpperCase()}`;
+    const tests = labRecord.tests || [];
+    const totalAmount = labRecord.total_amount || 0;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Lab Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">LAB RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(labRecord.order_date || labRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          ${tests.map((test: string) => `
+            <div class="item-row">
+              <span>${test}</span>
+            </div>
+          `).join('')}
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(totalAmount)}</span>
+            </div>
+          </div>
+
+          <div class="status ${labRecord.payment_status === 'paid' ? 'paid' : 'unpaid'}">
+            ${labRecord.payment_status === 'paid' ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
+  };
+
+  // Reprint Treatment Receipt
+  const reprintTreatmentReceipt = (treatmentRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `TRT-${treatmentRecord.id.slice(-8).toUpperCase()}`;
+    const isPaid = treatmentRecord.payment_status === 'paid';
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Treatment Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">TREATMENT RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(treatmentRecord.date || treatmentRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="item-row">
+            <span>${treatmentRecord.treatment_name}</span>
+            <span>${formatCurrency(treatmentRecord.price || 0)}</span>
+          </div>
+          <div style="font-size: 8px; color: #666;">Type: ${treatmentRecord.treatment_type || 'N/A'}</div>
+          ${treatmentRecord.description ? `<div style="font-size: 8px; color: #666; margin-top: 1mm;">${treatmentRecord.description}</div>` : ''}
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(treatmentRecord.price || 0)}</span>
+            </div>
+          </div>
+
+          <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+            ${isPaid ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
+  };
+
   // Print consent forms
   const printConsentForm = (type: 'treatment' | 'tl' | 'lama') => {
     if (!selectedPatient) return;
@@ -193,15 +581,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>${title.en} - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 15px; margin-bottom: 20px; }
-          .hospital-name { font-size: 22pt; font-weight: bold; color: #1a5f2a; }
-          .hospital-name-urdu { font-size: 18pt; color: #1a5f2a; direction: rtl; }
-          .title { font-size: 16pt; font-weight: bold; margin-top: 15px; color: #333; }
-          .title-urdu { font-size: 14pt; direction: rtl; color: #666; }
-          .patient-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+          .title { font-size: 16pt; font-weight: bold; margin-top: 0; color: #000; }
+          .title-urdu { font-size: 14pt; direction: rtl; color: #000; margin-top: 5px; }
+          .patient-info { background: #f5f5f5; padding: 15px; margin: 20px 0; }
           .info-row { display: flex; margin-bottom: 8px; }
           .info-label { font-weight: bold; width: 150px; }
           .content { margin: 20px 0; }
@@ -212,14 +598,12 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           .signature-area { margin-top: 40px; display: flex; justify-content: space-between; }
           .signature-box { text-align: center; width: 200px; }
           .signature-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 9pt; color: #666; text-align: center; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #666; font-size: 9pt; color: #666; text-align: center; }
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
           <div class="title">${title.en}</div>
           <div class="title-urdu">${title.ur}</div>
         </div>
@@ -628,39 +1012,37 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>Complete Patient File - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 10px; margin-bottom: 20px; }
-          .hospital-name { font-size: 20pt; font-weight: bold; color: #1a5f2a; }
-          .subtitle { color: #666; font-size: 10pt; }
-          .mr-box { background: #1a5f2a; color: white; padding: 8px 15px; font-size: 14pt; font-weight: bold; display: inline-block; border-radius: 5px; margin: 10px 0; font-family: 'Courier New', monospace; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+          .subtitle { color: #000; font-size: 14pt; font-weight: bold; }
+          .mr-box { background: #000; color: white; padding: 8px 15px; font-size: 14pt; font-weight: bold; display: inline-block; margin: 10px 0; font-family: 'Courier New', monospace; }
           .section { margin: 20px 0; page-break-inside: avoid; }
-          .section-title { font-size: 12pt; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 5px; margin-bottom: 10px; }
-          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          .section-title { font-size: 12pt; font-weight: bold; color: #000; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; }
+          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f5f5f5; padding: 15px; }
           .info-item { }
           .info-label { font-size: 9pt; color: #666; }
           .info-value { font-weight: bold; }
-          .timeline-item { border-left: 3px solid #1a5f2a; padding-left: 15px; margin-bottom: 15px; }
+          .timeline-item { border-left: 3px solid #000; padding-left: 15px; margin-bottom: 15px; }
           .timeline-date { font-size: 9pt; color: #666; }
-          .timeline-type { font-weight: bold; color: #1a5f2a; }
+          .timeline-type { font-weight: bold; color: #000; }
           .timeline-details { font-size: 10pt; margin-top: 5px; }
           .financial-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-          .financial-box { background: #f5f5f5; padding: 10px; border-radius: 5px; text-align: center; }
+          .financial-box { background: #f5f5f5; padding: 10px; text-align: center; }
           .financial-amount { font-size: 14pt; font-weight: bold; }
           .financial-label { font-size: 9pt; color: #666; }
-          .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 9pt; color: #666; text-align: center; }
+          .footer { border-top: 1px solid #666; padding-top: 10px; margin-top: 20px; font-size: 9pt; color: #666; text-align: center; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10pt; }
+          th, td { border: 1px solid #666; padding: 8px; text-align: left; font-size: 10pt; }
           th { background: #f5f5f5; }
-          .status-paid { color: green; }
-          .status-pending { color: red; }
+          .status-paid { color: #000; }
+          .status-pending { color: #000; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="subtitle">نارتھ کراچی ہسپتال | Complete Patient Medical Record</div>
+          <div class="subtitle">COMPLETE PATIENT MEDICAL RECORD</div>
           <div class="mr-box">${selectedPatient.mrNumber || 'N/A'}</div>
         </div>
 
@@ -1141,18 +1523,27 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.opdTokens?.data?.map((opd: any) => (
-                    <Card key={opd.id} className="p-4">
+                    <Card key={opd.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">Token #{opd.token_number}</p>
                           <p className="text-sm text-gray-600">Doctor: {opd.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Fee: {formatCurrency(opd.fee || 0)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(opd.created_at || opd.date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(opd.created_at || opd.date)}</p>
                           <Badge className={opd.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
                             {opd.payment_status}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedOPDDetail(opd)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1202,9 +1593,9 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.treatments?.data?.map((treatment: any) => (
-                    <Card key={treatment.id} className="p-4">
+                    <Card key={treatment.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">{treatment.treatment_name}</p>
                           <p className="text-sm text-gray-600">Type: {treatment.treatment_type}</p>
                           <p className="text-sm text-gray-600">Doctor: {treatment.doctors?.name || 'N/A'}</p>
@@ -1213,11 +1604,20 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                             <p className="text-sm text-gray-500 mt-1">{treatment.description}</p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(treatment.created_at || treatment.date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(treatment.created_at || treatment.date)}</p>
                           <Badge className={treatment.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
                             {treatment.payment_status}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedTreatmentDetail(treatment)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1236,16 +1636,25 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.labOrders?.data?.map((lab: any) => (
-                    <Card key={lab.id} className="p-4">
+                    <Card key={lab.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">{lab.tests?.length || 0} Tests Ordered</p>
                           <p className="text-sm text-gray-600">Tests: {lab.tests?.join(', ') || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Amount: {formatCurrency(lab.total_amount || 0)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(lab.created_at || lab.order_date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(lab.created_at || lab.order_date)}</p>
                           <Badge>{lab.status}</Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedLabDetail(lab)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1321,6 +1730,123 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                       </div>
                     </Card>
                   </div>
+                </div>
+
+                {/* Patient File Forms Section - Clinical Documentation */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-teal-600" />
+                    Patient File Forms - Clinical Documentation
+                    <span className="text-sm font-normal text-gray-500">(Print blank forms for manual documentation)</span>
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <Card
+                      className="p-4 hover:bg-teal-50 cursor-pointer transition-colors border-2 hover:border-teal-300"
+                      onClick={handlePrintFileCoverSheet}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-teal-700">File Cover Sheet</p>
+                          <p className="text-xs text-gray-500">Auto-populated with patient data</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-teal-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-red-50 cursor-pointer transition-colors border-2 hover:border-red-300"
+                      onClick={handlePrintAllergiesConditions}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-red-700">Allergies & Conditions</p>
+                          <p className="text-xs text-gray-500">⚠ Critical safety form</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-red-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-blue-50 cursor-pointer transition-colors border-2 hover:border-blue-300"
+                      onClick={handlePrintVisitNotes}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-blue-700">Visit Notes</p>
+                          <p className="text-xs text-gray-500">5 visits per page</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-blue-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-purple-50 cursor-pointer transition-colors border-2 hover:border-purple-300"
+                      onClick={handlePrintVitalsChart}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-purple-700">Vitals Chart</p>
+                          <p className="text-xs text-gray-500">20 entries (landscape)</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-purple-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-orange-50 cursor-pointer transition-colors border-2 hover:border-orange-300"
+                      onClick={handlePrintDiagnosisRecord}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-orange-700">Diagnosis Record</p>
+                          <p className="text-xs text-gray-500">With ICD-10 codes</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-orange-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-green-50 cursor-pointer transition-colors border-2 hover:border-green-300"
+                      onClick={handlePrintMedicationChart}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-green-700">Medication Chart</p>
+                          <p className="text-xs text-gray-500">25 entries (landscape)</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-green-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-indigo-50 cursor-pointer transition-colors border-2 hover:border-indigo-300"
+                      onClick={handlePrintPrescriptionPad}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-indigo-700">Prescription Pad</p>
+                          <p className="text-xs text-gray-500">4 prescriptions per page</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-indigo-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-pink-50 cursor-pointer transition-colors border-2 hover:border-pink-300"
+                      onClick={handlePrintFollowupChecklist}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-pink-700">Follow-up Checklist</p>
+                          <p className="text-xs text-gray-500">Appointment tracking</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-pink-600" />
+                      </div>
+                    </Card>
+                  </div>
+                  <Button
+                    onClick={handlePrintAllPatientFileForms}
+                    className="w-full bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print All Forms (Complete File Set - 8 Forms)
+                  </Button>
+                  <p className="text-xs text-teal-600 mt-2">
+                    📋 Print all forms and assemble in a physical file folder. Staple digital receipts as they are generated.
+                  </p>
                 </div>
 
                 {/* Patient Records Section */}
@@ -1403,6 +1929,453 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* OPD Detail Modal */}
+      {selectedOPDDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">OPD Visit Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedOPDDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-teal-50 p-4 rounded-lg border-2 border-teal-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-teal-700">
+                    OPD-{selectedOPDDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visit Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    Visit Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Token Number</p>
+                      <p className="font-medium text-lg">#{selectedOPDDetail.token_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Visit Date</p>
+                      <p className="font-medium">{formatDateTime(selectedOPDDetail.created_at || selectedOPDDetail.date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Doctor</p>
+                      <p className="font-medium">{selectedOPDDetail.doctors?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Department</p>
+                      <p className="font-medium">{selectedOPDDetail.doctors?.department || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">OPD Fee</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedOPDDetail.fee || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedOPDDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedOPDDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintOPDReceipt(selectedOPDDetail)}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedOPDDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Lab Detail Modal */}
+      {selectedLabDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">Lab Order Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedLabDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-green-50 p-4 rounded-lg border-2 border-green-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    LAB-{selectedLabDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <TestTube className="h-5 w-5 text-purple-600" />
+                    Order Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Order Date</p>
+                      <p className="font-medium">{formatDateTime(selectedLabDetail.created_at || selectedLabDetail.order_date)}</p>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Status</p>
+                      <Badge>{selectedLabDetail.status}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Tests Ordered ({selectedLabDetail.tests?.length || 0})</p>
+                      <ul className="space-y-1">
+                        {selectedLabDetail.tests?.map((test: string, index: number) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span>{test}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Total Amount</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedLabDetail.total_amount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedLabDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedLabDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintLabReceipt(selectedLabDetail)}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedLabDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Treatment Detail Modal */}
+      {selectedTreatmentDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">Treatment Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTreatmentDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-orange-700">
+                    TRT-{selectedTreatmentDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Treatment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-orange-600" />
+                    Treatment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Treatment Name</p>
+                      <p className="font-medium text-lg">{selectedTreatmentDetail.treatment_name}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Type</p>
+                        <p className="font-medium">{selectedTreatmentDetail.treatment_type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Date</p>
+                        <p className="font-medium">{formatDateTime(selectedTreatmentDetail.created_at || selectedTreatmentDetail.date)}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Doctor</p>
+                      <p className="font-medium">{selectedTreatmentDetail.doctors?.name || 'N/A'}</p>
+                    </div>
+                    {selectedTreatmentDetail.description && (
+                      <div>
+                        <p className="text-xs text-gray-500">Description</p>
+                        <p className="font-medium">{selectedTreatmentDetail.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Treatment Price</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedTreatmentDetail.price || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedTreatmentDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedTreatmentDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintTreatmentReceipt(selectedTreatmentDetail)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedTreatmentDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Hidden components for printing patient file forms */}
+      {selectedPatient && (
+        <div style={{ display: 'none' }}>
+          <FileCoverSheet
+            ref={coverSheetRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              age: selectedPatient.age,
+              gender: selectedPatient.gender,
+              contact: selectedPatient.contact,
+              cnic_number: selectedPatient.cnicNumber,
+              blood_group: selectedPatient.bloodGroup,
+              address: selectedPatient.address,
+              emergency_contact: selectedPatient.emergencyContact,
+              created_at: selectedPatient.registrationDate!
+            }}
+          />
+          <VisitNotesTemplate
+            ref={visitNotesRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <VitalsChartTemplate
+            ref={vitalsChartRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <DiagnosisRecordTemplate
+            ref={diagnosisRecordRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <MedicationChartTemplate
+            ref={medicationChartRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <AllergiesConditionsTemplate
+            ref={allergiesConditionsRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              blood_group: selectedPatient.bloodGroup
+            }}
+          />
+          <PrescriptionPadTemplate
+            ref={prescriptionPadRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              age: selectedPatient.age,
+              gender: selectedPatient.gender
+            }}
+          />
+          <FollowupChecklistTemplate
+            ref={followupChecklistRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
