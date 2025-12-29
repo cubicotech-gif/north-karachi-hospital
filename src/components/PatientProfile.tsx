@@ -9,7 +9,7 @@ import {
   User, Calendar, FileText, Bed, TestTube, Activity, Clock, Printer,
   Search, CreditCard, Phone, MapPin, Heart, Users, DollarSign,
   AlertCircle, CheckCircle, XCircle, ChevronRight, RefreshCw, FileCheck,
-  ClipboardList, Download
+  ClipboardList, Download, Eye, X
 } from 'lucide-react';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
@@ -45,6 +45,12 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Detail modal states
+  const [selectedOPDDetail, setSelectedOPDDetail] = useState<any>(null);
+  const [selectedLabDetail, setSelectedLabDetail] = useState<any>(null);
+  const [selectedTreatmentDetail, setSelectedTreatmentDetail] = useState<any>(null);
+  const [selectedAdmissionDetail, setSelectedAdmissionDetail] = useState<any>(null);
 
   // Refs for patient file forms printing
   const coverSheetRef = useRef<HTMLDivElement>(null);
@@ -255,6 +261,304 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setTimeout(() => handlePrintMedicationChart(), 5000);
     setTimeout(() => handlePrintPrescriptionPad(), 6000);
     setTimeout(() => handlePrintFollowupChecklist(), 7000);
+  };
+
+  // Reprint OPD Receipt
+  const reprintOPDReceipt = (opdRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `OPD-${opdRecord.id.slice(-8).toUpperCase()}`;
+    const isPaid = opdRecord.payment_status === 'paid';
+    const doctorName = opdRecord.doctors?.name || 'N/A';
+    const fee = opdRecord.fee || 0;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>OPD Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(opdRecord.date || opdRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="item-row">
+            <span>OPD Fee - Dr. ${doctorName}</span>
+            <span>${formatCurrency(fee)}</span>
+          </div>
+          <div style="font-size: 8px; color: #666;">Token #${opdRecord.token_number}</div>
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(fee)}</span>
+            </div>
+          </div>
+
+          <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+            ${isPaid ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
+  };
+
+  // Reprint Lab Receipt
+  const reprintLabReceipt = (labRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `LAB-${labRecord.id.slice(-8).toUpperCase()}`;
+    const tests = labRecord.tests || [];
+    const totalAmount = labRecord.total_amount || 0;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Lab Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">LAB RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(labRecord.order_date || labRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          ${tests.map((test: string) => `
+            <div class="item-row">
+              <span>${test}</span>
+            </div>
+          `).join('')}
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(totalAmount)}</span>
+            </div>
+          </div>
+
+          <div class="status ${labRecord.payment_status === 'paid' ? 'paid' : 'unpaid'}">
+            ${labRecord.payment_status === 'paid' ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
+  };
+
+  // Reprint Treatment Receipt
+  const reprintTreatmentReceipt = (treatmentRecord: any) => {
+    if (!selectedPatient) return;
+
+    const receiptNumber = `TRT-${treatmentRecord.id.slice(-8).toUpperCase()}`;
+    const isPaid = treatmentRecord.payment_status === 'paid';
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Treatment Receipt - ${receiptNumber}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 10px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+            .hospital-name { font-size: 13px; font-weight: bold; }
+            .hospital-urdu { font-size: 11px; }
+            .address { font-size: 8px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
+            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .status.paid { background: #000; color: white; }
+            .status.unpaid { border: 2px solid #000; }
+            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="address">C-122, Sector 11-B, North Karachi | 36989080</div>
+          </div>
+
+          <div class="receipt-title">TREATMENT RECEIPT / رسید (REPRINT)</div>
+
+          <div class="info-row">
+            <span><strong>No:</strong> ${receiptNumber}</span>
+            <span><strong>Date:</strong> ${new Date(treatmentRecord.date || treatmentRecord.created_at).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="patient-section">
+            <div><strong>Patient:</strong> ${selectedPatient.name}</div>
+            <div><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="item-row">
+            <span>${treatmentRecord.treatment_name}</span>
+            <span>${formatCurrency(treatmentRecord.price || 0)}</span>
+          </div>
+          <div style="font-size: 8px; color: #666;">Type: ${treatmentRecord.treatment_type || 'N/A'}</div>
+          ${treatmentRecord.description ? `<div style="font-size: 8px; color: #666; margin-top: 1mm;">${treatmentRecord.description}</div>` : ''}
+
+          <div class="total-section">
+            <div class="total-row">
+              <span>TOTAL / کل:</span>
+              <span>${formatCurrency(treatmentRecord.price || 0)}</span>
+            </div>
+          </div>
+
+          <div class="status ${isPaid ? 'paid' : 'unpaid'}">
+            ${isPaid ? '✓ PAID / ادا شدہ' : '✗ UNPAID / غیر ادا شدہ'}
+          </div>
+
+          <div class="footer">
+            Thank you / شکریہ<br>
+            Reprinted on ${new Date().toLocaleString('en-PK')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    toast.success('Receipt sent to printer');
   };
 
   // Print consent forms
