@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Users, Search, Plus, UserPlus, Edit, Trash2, X, Printer, CreditCard } from 'lucide-react';
+import { Users, Search, Plus, UserPlus, Edit, Trash2, X, Printer, CreditCard, FileText, ClipboardList } from 'lucide-react';
 import { Patient, validateCNIC, formatCNIC, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+
+// Import patient file form templates
+import FileCoverSheet from '@/components/documents/patientForms/FileCoverSheet';
+import VisitNotesTemplate from '@/components/documents/patientForms/VisitNotesTemplate';
+import VitalsChartTemplate from '@/components/documents/patientForms/VitalsChartTemplate';
+import DiagnosisRecordTemplate from '@/components/documents/patientForms/DiagnosisRecordTemplate';
+import MedicationChartTemplate from '@/components/documents/patientForms/MedicationChartTemplate';
+import AllergiesConditionsTemplate from '@/components/documents/patientForms/AllergiesConditionsTemplate';
+import PrescriptionPadTemplate from '@/components/documents/patientForms/PrescriptionPadTemplate';
+import FollowupChecklistTemplate from '@/components/documents/patientForms/FollowupChecklistTemplate';
 
 interface PatientRegistrationProps {
   onPatientSelect: (patient: Patient) => void;
@@ -37,6 +48,17 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     bloodGroup: '',
     maritalStatus: 'Single'
   });
+
+  // Refs for patient file forms printing
+  const [showPrintForms, setShowPrintForms] = useState(false);
+  const coverSheetRef = useRef<HTMLDivElement>(null);
+  const visitNotesRef = useRef<HTMLDivElement>(null);
+  const vitalsChartRef = useRef<HTMLDivElement>(null);
+  const diagnosisRecordRef = useRef<HTMLDivElement>(null);
+  const medicationChartRef = useRef<HTMLDivElement>(null);
+  const allergiesConditionsRef = useRef<HTMLDivElement>(null);
+  const prescriptionPadRef = useRef<HTMLDivElement>(null);
+  const followupChecklistRef = useRef<HTMLDivElement>(null);
 
   const departments = [
     'General Medicine',
@@ -450,6 +472,68 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     }
   };
 
+  // Print handler functions for patient file forms
+  const handlePrintForm = useReactToPrint({
+    contentRef: coverSheetRef,
+    documentTitle: 'Patient-File-Cover-Sheet',
+    onAfterPrint: () => toast.success('File Cover Sheet printed successfully'),
+  });
+
+  const handlePrintVisitNotes = useReactToPrint({
+    contentRef: visitNotesRef,
+    documentTitle: 'Visit-Notes-Template',
+    onAfterPrint: () => toast.success('Visit Notes printed successfully'),
+  });
+
+  const handlePrintVitalsChart = useReactToPrint({
+    contentRef: vitalsChartRef,
+    documentTitle: 'Vitals-Chart-Template',
+    onAfterPrint: () => toast.success('Vitals Chart printed successfully'),
+  });
+
+  const handlePrintDiagnosisRecord = useReactToPrint({
+    contentRef: diagnosisRecordRef,
+    documentTitle: 'Diagnosis-Record-Template',
+    onAfterPrint: () => toast.success('Diagnosis Record printed successfully'),
+  });
+
+  const handlePrintMedicationChart = useReactToPrint({
+    contentRef: medicationChartRef,
+    documentTitle: 'Medication-Chart-Template',
+    onAfterPrint: () => toast.success('Medication Chart printed successfully'),
+  });
+
+  const handlePrintAllergiesConditions = useReactToPrint({
+    contentRef: allergiesConditionsRef,
+    documentTitle: 'Allergies-Conditions-Template',
+    onAfterPrint: () => toast.success('Allergies & Conditions printed successfully'),
+  });
+
+  const handlePrintPrescriptionPad = useReactToPrint({
+    contentRef: prescriptionPadRef,
+    documentTitle: 'Prescription-Pad-Template',
+    onAfterPrint: () => toast.success('Prescription Pad printed successfully'),
+  });
+
+  const handlePrintFollowupChecklist = useReactToPrint({
+    contentRef: followupChecklistRef,
+    documentTitle: 'Followup-Checklist-Template',
+    onAfterPrint: () => toast.success('Follow-up Checklist printed successfully'),
+  });
+
+  // Print all forms at once
+  const handlePrintAllForms = () => {
+    toast.info('Printing all patient file forms...');
+    setTimeout(() => handlePrintForm(), 100);
+    setTimeout(() => handlePrintAllergiesConditions(), 1000);
+    setTimeout(() => handlePrintVisitNotes(), 2000);
+    setTimeout(() => handlePrintVitalsChart(), 3000);
+    setTimeout(() => handlePrintDiagnosisRecord(), 4000);
+    setTimeout(() => handlePrintMedicationChart(), 5000);
+    setTimeout(() => handlePrintPrescriptionPad(), 6000);
+    setTimeout(() => handlePrintFollowupChecklist(), 7000);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -542,6 +626,118 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
               <p className="text-xs text-green-600 mt-2">
                 Give this MR card to the patient. They will use it for all future visits.
               </p>
+
+              {/* Patient File Forms Section */}
+              <div className="mt-4 pt-4 border-t border-green-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-teal-600" />
+                    <h4 className="font-semibold text-teal-700">Patient File Forms (Manual Documentation)</h4>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowPrintForms(!showPrintForms)}
+                  >
+                    {showPrintForms ? 'Hide Forms' : 'Show Forms'}
+                  </Button>
+                </div>
+
+                {showPrintForms && (
+                  <div className="bg-white p-4 rounded-lg border border-teal-200">
+                    <p className="text-xs text-gray-600 mb-3">
+                      Print blank forms for manual clinical documentation in the physical patient file.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintForm}
+                        className="text-teal-600 border-teal-600 hover:bg-teal-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        File Cover Sheet
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintAllergiesConditions}
+                        className="text-red-600 border-red-600 hover:bg-red-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Allergies & Conditions
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintVisitNotes}
+                        className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Visit Notes
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintVitalsChart}
+                        className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Vitals Chart
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintDiagnosisRecord}
+                        className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Diagnosis Record
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintMedicationChart}
+                        className="text-green-600 border-green-600 hover:bg-green-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Medication Chart
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintPrescriptionPad}
+                        className="text-indigo-600 border-indigo-600 hover:bg-indigo-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Prescription Pad
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintFollowupChecklist}
+                        className="text-pink-600 border-pink-600 hover:bg-pink-50"
+                      >
+                        <Printer className="h-3 w-3 mr-2" />
+                        Follow-up Checklist
+                      </Button>
+                    </div>
+
+                    <Button
+                      onClick={handlePrintAllForms}
+                      className="w-full bg-teal-600 hover:bg-teal-700"
+                    >
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Print All Forms (Complete File Set)
+                    </Button>
+
+                    <p className="text-xs text-teal-600 mt-2">
+                      Print all forms and assemble in a physical file folder with digital receipts stapled as they are generated during visits.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -838,6 +1034,79 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
           )}
         </CardContent>
       </Card>
+
+      {/* Hidden components for printing patient file forms */}
+      {newlyRegisteredPatient && (
+        <div style={{ display: 'none' }}>
+          <FileCoverSheet
+            ref={coverSheetRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name,
+              age: newlyRegisteredPatient.age,
+              gender: newlyRegisteredPatient.gender,
+              contact: newlyRegisteredPatient.contact,
+              cnic_number: newlyRegisteredPatient.cnicNumber,
+              blood_group: newlyRegisteredPatient.bloodGroup,
+              address: newlyRegisteredPatient.address,
+              emergency_contact: newlyRegisteredPatient.emergencyContact,
+              created_at: newlyRegisteredPatient.registrationDate!
+            }}
+          />
+          <VisitNotesTemplate
+            ref={visitNotesRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name
+            }}
+          />
+          <VitalsChartTemplate
+            ref={vitalsChartRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name
+            }}
+          />
+          <DiagnosisRecordTemplate
+            ref={diagnosisRecordRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name
+            }}
+          />
+          <MedicationChartTemplate
+            ref={medicationChartRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name
+            }}
+          />
+          <AllergiesConditionsTemplate
+            ref={allergiesConditionsRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name,
+              blood_group: newlyRegisteredPatient.bloodGroup
+            }}
+          />
+          <PrescriptionPadTemplate
+            ref={prescriptionPadRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name,
+              age: newlyRegisteredPatient.age,
+              gender: newlyRegisteredPatient.gender
+            }}
+          />
+          <FollowupChecklistTemplate
+            ref={followupChecklistRef}
+            patientData={{
+              mr_number: newlyRegisteredPatient.mrNumber!,
+              name: newlyRegisteredPatient.name
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
