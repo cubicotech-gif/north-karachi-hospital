@@ -82,7 +82,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     setIsLoading(true);
     try {
       const { data, error } = await db.patients.getAll();
-      
+
       if (error) {
         console.error('Error loading patients:', error);
         toast.error('Failed to load patients');
@@ -116,6 +116,18 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Capitalize first letter of each word in a name
+  const capitalizeName = (name: string): string => {
+    return name
+      .trim()
+      .split(' ')
+      .map(word => {
+        if (word.length === 0) return '';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
   };
 
   const handleEdit = (patient: Patient, e: React.MouseEvent) => {
@@ -181,13 +193,35 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       return;
     }
 
+    // Check for duplicate mobile number (only for new registrations or if contact changed)
+    const normalizedContact = newPatient.contact.trim();
+    const isDuplicateContact = patients.some(p => {
+      // Skip check if editing the same patient
+      if (editingPatient && p.id === editingPatient.id) {
+        return false;
+      }
+      return p.contact === normalizedContact;
+    });
+
+    if (isDuplicateContact) {
+      const existingPatient = patients.find(p => p.contact === normalizedContact);
+      toast.error(
+        `Mobile number already registered!\n\nPatient: ${existingPatient?.name}\nMR#: ${existingPatient?.mrNumber}\n\nPlease use a different mobile number.`,
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Capitalize patient name for consistency
+    const capitalizedName = capitalizeName(newPatient.name);
+
     const patientData = {
-  name: newPatient.name,
+  name: capitalizedName,
   age: newPatient.age,
   cnic_number: newPatient.cnicNumber ? formatCNIC(newPatient.cnicNumber) : null,
   gender: newPatient.gender,
-  contact: newPatient.contact,
-  care_of: newPatient.careOf || null,
+  contact: normalizedContact,
+  care_of: newPatient.careOf ? capitalizeName(newPatient.careOf) : null,
   problem: newPatient.problem || null,
   department: newPatient.department || null,
   emergency_contact: newPatient.emergencyContact || null,
