@@ -581,15 +581,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>${title.en} - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 15px; margin-bottom: 20px; }
-          .hospital-name { font-size: 22pt; font-weight: bold; color: #1a5f2a; }
-          .hospital-name-urdu { font-size: 18pt; color: #1a5f2a; direction: rtl; }
-          .title { font-size: 16pt; font-weight: bold; margin-top: 15px; color: #333; }
-          .title-urdu { font-size: 14pt; direction: rtl; color: #666; }
-          .patient-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+          .title { font-size: 16pt; font-weight: bold; margin-top: 0; color: #000; }
+          .title-urdu { font-size: 14pt; direction: rtl; color: #000; margin-top: 5px; }
+          .patient-info { background: #f5f5f5; padding: 15px; margin: 20px 0; }
           .info-row { display: flex; margin-bottom: 8px; }
           .info-label { font-weight: bold; width: 150px; }
           .content { margin: 20px 0; }
@@ -600,14 +598,12 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           .signature-area { margin-top: 40px; display: flex; justify-content: space-between; }
           .signature-box { text-align: center; width: 200px; }
           .signature-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 9pt; color: #666; text-align: center; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #666; font-size: 9pt; color: #666; text-align: center; }
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
           <div class="title">${title.en}</div>
           <div class="title-urdu">${title.ur}</div>
         </div>
@@ -1016,39 +1012,37 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <meta charset="UTF-8">
         <title>Complete Patient File - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Tahoma', 'Arial', sans-serif; font-size: 11pt; line-height: 1.4; }
-          .header { text-align: center; border-bottom: 3px solid #1a5f2a; padding-bottom: 10px; margin-bottom: 20px; }
-          .hospital-name { font-size: 20pt; font-weight: bold; color: #1a5f2a; }
-          .subtitle { color: #666; font-size: 10pt; }
-          .mr-box { background: #1a5f2a; color: white; padding: 8px 15px; font-size: 14pt; font-weight: bold; display: inline-block; border-radius: 5px; margin: 10px 0; font-family: 'Courier New', monospace; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+          .subtitle { color: #000; font-size: 14pt; font-weight: bold; }
+          .mr-box { background: #000; color: white; padding: 8px 15px; font-size: 14pt; font-weight: bold; display: inline-block; margin: 10px 0; font-family: 'Courier New', monospace; }
           .section { margin: 20px 0; page-break-inside: avoid; }
-          .section-title { font-size: 12pt; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 5px; margin-bottom: 10px; }
-          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+          .section-title { font-size: 12pt; font-weight: bold; color: #000; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; }
+          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f5f5f5; padding: 15px; }
           .info-item { }
           .info-label { font-size: 9pt; color: #666; }
           .info-value { font-weight: bold; }
-          .timeline-item { border-left: 3px solid #1a5f2a; padding-left: 15px; margin-bottom: 15px; }
+          .timeline-item { border-left: 3px solid #000; padding-left: 15px; margin-bottom: 15px; }
           .timeline-date { font-size: 9pt; color: #666; }
-          .timeline-type { font-weight: bold; color: #1a5f2a; }
+          .timeline-type { font-weight: bold; color: #000; }
           .timeline-details { font-size: 10pt; margin-top: 5px; }
           .financial-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-          .financial-box { background: #f5f5f5; padding: 10px; border-radius: 5px; text-align: center; }
+          .financial-box { background: #f5f5f5; padding: 10px; text-align: center; }
           .financial-amount { font-size: 14pt; font-weight: bold; }
           .financial-label { font-size: 9pt; color: #666; }
-          .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 9pt; color: #666; text-align: center; }
+          .footer { border-top: 1px solid #666; padding-top: 10px; margin-top: 20px; font-size: 9pt; color: #666; text-align: center; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10pt; }
+          th, td { border: 1px solid #666; padding: 8px; text-align: left; font-size: 10pt; }
           th { background: #f5f5f5; }
-          .status-paid { color: green; }
-          .status-pending { color: red; }
+          .status-paid { color: #000; }
+          .status-pending { color: #000; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-          <div class="subtitle">نارتھ کراچی ہسپتال | Complete Patient Medical Record</div>
+          <div class="subtitle">COMPLETE PATIENT MEDICAL RECORD</div>
           <div class="mr-box">${selectedPatient.mrNumber || 'N/A'}</div>
         </div>
 

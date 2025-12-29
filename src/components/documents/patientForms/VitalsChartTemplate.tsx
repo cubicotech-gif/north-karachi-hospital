@@ -13,89 +13,110 @@ const VitalsChartTemplate = forwardRef<HTMLDivElement, VitalsChartTemplateProps>
     const vitalRows = Array.from({ length: 20 }, (_, i) => i + 1);
 
     return (
-      <div ref={ref} className="bg-white p-6" style={{ width: '297mm', minHeight: '210mm' }}>
-        {/* Header */}
-        <div className="border-b-2 border-teal-600 pb-3 mb-4">
-          <h1 className="text-2xl font-bold text-teal-700">VITALS RECORDING CHART</h1>
-          {patientData && (
-            <div className="flex justify-between text-sm mt-2">
-              <p><strong>MR#:</strong> {patientData.mr_number}</p>
-              <p><strong>Patient:</strong> {patientData.name}</p>
-            </div>
-          )}
-        </div>
+      <div ref={ref} style={{ width: '297mm', minHeight: '210mm', padding: '0', margin: '0', backgroundColor: 'white' }}>
+        <style>{`
+          @page {
+            size: A4 landscape;
+            margin: 50mm 25mm 25mm 25mm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            .avoid-break {
+              page-break-inside: avoid;
+            }
+          }
+        `}</style>
 
-        {/* Vitals Table */}
-        <table className="w-full border-2 border-gray-800 text-xs">
-          <thead>
-            <tr className="bg-teal-100">
-              <th className="border border-gray-800 p-2 w-20">Date</th>
-              <th className="border border-gray-800 p-2 w-16">Time</th>
-              <th className="border border-gray-800 p-2 w-24">BP<br/>(mmHg)</th>
-              <th className="border border-gray-800 p-2 w-20">Pulse<br/>(bpm)</th>
-              <th className="border border-gray-800 p-2 w-20">Temp<br/>(°F)</th>
-              <th className="border border-gray-800 p-2 w-20">RR<br/>(br/min)</th>
-              <th className="border border-gray-800 p-2 w-20">SpO2<br/>(%)</th>
-              <th className="border border-gray-800 p-2 w-20">Weight<br/>(kg)</th>
-              <th className="border border-gray-800 p-2 w-20">Height<br/>(cm)</th>
-              <th className="border border-gray-800 p-2 w-20">BMI</th>
-              <th className="border border-gray-800 p-2 flex-1">Remarks</th>
-              <th className="border border-gray-800 p-2 w-24">Nurse<br/>Initials</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vitalRows.map((num) => (
-              <tr key={num} className="h-8">
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
-                <td className="border border-gray-800 p-1"></td>
+        <div style={{ padding: '0', fontFamily: 'Arial, sans-serif', color: '#000' }}>
+          {/* Header */}
+          <div style={{ borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#000', margin: '0' }}>VITALS RECORDING CHART</h1>
+            {patientData && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '8px' }}>
+                <p style={{ margin: '0' }}><strong>MR#:</strong> {patientData.mr_number}</p>
+                <p style={{ margin: '0' }}><strong>Patient:</strong> {patientData.name}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Vitals Table */}
+          <table style={{ width: '100%', border: '2px solid #000', fontSize: '10px', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f5f5f5' }}>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>Date</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '64px' }}>Time</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '96px' }}>BP<br/>(mmHg)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>Pulse<br/>(bpm)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>Temp<br/>(°F)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>RR<br/>(br/min)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>SpO2<br/>(%)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>Weight<br/>(kg)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>Height<br/>(cm)</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '80px' }}>BMI</th>
+                <th style={{ border: '1px solid #000', padding: '8px' }}>Remarks</th>
+                <th style={{ border: '1px solid #000', padding: '8px', width: '96px' }}>Nurse<br/>Initials</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {vitalRows.map((num) => (
+                <tr key={num} style={{ height: '32px' }}>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                  <td style={{ border: '1px solid #000', padding: '4px' }}></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {/* Reference Values */}
-        <div className="mt-4 bg-blue-50 border border-blue-300 p-3">
-          <h3 className="font-bold text-xs mb-2">NORMAL REFERENCE VALUES:</h3>
-          <div className="grid grid-cols-5 gap-2 text-xs">
-            <div>
-              <strong>BP:</strong> 120/80 mmHg
+          {/* Reference Values */}
+          <div style={{ marginTop: '16px', backgroundColor: '#f5f5f5', border: '1px solid #333', padding: '12px' }}>
+            <h3 style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '8px', margin: '0 0 8px 0' }}>NORMAL REFERENCE VALUES:</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '8px', fontSize: '10px' }}>
+              <div>
+                <strong>BP:</strong> 120/80 mmHg
+              </div>
+              <div>
+                <strong>Pulse:</strong> 60-100 bpm
+              </div>
+              <div>
+                <strong>Temp:</strong> 97-99°F
+              </div>
+              <div>
+                <strong>RR:</strong> 12-20 br/min
+              </div>
+              <div>
+                <strong>SpO2:</strong> 95-100%
+              </div>
             </div>
-            <div>
-              <strong>Pulse:</strong> 60-100 bpm
-            </div>
-            <div>
-              <strong>Temp:</strong> 97-99°F
-            </div>
-            <div>
-              <strong>RR:</strong> 12-20 br/min
-            </div>
-            <div>
-              <strong>SpO2:</strong> 95-100%
+            <div style={{ marginTop: '8px', fontSize: '10px' }}>
+              <strong>BMI:</strong> Underweight &lt;18.5 | Normal 18.5-24.9 | Overweight 25-29.9 | Obese ≥30
             </div>
           </div>
-          <div className="mt-2 text-xs">
-            <strong>BMI:</strong> Underweight &lt;18.5 | Normal 18.5-24.9 | Overweight 25-29.9 | Obese ≥30
+
+          {/* Instructions */}
+          <div style={{ marginTop: '12px', backgroundColor: '#f5f5f5', borderLeft: '4px solid #000', padding: '8px' }}>
+            <p style={{ fontSize: '10px', margin: '0' }}><strong>Instructions:</strong> Record vitals at each visit. Use blue/black pen only. Mark abnormal values in RED. Sign with initials after each entry.</p>
           </div>
-        </div>
 
-        {/* Instructions */}
-        <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-2">
-          <p className="text-xs"><strong>Instructions:</strong> Record vitals at each visit. Use blue/black pen only. Mark abnormal values in RED. Sign with initials after each entry.</p>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-3 text-center text-xs text-gray-500">
-          <p>North Karachi Hospital - Nursing Documentation</p>
+          {/* Footer */}
+          <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '10px', color: '#666' }}>
+            <p style={{ margin: '0' }}>Nursing Documentation</p>
+          </div>
         </div>
       </div>
     );

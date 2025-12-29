@@ -339,56 +339,39 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
         <meta charset="UTF-8">
         <title>Consent Form - ${selectedPatient.name}</title>
         <style>
-          @page { size: A4; margin: 15mm; }
+          @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; background: white; }
-          .page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background: white; }
-          .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 3px solid #1a5f2a; margin-bottom: 15px; }
-          .logo-section { display: flex; align-items: center; gap: 15px; }
-          .logo { width: 80px; height: 80px; object-fit: contain; }
-          .hospital-info { text-align: left; }
-          .hospital-name { font-size: 22px; font-weight: bold; color: #1a5f2a; margin-bottom: 3px; }
-          .hospital-name-urdu { font-size: 18px; font-weight: bold; color: #1a5f2a; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; }
-          .hospital-address { font-size: 11px; color: #555; }
-          .header-right { text-align: right; }
-          .date-box { background: #f0f0f0; padding: 8px 15px; border-radius: 5px; font-size: 12px; }
-          .consent-title { background: linear-gradient(135deg, #1a5f2a 0%, #2d8f4a 100%); color: white; padding: 12px 20px; text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; border-radius: 5px; }
+          body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #000; background: white; }
+          .page { width: 210mm; min-height: 297mm; padding: 0; margin: 0 auto; background: white; }
+          .header { text-align: right; padding-bottom: 10px; margin-bottom: 15px; }
+          .date-box { background: #f5f5f5; padding: 8px 15px; border-radius: 5px; font-size: 12px; display: inline-block; }
+          .consent-title { background: #000; color: white; padding: 12px 20px; text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; }
           .consent-title-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; font-size: 18px; direction: rtl; }
-          .patient-section { background: #f8fdf9; border: 2px solid #1a5f2a; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+          .patient-section { background: #f5f5f5; border: 2px solid #000; padding: 15px; margin-bottom: 15px; }
           .patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
           .patient-item { display: flex; gap: 5px; }
-          .patient-label { font-weight: bold; color: #1a5f2a; min-width: 120px; }
-          .urdu-section { direction: rtl; text-align: right; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; background: #fffef5; border: 1px solid #e0d5a0; border-radius: 8px; padding: 15px; margin-bottom: 15px; line-height: 2; }
-          .urdu-title { font-size: 16px; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 8px; margin-bottom: 12px; }
+          .patient-label { font-weight: bold; color: #000; min-width: 120px; }
+          .urdu-section { direction: rtl; text-align: right; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; background: #f5f5f5; border: 1px solid #333; padding: 15px; margin-bottom: 15px; line-height: 2; }
+          .urdu-title { font-size: 16px; font-weight: bold; color: #000; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
           .urdu-text { font-size: 14px; margin-bottom: 10px; }
           .urdu-field { display: inline-block; border-bottom: 1px solid #333; min-width: 150px; margin: 0 5px; }
-          .english-section { background: #f5f9ff; border: 1px solid #cce0ff; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-          .english-title { font-size: 14px; font-weight: bold; color: #1a5f2a; border-bottom: 2px solid #1a5f2a; padding-bottom: 8px; margin-bottom: 12px; }
-          .english-text { font-size: 11px; line-height: 1.6; color: #444; }
+          .english-section { background: #f5f5f5; border: 1px solid #333; padding: 15px; margin-bottom: 15px; }
+          .english-title { font-size: 14px; font-weight: bold; color: #000; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+          .english-text { font-size: 11px; line-height: 1.6; color: #000; }
           .english-field { display: inline-block; border-bottom: 1px solid #333; min-width: 120px; margin: 0 3px; }
-          .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 25px; padding-top: 15px; border-top: 2px dashed #ccc; }
+          .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 25px; padding-top: 15px; border-top: 2px solid #666; }
           .signature-box { text-align: center; }
           .signature-line { border-bottom: 2px solid #333; height: 50px; margin-bottom: 8px; }
           .signature-label { font-weight: bold; font-size: 11px; margin-bottom: 3px; }
           .signature-label-urdu { font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', Arial; direction: rtl; font-size: 13px; }
-          .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #666; }
+          .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #666; text-align: center; font-size: 10px; color: #666; }
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .page { width: 100%; min-height: auto; padding: 0; } }
         </style>
       </head>
       <body>
         <div class="page">
           <div class="header">
-            <div class="logo-section">
-              <img src="/logo.png" alt="Hospital Logo" class="logo" onerror="this.style.display='none'">
-              <div class="hospital-info">
-                <div class="hospital-name">NORTH KARACHI HOSPITAL</div>
-                <div class="hospital-name-urdu">نارتھ کراچی ہسپتال</div>
-                <div class="hospital-address">C-122, Sector 11-B, North Karachi Township, Karachi | Ph: 36989080</div>
-              </div>
-            </div>
-            <div class="header-right">
-              <div class="date-box"><strong>Date / تاریخ:</strong> ${currentDate}</div>
-            </div>
+            <div class="date-box"><strong>Date / تاریخ:</strong> ${currentDate}</div>
           </div>
 
           <div class="consent-title">
@@ -399,12 +382,12 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           <div class="patient-section">
             <div class="patient-grid">
               <div class="patient-item"><span class="patient-label">Patient Name:</span><span>${selectedPatient.name}</span></div>
-              <div class="patient-item" style="background: #e3f2fd; padding: 8px; border-radius: 4px;"><span class="patient-label" style="color: #1565c0;">MR Number:</span><span style="font-weight: bold; color: #1565c0;">${selectedPatient.mrNumber || 'N/A'}</span></div>
+              <div class="patient-item" style="background: #f5f5f5; padding: 8px;"><span class="patient-label" style="color: #000;">MR Number:</span><span style="font-weight: bold; color: #000;">${selectedPatient.mrNumber || 'N/A'}</span></div>
               <div class="patient-item"><span class="patient-label">Age / Gender:</span><span>${selectedPatient.age} years / ${selectedPatient.gender}</span></div>
               <div class="patient-item"><span class="patient-label">Contact:</span><span>${selectedPatient.contact}</span></div>
               <div class="patient-item"><span class="patient-label">Department:</span><span>${selectedDoctor.department}</span></div>
               <div class="patient-item"><span class="patient-label">Doctor:</span><span>Dr. ${selectedDoctor.name}</span></div>
-              ${referredBy ? `<div class="patient-item" style="background: #fef3c7;"><span class="patient-label" style="color: #d97706;">Referred By:</span><span style="font-weight: bold; color: #d97706;">${referredBy}</span></div>` : ''}
+              ${referredBy ? `<div class="patient-item" style="background: #f5f5f5;"><span class="patient-label" style="color: #000;">Referred By:</span><span style="font-weight: bold; color: #000;">${referredBy}</span></div>` : ''}
             </div>
           </div>
 

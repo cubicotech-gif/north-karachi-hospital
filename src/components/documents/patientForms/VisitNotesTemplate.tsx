@@ -13,90 +13,111 @@ const VisitNotesTemplate = forwardRef<HTMLDivElement, VisitNotesTemplateProps>(
     const visitSections = Array.from({ length: 5 }, (_, i) => i + 1);
 
     return (
-      <div ref={ref} className="bg-white p-8" style={{ width: '210mm', minHeight: '297mm' }}>
-        {/* Header */}
-        <div className="border-b-2 border-teal-600 pb-3 mb-4">
-          <h1 className="text-2xl font-bold text-teal-700">VISIT NOTES</h1>
-          {patientData && (
-            <div className="flex justify-between text-sm mt-2">
-              <p><strong>MR#:</strong> {patientData.mr_number}</p>
-              <p><strong>Patient:</strong> {patientData.name}</p>
-            </div>
-          )}
-        </div>
+      <div ref={ref} style={{ width: '210mm', minHeight: '297mm', padding: '0', margin: '0', backgroundColor: 'white' }}>
+        <style>{`
+          @page {
+            size: A4;
+            margin: 50mm 25mm 25mm 25mm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            .avoid-break {
+              page-break-inside: avoid;
+            }
+          }
+        `}</style>
 
-        {/* Visit Note Sections */}
-        {visitSections.map((num) => (
-          <div key={num} className="mb-6 border-2 border-gray-300 p-3">
-            <div className="grid grid-cols-3 gap-4 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">Date:</span>
-                <div className="flex-1 border-b border-gray-400"></div>
+        <div style={{ padding: '0', fontFamily: 'Arial, sans-serif', color: '#000' }}>
+          {/* Header */}
+          <div style={{ borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#000', margin: '0' }}>VISIT NOTES</h1>
+            {patientData && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '8px' }}>
+                <p style={{ margin: '0' }}><strong>MR#:</strong> {patientData.mr_number}</p>
+                <p style={{ margin: '0' }}><strong>Patient:</strong> {patientData.name}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">Time:</span>
-                <div className="flex-1 border-b border-gray-400"></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">Token#:</span>
-                <div className="flex-1 border-b border-gray-400"></div>
-              </div>
-            </div>
-
-            <div className="mb-2">
-              <p className="text-xs font-semibold mb-1">CHIEF COMPLAINT:</p>
-              <div className="border-b border-gray-300 h-6"></div>
-            </div>
-
-            <div className="mb-2">
-              <p className="text-xs font-semibold mb-1">HISTORY OF PRESENT ILLNESS:</p>
-              <div className="space-y-1">
-                {[1, 2, 3].map((line) => (
-                  <div key={line} className="border-b border-gray-300 h-5"></div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-2">
-              <div>
-                <p className="text-xs font-semibold mb-1">EXAMINATION:</p>
-                <div className="space-y-1">
-                  {[1, 2].map((line) => (
-                    <div key={line} className="border-b border-gray-300 h-5"></div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold mb-1">DIAGNOSIS:</p>
-                <div className="space-y-1">
-                  {[1, 2].map((line) => (
-                    <div key={line} className="border-b border-gray-300 h-5"></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-2">
-              <p className="text-xs font-semibold mb-1">TREATMENT / ADVICE:</p>
-              <div className="space-y-1">
-                {[1, 2].map((line) => (
-                  <div key={line} className="border-b border-gray-300 h-5"></div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-3">
-              <span className="text-xs font-semibold">Doctor's Signature:</span>
-              <div className="flex-1 border-b border-gray-400"></div>
-              <span className="text-xs font-semibold">Name:</span>
-              <div className="w-40 border-b border-gray-400"></div>
-            </div>
+            )}
           </div>
-        ))}
 
-        {/* Footer */}
-        <div className="mt-4 text-center text-xs text-gray-500 border-t border-gray-300 pt-2">
-          <p>North Karachi Hospital - Clinical Documentation</p>
+          {/* Visit Note Sections */}
+          {visitSections.map((num) => (
+            <div key={num} style={{ marginBottom: '24px', border: '2px solid #333', padding: '12px' }} className="avoid-break">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600' }}>Date:</span>
+                  <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600' }}>Time:</span>
+                  <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600' }}>Token#:</span>
+                  <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '8px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '600', marginBottom: '4px', margin: '0 0 4px 0' }}>CHIEF COMPLAINT:</p>
+                <div style={{ borderBottom: '1px solid #333', height: '24px' }}></div>
+              </div>
+
+              <div style={{ marginBottom: '8px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '600', marginBottom: '4px', margin: '0 0 4px 0' }}>HISTORY OF PRESENT ILLNESS:</p>
+                <div>
+                  {[1, 2, 3].map((line) => (
+                    <div key={line} style={{ borderBottom: '1px solid #333', height: '20px', marginBottom: '4px' }}></div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: '600', marginBottom: '4px', margin: '0 0 4px 0' }}>EXAMINATION:</p>
+                  <div>
+                    {[1, 2].map((line) => (
+                      <div key={line} style={{ borderBottom: '1px solid #333', height: '20px', marginBottom: '4px' }}></div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: '600', marginBottom: '4px', margin: '0 0 4px 0' }}>DIAGNOSIS:</p>
+                  <div>
+                    {[1, 2].map((line) => (
+                      <div key={line} style={{ borderBottom: '1px solid #333', height: '20px', marginBottom: '4px' }}></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '8px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '600', marginBottom: '4px', margin: '0 0 4px 0' }}>TREATMENT / ADVICE:</p>
+                <div>
+                  {[1, 2].map((line) => (
+                    <div key={line} style={{ borderBottom: '1px solid #333', height: '20px', marginBottom: '4px' }}></div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '600' }}>Doctor's Signature:</span>
+                <div style={{ flex: '1', borderBottom: '1px solid #666' }}></div>
+                <span style={{ fontSize: '10px', fontWeight: '600' }}>Name:</span>
+                <div style={{ width: '160px', borderBottom: '1px solid #666' }}></div>
+              </div>
+            </div>
+          ))}
+
+          {/* Footer */}
+          <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '10px', color: '#666', borderTop: '1px solid #333', paddingTop: '8px' }}>
+            <p style={{ margin: '0' }}>Clinical Documentation</p>
+          </div>
         </div>
       </div>
     );

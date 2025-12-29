@@ -18,128 +18,138 @@ interface FileCoverSheetProps {
 const FileCoverSheet = forwardRef<HTMLDivElement, FileCoverSheetProps>(
   ({ patientData }, ref) => {
     return (
-      <div ref={ref} className="bg-white p-8" style={{ width: '210mm', minHeight: '297mm' }}>
-        {/* Header */}
-        <div className="border-4 border-teal-600 p-6 mb-6">
-          <h1 className="text-3xl font-bold text-center text-teal-700 mb-2">
-            NORTH KARACHI HOSPITAL
-          </h1>
-          <p className="text-center text-gray-600 text-sm">
-            Complete Medical Record File
-          </p>
-        </div>
+      <div ref={ref} style={{ width: '210mm', minHeight: '297mm', padding: '0', margin: '0', backgroundColor: 'white' }}>
+        <style>{`
+          @page {
+            size: A4;
+            margin: 50mm 25mm 25mm 25mm;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .page-break {
+              page-break-before: always;
+            }
+            .avoid-break {
+              page-break-inside: avoid;
+            }
+          }
+        `}</style>
 
-        {/* MR Number - Large and prominent */}
-        <div className="bg-teal-50 border-2 border-teal-600 p-4 mb-6">
-          <p className="text-sm text-gray-600 mb-1">Medical Record Number</p>
-          <p className="text-4xl font-bold text-teal-700">{patientData.mr_number}</p>
-        </div>
-
-        {/* Patient Information */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-teal-700 mb-4 border-b-2 border-teal-600 pb-2">
-            PATIENT INFORMATION
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">Full Name</p>
-              <p className="text-lg font-semibold">{patientData.name}</p>
-            </div>
-
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">Age / Gender</p>
-              <p className="text-lg font-semibold">{patientData.age} years / {patientData.gender}</p>
-            </div>
-
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">Contact Number</p>
-              <p className="text-lg font-semibold">{patientData.contact}</p>
-            </div>
-
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">CNIC Number</p>
-              <p className="text-lg font-semibold">{patientData.cnic_number || 'N/A'}</p>
-            </div>
-
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">Blood Group</p>
-              <p className="text-lg font-semibold">{patientData.blood_group || 'N/A'}</p>
-            </div>
-
-            <div className="border-b border-gray-300 pb-2">
-              <p className="text-xs text-gray-500">Registration Date</p>
-              <p className="text-lg font-semibold">
-                {new Date(patientData.created_at).toLocaleDateString()}
-              </p>
-            </div>
+        <div style={{ padding: '0', fontFamily: 'Arial, sans-serif', color: '#000' }}>
+          {/* MR Number - Large and prominent */}
+          <div style={{ border: '2px solid #000', padding: '12px', marginBottom: '20px' }}>
+            <p style={{ fontSize: '11px', color: '#333', marginBottom: '4px' }}>Medical Record Number</p>
+            <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#000', margin: '0' }}>{patientData.mr_number}</p>
           </div>
 
-          {patientData.address && (
-            <div className="border-b border-gray-300 pb-2 mt-4">
-              <p className="text-xs text-gray-500">Address</p>
-              <p className="text-lg font-semibold">{patientData.address}</p>
-            </div>
-          )}
+          {/* Patient Information */}
+          <div style={{ marginBottom: '20px' }} className="avoid-break">
+            <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#000', marginBottom: '12px', borderBottom: '2px solid #000', paddingBottom: '6px' }}>
+              PATIENT INFORMATION
+            </h2>
 
-          {patientData.emergency_contact && (
-            <div className="border-b border-gray-300 pb-2 mt-4">
-              <p className="text-xs text-gray-500">Emergency Contact</p>
-              <p className="text-lg font-semibold">{patientData.emergency_contact}</p>
-            </div>
-          )}
-        </div>
-
-        {/* File Contents Checklist */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-teal-700 mb-4 border-b-2 border-teal-600 pb-2">
-            FILE CONTENTS CHECKLIST
-          </h2>
-
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              'Registration Form',
-              'Visit Notes',
-              'Vitals Chart',
-              'Diagnosis Records',
-              'Medication Chart',
-              'Allergies & Conditions',
-              'Prescriptions',
-              'Lab Reports',
-              'OPD Receipts',
-              'Treatment Records',
-              'Admission Records',
-              'Discharge Summary',
-              'Follow-up Checklists',
-              'Imaging Reports',
-              'Consent Forms',
-              'Other Documents'
-            ].map((item) => (
-              <div key={item} className="flex items-center border border-gray-300 p-2">
-                <div className="w-5 h-5 border-2 border-gray-400 mr-3"></div>
-                <span className="text-sm">{item}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Full Name</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.name}</p>
               </div>
-            ))}
+
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Age / Gender</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.age} years / {patientData.gender}</p>
+              </div>
+
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Contact Number</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.contact}</p>
+              </div>
+
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>CNIC Number</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.cnic_number || 'N/A'}</p>
+              </div>
+
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Blood Group</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.blood_group || 'N/A'}</p>
+              </div>
+
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Registration Date</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>
+                  {new Date(patientData.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {patientData.address && (
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px', marginTop: '12px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Address</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.address}</p>
+              </div>
+            )}
+
+            {patientData.emergency_contact && (
+              <div style={{ borderBottom: '1px solid #333', paddingBottom: '6px', marginTop: '12px' }}>
+                <p style={{ fontSize: '10px', color: '#666', margin: '0' }}>Emergency Contact</p>
+                <p style={{ fontSize: '14px', fontWeight: '600', margin: '0' }}>{patientData.emergency_contact}</p>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Instructions */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <h3 className="font-bold text-sm mb-2">FILE HANDLING INSTRUCTIONS:</h3>
-          <ul className="text-xs space-y-1 list-disc list-inside">
-            <li>Keep all documents in chronological order (newest on top)</li>
-            <li>Staple all receipts and printed documents securely</li>
-            <li>Record all visit dates on the Visit Notes section</li>
-            <li>Update Medication Chart with each prescription change</li>
-            <li>Mark allergies in RED on the Allergies form</li>
-            <li>File must be returned to Records Department after each visit</li>
-          </ul>
-        </div>
+          {/* File Contents Checklist */}
+          <div style={{ marginBottom: '20px' }} className="avoid-break">
+            <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#000', marginBottom: '12px', borderBottom: '2px solid #000', paddingBottom: '6px' }}>
+              FILE CONTENTS CHECKLIST
+            </h2>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-gray-500">
-          <p>North Karachi Hospital - Medical Records Department</p>
-          <p>This is a confidential medical record. Handle with care.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {[
+                'Registration Form',
+                'Visit Notes',
+                'Vitals Chart',
+                'Diagnosis Records',
+                'Medication Chart',
+                'Allergies & Conditions',
+                'Prescriptions',
+                'Lab Reports',
+                'OPD Receipts',
+                'Treatment Records',
+                'Admission Records',
+                'Discharge Summary',
+                'Follow-up Checklists',
+                'Imaging Reports',
+                'Consent Forms',
+                'Other Documents'
+              ].map((item) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', border: '1px solid #333', padding: '6px' }}>
+                  <div style={{ width: '16px', height: '16px', border: '2px solid #000', marginRight: '8px' }}></div>
+                  <span style={{ fontSize: '11px' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div style={{ border: '1px solid #333', borderLeft: '4px solid #000', padding: '12px', backgroundColor: '#f5f5f5' }} className="avoid-break">
+            <h3 style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '6px', margin: '0 0 6px 0' }}>FILE HANDLING INSTRUCTIONS:</h3>
+            <ul style={{ fontSize: '10px', margin: '0', paddingLeft: '20px', lineHeight: '1.6' }}>
+              <li>Keep all documents in chronological order (newest on top)</li>
+              <li>Staple all receipts and printed documents securely</li>
+              <li>Record all visit dates on the Visit Notes section</li>
+              <li>Update Medication Chart with each prescription change</li>
+              <li>Mark allergies in RED on the Allergies form</li>
+              <li>File must be returned to Records Department after each visit</li>
+            </ul>
+          </div>
+
+          {/* Footer */}
+          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '10px', color: '#666' }}>
+            <p style={{ margin: '0' }}>This is a confidential medical record. Handle with care.</p>
+          </div>
         </div>
       </div>
     );
