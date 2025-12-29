@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,17 @@ import {
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
+
+// Import patient file form templates
+import FileCoverSheet from '@/components/documents/patientForms/FileCoverSheet';
+import VisitNotesTemplate from '@/components/documents/patientForms/VisitNotesTemplate';
+import VitalsChartTemplate from '@/components/documents/patientForms/VitalsChartTemplate';
+import DiagnosisRecordTemplate from '@/components/documents/patientForms/DiagnosisRecordTemplate';
+import MedicationChartTemplate from '@/components/documents/patientForms/MedicationChartTemplate';
+import AllergiesConditionsTemplate from '@/components/documents/patientForms/AllergiesConditionsTemplate';
+import PrescriptionPadTemplate from '@/components/documents/patientForms/PrescriptionPadTemplate';
+import FollowupChecklistTemplate from '@/components/documents/patientForms/FollowupChecklistTemplate';
 
 interface PatientProfileProps {
   selectedPatient: Patient | null;
@@ -34,6 +45,16 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Refs for patient file forms printing
+  const coverSheetRef = useRef<HTMLDivElement>(null);
+  const visitNotesRef = useRef<HTMLDivElement>(null);
+  const vitalsChartRef = useRef<HTMLDivElement>(null);
+  const diagnosisRecordRef = useRef<HTMLDivElement>(null);
+  const medicationChartRef = useRef<HTMLDivElement>(null);
+  const allergiesConditionsRef = useRef<HTMLDivElement>(null);
+  const prescriptionPadRef = useRef<HTMLDivElement>(null);
+  const followupChecklistRef = useRef<HTMLDivElement>(null);
 
   // Update selected patient when prop changes
   useEffect(() => {
@@ -171,6 +192,69 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
       printWindow.document.close();
       printWindow.onload = () => printWindow.print();
     }
+  };
+
+  // Print handler functions for patient file forms
+  const handlePrintFileCoverSheet = useReactToPrint({
+    contentRef: coverSheetRef,
+    documentTitle: 'Patient-File-Cover-Sheet',
+    onAfterPrint: () => toast.success('File Cover Sheet printed'),
+  });
+
+  const handlePrintVisitNotes = useReactToPrint({
+    contentRef: visitNotesRef,
+    documentTitle: 'Visit-Notes-Template',
+    onAfterPrint: () => toast.success('Visit Notes printed'),
+  });
+
+  const handlePrintVitalsChart = useReactToPrint({
+    contentRef: vitalsChartRef,
+    documentTitle: 'Vitals-Chart-Template',
+    onAfterPrint: () => toast.success('Vitals Chart printed'),
+  });
+
+  const handlePrintDiagnosisRecord = useReactToPrint({
+    contentRef: diagnosisRecordRef,
+    documentTitle: 'Diagnosis-Record-Template',
+    onAfterPrint: () => toast.success('Diagnosis Record printed'),
+  });
+
+  const handlePrintMedicationChart = useReactToPrint({
+    contentRef: medicationChartRef,
+    documentTitle: 'Medication-Chart-Template',
+    onAfterPrint: () => toast.success('Medication Chart printed'),
+  });
+
+  const handlePrintAllergiesConditions = useReactToPrint({
+    contentRef: allergiesConditionsRef,
+    documentTitle: 'Allergies-Conditions-Template',
+    onAfterPrint: () => toast.success('Allergies & Conditions printed'),
+  });
+
+  const handlePrintPrescriptionPad = useReactToPrint({
+    contentRef: prescriptionPadRef,
+    documentTitle: 'Prescription-Pad-Template',
+    onAfterPrint: () => toast.success('Prescription Pad printed'),
+  });
+
+  const handlePrintFollowupChecklist = useReactToPrint({
+    contentRef: followupChecklistRef,
+    documentTitle: 'Followup-Checklist-Template',
+    onAfterPrint: () => toast.success('Follow-up Checklist printed'),
+  });
+
+  // Print all patient file forms at once
+  const handlePrintAllPatientFileForms = () => {
+    if (!selectedPatient) return;
+    toast.info('Printing all patient file forms...');
+    setTimeout(() => handlePrintFileCoverSheet(), 100);
+    setTimeout(() => handlePrintAllergiesConditions(), 1000);
+    setTimeout(() => handlePrintVisitNotes(), 2000);
+    setTimeout(() => handlePrintVitalsChart(), 3000);
+    setTimeout(() => handlePrintDiagnosisRecord(), 4000);
+    setTimeout(() => handlePrintMedicationChart(), 5000);
+    setTimeout(() => handlePrintPrescriptionPad(), 6000);
+    setTimeout(() => handlePrintFollowupChecklist(), 7000);
   };
 
   // Print consent forms
@@ -1323,6 +1407,123 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 </div>
 
+                {/* Patient File Forms Section - Clinical Documentation */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-teal-600" />
+                    Patient File Forms - Clinical Documentation
+                    <span className="text-sm font-normal text-gray-500">(Print blank forms for manual documentation)</span>
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <Card
+                      className="p-4 hover:bg-teal-50 cursor-pointer transition-colors border-2 hover:border-teal-300"
+                      onClick={handlePrintFileCoverSheet}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-teal-700">File Cover Sheet</p>
+                          <p className="text-xs text-gray-500">Auto-populated with patient data</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-teal-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-red-50 cursor-pointer transition-colors border-2 hover:border-red-300"
+                      onClick={handlePrintAllergiesConditions}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-red-700">Allergies & Conditions</p>
+                          <p className="text-xs text-gray-500">⚠ Critical safety form</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-red-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-blue-50 cursor-pointer transition-colors border-2 hover:border-blue-300"
+                      onClick={handlePrintVisitNotes}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-blue-700">Visit Notes</p>
+                          <p className="text-xs text-gray-500">5 visits per page</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-blue-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-purple-50 cursor-pointer transition-colors border-2 hover:border-purple-300"
+                      onClick={handlePrintVitalsChart}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-purple-700">Vitals Chart</p>
+                          <p className="text-xs text-gray-500">20 entries (landscape)</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-purple-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-orange-50 cursor-pointer transition-colors border-2 hover:border-orange-300"
+                      onClick={handlePrintDiagnosisRecord}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-orange-700">Diagnosis Record</p>
+                          <p className="text-xs text-gray-500">With ICD-10 codes</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-orange-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-green-50 cursor-pointer transition-colors border-2 hover:border-green-300"
+                      onClick={handlePrintMedicationChart}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-green-700">Medication Chart</p>
+                          <p className="text-xs text-gray-500">25 entries (landscape)</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-green-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-indigo-50 cursor-pointer transition-colors border-2 hover:border-indigo-300"
+                      onClick={handlePrintPrescriptionPad}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-indigo-700">Prescription Pad</p>
+                          <p className="text-xs text-gray-500">4 prescriptions per page</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-indigo-600" />
+                      </div>
+                    </Card>
+                    <Card
+                      className="p-4 hover:bg-pink-50 cursor-pointer transition-colors border-2 hover:border-pink-300"
+                      onClick={handlePrintFollowupChecklist}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-pink-700">Follow-up Checklist</p>
+                          <p className="text-xs text-gray-500">Appointment tracking</p>
+                        </div>
+                        <Printer className="h-5 w-5 text-pink-600" />
+                      </div>
+                    </Card>
+                  </div>
+                  <Button
+                    onClick={handlePrintAllPatientFileForms}
+                    className="w-full bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print All Forms (Complete File Set - 8 Forms)
+                  </Button>
+                  <p className="text-xs text-teal-600 mt-2">
+                    📋 Print all forms and assemble in a physical file folder. Staple digital receipts as they are generated.
+                  </p>
+                </div>
+
                 {/* Patient Records Section */}
                 <div>
                   <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
@@ -1403,6 +1604,79 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Hidden components for printing patient file forms */}
+      {selectedPatient && (
+        <div style={{ display: 'none' }}>
+          <FileCoverSheet
+            ref={coverSheetRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              age: selectedPatient.age,
+              gender: selectedPatient.gender,
+              contact: selectedPatient.contact,
+              cnic_number: selectedPatient.cnicNumber,
+              blood_group: selectedPatient.bloodGroup,
+              address: selectedPatient.address,
+              emergency_contact: selectedPatient.emergencyContact,
+              created_at: selectedPatient.registrationDate!
+            }}
+          />
+          <VisitNotesTemplate
+            ref={visitNotesRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <VitalsChartTemplate
+            ref={vitalsChartRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <DiagnosisRecordTemplate
+            ref={diagnosisRecordRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <MedicationChartTemplate
+            ref={medicationChartRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+          <AllergiesConditionsTemplate
+            ref={allergiesConditionsRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              blood_group: selectedPatient.bloodGroup
+            }}
+          />
+          <PrescriptionPadTemplate
+            ref={prescriptionPadRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name,
+              age: selectedPatient.age,
+              gender: selectedPatient.gender
+            }}
+          />
+          <FollowupChecklistTemplate
+            ref={followupChecklistRef}
+            patientData={{
+              mr_number: selectedPatient.mrNumber!,
+              name: selectedPatient.name
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
