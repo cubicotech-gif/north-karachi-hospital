@@ -193,27 +193,32 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       return;
     }
 
-    // Check for duplicate mobile number (only for new registrations or if contact changed)
+    // Capitalize patient name for consistency
+    const capitalizedName = capitalizeName(newPatient.name);
+
+    // Check for duplicate patient (same name AND same mobile number)
     const normalizedContact = newPatient.contact.trim();
-    const isDuplicateContact = patients.some(p => {
+    const isDuplicatePatient = patients.some(p => {
       // Skip check if editing the same patient
       if (editingPatient && p.id === editingPatient.id) {
         return false;
       }
-      return p.contact === normalizedContact;
+      // Check if BOTH name and mobile match (case-insensitive name comparison)
+      return p.name.toLowerCase() === capitalizedName.toLowerCase() &&
+             p.contact === normalizedContact;
     });
 
-    if (isDuplicateContact) {
-      const existingPatient = patients.find(p => p.contact === normalizedContact);
+    if (isDuplicatePatient) {
+      const existingPatient = patients.find(p =>
+        p.name.toLowerCase() === capitalizedName.toLowerCase() &&
+        p.contact === normalizedContact
+      );
       toast.error(
-        `Mobile number already registered!\n\nPatient: ${existingPatient?.name}\nMR#: ${existingPatient?.mrNumber}\n\nPlease use a different mobile number.`,
+        `Duplicate patient found!\n\nPatient: ${existingPatient?.name}\nMR#: ${existingPatient?.mrNumber}\nMobile: ${existingPatient?.contact}\n\nThis patient is already registered.`,
         { duration: 5000 }
       );
       return;
     }
-
-    // Capitalize patient name for consistency
-    const capitalizedName = capitalizeName(newPatient.name);
 
     const patientData = {
   name: capitalizedName,
