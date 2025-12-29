@@ -1529,18 +1529,27 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.opdTokens?.data?.map((opd: any) => (
-                    <Card key={opd.id} className="p-4">
+                    <Card key={opd.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">Token #{opd.token_number}</p>
                           <p className="text-sm text-gray-600">Doctor: {opd.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Fee: {formatCurrency(opd.fee || 0)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(opd.created_at || opd.date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(opd.created_at || opd.date)}</p>
                           <Badge className={opd.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
                             {opd.payment_status}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedOPDDetail(opd)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1590,9 +1599,9 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.treatments?.data?.map((treatment: any) => (
-                    <Card key={treatment.id} className="p-4">
+                    <Card key={treatment.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">{treatment.treatment_name}</p>
                           <p className="text-sm text-gray-600">Type: {treatment.treatment_type}</p>
                           <p className="text-sm text-gray-600">Doctor: {treatment.doctors?.name || 'N/A'}</p>
@@ -1601,11 +1610,20 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                             <p className="text-sm text-gray-500 mt-1">{treatment.description}</p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(treatment.created_at || treatment.date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(treatment.created_at || treatment.date)}</p>
                           <Badge className={treatment.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
                             {treatment.payment_status}
                           </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedTreatmentDetail(treatment)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1624,16 +1642,25 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.labOrders?.data?.map((lab: any) => (
-                    <Card key={lab.id} className="p-4">
+                    <Card key={lab.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">{lab.tests?.length || 0} Tests Ordered</p>
                           <p className="text-sm text-gray-600">Tests: {lab.tests?.join(', ') || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Amount: {formatCurrency(lab.total_amount || 0)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(lab.created_at || lab.order_date)}</p>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(lab.created_at || lab.order_date)}</p>
                           <Badge>{lab.status}</Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedLabDetail(lab)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -1908,6 +1935,380 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* OPD Detail Modal */}
+      {selectedOPDDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">OPD Visit Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedOPDDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-teal-50 p-4 rounded-lg border-2 border-teal-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-teal-700">
+                    OPD-{selectedOPDDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visit Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    Visit Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Token Number</p>
+                      <p className="font-medium text-lg">#{selectedOPDDetail.token_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Visit Date</p>
+                      <p className="font-medium">{formatDateTime(selectedOPDDetail.created_at || selectedOPDDetail.date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Doctor</p>
+                      <p className="font-medium">{selectedOPDDetail.doctors?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Department</p>
+                      <p className="font-medium">{selectedOPDDetail.doctors?.department || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">OPD Fee</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedOPDDetail.fee || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedOPDDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedOPDDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintOPDReceipt(selectedOPDDetail)}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedOPDDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Lab Detail Modal */}
+      {selectedLabDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">Lab Order Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedLabDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-green-50 p-4 rounded-lg border-2 border-green-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    LAB-{selectedLabDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <TestTube className="h-5 w-5 text-purple-600" />
+                    Order Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Order Date</p>
+                      <p className="font-medium">{formatDateTime(selectedLabDetail.created_at || selectedLabDetail.order_date)}</p>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Status</p>
+                      <Badge>{selectedLabDetail.status}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">Tests Ordered ({selectedLabDetail.tests?.length || 0})</p>
+                      <ul className="space-y-1">
+                        {selectedLabDetail.tests?.map((test: string, index: number) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span>{test}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Total Amount</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedLabDetail.total_amount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedLabDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedLabDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintLabReceipt(selectedLabDetail)}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedLabDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Treatment Detail Modal */}
+      {selectedTreatmentDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl">Treatment Details</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedTreatmentDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Receipt Number */}
+                <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-600">
+                  <p className="text-sm text-gray-600">Receipt Number</p>
+                  <p className="text-2xl font-bold text-orange-700">
+                    TRT-{selectedTreatmentDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Treatment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-orange-600" />
+                    Treatment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Treatment Name</p>
+                      <p className="font-medium text-lg">{selectedTreatmentDetail.treatment_name}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Type</p>
+                        <p className="font-medium">{selectedTreatmentDetail.treatment_type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Date</p>
+                        <p className="font-medium">{formatDateTime(selectedTreatmentDetail.created_at || selectedTreatmentDetail.date)}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Doctor</p>
+                      <p className="font-medium">{selectedTreatmentDetail.doctors?.name || 'N/A'}</p>
+                    </div>
+                    {selectedTreatmentDetail.description && (
+                      <div>
+                        <p className="text-xs text-gray-500">Description</p>
+                        <p className="font-medium">{selectedTreatmentDetail.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Payment Details
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-600">Treatment Price</span>
+                      <span className="font-bold text-lg">{formatCurrency(selectedTreatmentDetail.price || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Status</span>
+                      <Badge className={selectedTreatmentDetail.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                        {selectedTreatmentDetail.payment_status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => reprintTreatmentReceipt(selectedTreatmentDetail)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Reprint Receipt
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedTreatmentDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Hidden components for printing patient file forms */}
       {selectedPatient && (
