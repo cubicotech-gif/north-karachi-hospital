@@ -82,7 +82,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     setIsLoading(true);
     try {
       const { data, error } = await db.patients.getAll();
-      
+
       if (error) {
         console.error('Error loading patients:', error);
         toast.error('Failed to load patients');
@@ -116,6 +116,18 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Capitalize first letter of each word in a name
+  const capitalizeName = (name: string): string => {
+    return name
+      .trim()
+      .split(' ')
+      .map(word => {
+        if (word.length === 0) return '';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
   };
 
   const handleEdit = (patient: Patient, e: React.MouseEvent) => {
@@ -181,13 +193,40 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
       return;
     }
 
+    // Capitalize patient name for consistency
+    const capitalizedName = capitalizeName(newPatient.name);
+
+    // Check for duplicate patient (same name AND same mobile number)
+    const normalizedContact = newPatient.contact.trim();
+    const isDuplicatePatient = patients.some(p => {
+      // Skip check if editing the same patient
+      if (editingPatient && p.id === editingPatient.id) {
+        return false;
+      }
+      // Check if BOTH name and mobile match (case-insensitive name comparison)
+      return p.name.toLowerCase() === capitalizedName.toLowerCase() &&
+             p.contact === normalizedContact;
+    });
+
+    if (isDuplicatePatient) {
+      const existingPatient = patients.find(p =>
+        p.name.toLowerCase() === capitalizedName.toLowerCase() &&
+        p.contact === normalizedContact
+      );
+      toast.error(
+        `Duplicate patient found!\n\nPatient: ${existingPatient?.name}\nMR#: ${existingPatient?.mrNumber}\nMobile: ${existingPatient?.contact}\n\nThis patient is already registered.`,
+        { duration: 5000 }
+      );
+      return;
+    }
+
     const patientData = {
-  name: newPatient.name,
+  name: capitalizedName,
   age: newPatient.age,
   cnic_number: newPatient.cnicNumber ? formatCNIC(newPatient.cnicNumber) : null,
   gender: newPatient.gender,
-  contact: newPatient.contact,
-  care_of: newPatient.careOf || null,
+  contact: normalizedContact,
+  care_of: newPatient.careOf ? capitalizeName(newPatient.careOf) : null,
   problem: newPatient.problem || null,
   department: newPatient.department || null,
   emergency_contact: newPatient.emergencyContact || null,
