@@ -430,90 +430,75 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            @page { size: A4; margin: 50mm 25mm 25mm 25mm; }
+            @page { size: A4; margin: 50mm 25mm 20mm 25mm; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
-              font-size: 11px;
-              line-height: 1.3;
+              font-size: 14px;
+              line-height: 1.5;
               width: 100%;
               max-width: 210mm;
+              display: flex;
+              flex-direction: column;
+              min-height: 100%;
             }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
-            .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; }
-            .patient-box { background: #f5f5f5; padding: 8px; border-left: 3px solid #000; margin-bottom: 10px; font-size: 10px; line-height: 1.4; }
-            .section { margin-bottom: 8px; }
-            .section-title { font-weight: bold; font-size: 11px; color: #000; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 5px; }
-            .write-area { min-height: 50px; border: 1px solid #666; padding: 5px; background: #fafafa; }
-            .write-area.large { min-height: 120px; }
-            .write-area.medium { min-height: 70px; }
-            .two-col { display: flex; gap: 10px; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
+            .patient-box { padding: 10px 0; border-bottom: 1px solid #ccc; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
+            .blank-area { flex: 1; min-height: 280px; }
+            .bottom-sections { margin-top: auto; }
+            .section { margin-bottom: 12px; }
+            .section-title { font-weight: bold; font-size: 15px; color: #000; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px; }
+            .write-area { min-height: 80px; border: 1px solid #999; padding: 8px; background: #fafafa; }
+            .two-col { display: flex; gap: 15px; }
             .two-col > div { flex: 1; }
-            .signature { margin-top: 15px; text-align: right; }
-            .signature-line { border-top: 1px solid #333; width: 180px; margin-left: auto; padding-top: 5px; font-size: 10px; }
-            .rx-symbol { font-size: 16px; font-weight: bold; color: #000; }
+            .signature { margin-top: 20px; text-align: right; }
+            .signature-line { border-top: 1px solid #333; width: 200px; margin-left: auto; padding-top: 6px; font-size: 13px; }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div style="font-size: 14px; font-weight: bold; color: #000;">PRESCRIPTION & MEDICAL RECORD</div>
-          </div>
-
           <div class="info-row">
             <div>
-              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')} |
-              <strong>Token:</strong> ${generatedToken?.token_number || 'N/A'} |
+              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')} &nbsp;&nbsp;
+              <strong>Token:</strong> ${generatedToken?.token_number || 'N/A'} &nbsp;&nbsp;
               <strong>Queue:</strong> ${queueNumber}
             </div>
             <div style="text-align: right;">
-              <strong>Dr. ${selectedDoctor.name}</strong> | ${selectedDoctor.department} | ${selectedDoctor.specialization}
+              <strong>Dr. ${selectedDoctor.name}</strong> &nbsp;|&nbsp; ${selectedDoctor.department} &nbsp;|&nbsp; ${selectedDoctor.specialization}
             </div>
           </div>
 
           <div class="patient-box">
-            <strong>Patient:</strong> ${selectedPatient.name} |
-            <strong style="color: #000;">MR#: ${selectedPatient.mrNumber || 'N/A'}</strong> |
-            <strong>Age:</strong> ${selectedPatient.age}Y |
-            <strong>Gender:</strong> ${selectedPatient.gender} |
+            <strong>Patient:</strong> ${selectedPatient.name} &nbsp;&nbsp;
+            <strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'} &nbsp;&nbsp;
+            <strong>Age:</strong> ${selectedPatient.age}Y &nbsp;&nbsp;
+            <strong>Gender:</strong> ${selectedPatient.gender} &nbsp;&nbsp;
             <strong>Contact:</strong> ${selectedPatient.contact}
-            ${referredBy ? ` | <strong>Referred By:</strong> ${referredBy}` : ''}
+            ${referredBy ? ` &nbsp;&nbsp;<strong>Referred By:</strong> ${referredBy}` : ''}
             <br><strong>Chief Complaint:</strong> ${selectedPatient.problem || 'N/A'}
           </div>
 
-          <div class="two-col">
-            <div class="section">
-              <div class="section-title">Clinical Examination</div>
-              <div class="write-area medium"></div>
-            </div>
-            <div class="section">
-              <div class="section-title">Diagnosis</div>
-              <div class="write-area medium"></div>
-            </div>
-          </div>
+          <div class="blank-area"></div>
 
-          <div class="section">
-            <div class="section-title"><span class="rx-symbol">℞</span> Prescription</div>
-            <div class="write-area large"></div>
-          </div>
-
-          <div class="two-col">
-            <div class="section">
-              <div class="section-title">Lab Tests / Investigations</div>
-              <div class="write-area"></div>
+          <div class="bottom-sections">
+            <div class="two-col">
+              <div class="section">
+                <div class="section-title">Diagnosis</div>
+                <div class="write-area"></div>
+              </div>
+              <div class="section">
+                <div class="section-title">Advice & Follow-up</div>
+                <div class="write-area"></div>
+              </div>
             </div>
-            <div class="section">
-              <div class="section-title">Advice & Follow-up</div>
-              <div class="write-area"></div>
-            </div>
-          </div>
 
-          <div class="signature">
-            <div class="signature-line">
-              <strong>Dr. ${selectedDoctor.name}</strong><br>
-              ${selectedDoctor.specialization}
+            <div class="signature">
+              <div class="signature-line">
+                <strong>Dr. ${selectedDoctor.name}</strong><br>
+                ${selectedDoctor.specialization}
+              </div>
             </div>
           </div>
         </body>
