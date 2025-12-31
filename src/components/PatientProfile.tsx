@@ -9,8 +9,10 @@ import {
   User, Calendar, FileText, Bed, TestTube, Activity, Clock, Printer,
   Search, CreditCard, Phone, MapPin, Heart, Users, DollarSign,
   AlertCircle, CheckCircle, XCircle, ChevronRight, RefreshCw, FileCheck,
-  ClipboardList, Download, Eye, X
+  ClipboardList, Download, Eye, X, Baby, Stethoscope
 } from 'lucide-react';
+import DeliveryRecordForm from './DeliveryRecordForm';
+import NICUObservationForm from './NICUObservationForm';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -52,6 +54,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [selectedTreatmentDetail, setSelectedTreatmentDetail] = useState<any>(null);
   const [selectedAdmissionDetail, setSelectedAdmissionDetail] = useState<any>(null);
 
+  // Maternity related states
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
+  const [showNICUForm, setShowNICUForm] = useState(false);
+  const [deliveryRecords, setDeliveryRecords] = useState<any[]>([]);
+  const [babyPatients, setBabyPatients] = useState<any[]>([]);
+  const [selectedBabyForNICU, setSelectedBabyForNICU] = useState<any>(null);
+
   // Refs for patient file forms printing
   const coverSheetRef = useRef<HTMLDivElement>(null);
   const visitNotesRef = useRef<HTMLDivElement>(null);
@@ -82,11 +91,37 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     try {
       const historyData = await db.patientHistory.getByPatientId(selectedPatient.id);
       setHistory(historyData);
+
+      // Load maternity data if female patient
+      if (selectedPatient.gender === 'Female') {
+        loadMaternityData();
+      }
     } catch (error) {
       console.error('Error loading patient history:', error);
       toast.error('Failed to load patient history');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load maternity-related data (delivery records, babies)
+  const loadMaternityData = async () => {
+    if (!selectedPatient) return;
+
+    try {
+      // Load delivery records for this mother
+      const { data: deliveries, error: deliveryError } = await db.deliveryRecords.getByMotherPatientId(selectedPatient.id);
+      if (!deliveryError && deliveries) {
+        setDeliveryRecords(deliveries);
+      }
+
+      // Load baby patients linked to this mother
+      const { data: babies, error: babiesError } = await db.babyPatients.getByMotherId(selectedPatient.id);
+      if (!babiesError && babies) {
+        setBabyPatients(babies);
+      }
+    } catch (error) {
+      console.error('Error loading maternity data:', error);
     }
   };
 
@@ -1214,6 +1249,16 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
             <Printer className="h-4 w-4 mr-2" />
             Print Complete File
           </Button>
+          {/* Maternity Actions - Only show for female patients */}
+          {selectedPatient.gender === 'Female' && (
+            <Button
+              onClick={() => setShowDeliveryForm(true)}
+              className="bg-pink-600 hover:bg-pink-700"
+            >
+              <Baby className="h-4 w-4 mr-2" />
+              Record Delivery
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1422,13 +1467,19 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
               <TabsTrigger value="opd">OPD ({history.opdTokens?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="admissions">Admissions ({history.admissions?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="treatments">Treatments ({history.treatments?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="labs">Labs ({history.labOrders?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="appointments">Appointments ({history.appointments?.data?.length || 0})</TabsTrigger>
+              {selectedPatient.gender === 'Female' && (
+                <TabsTrigger value="maternity" className="bg-pink-50">
+                  <Baby className="h-3 w-3 mr-1" />
+                  Maternity ({deliveryRecords.length})
+                </TabsTrigger>
+              )}
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
 
@@ -1690,6 +1741,137 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                 )}
               </div>
             </TabsContent>
+
+            {/* Maternity Tab - Only for female patients */}
+            {selectedPatient.gender === 'Female' && (
+              <TabsContent value="maternity">
+                <div className="space-y-4 mt-4">
+                  {/* Maternity Quick Actions */}
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      onClick={() => setShowDeliveryForm(true)}
+                      className="bg-pink-600 hover:bg-pink-700"
+                    >
+                      <Baby className="h-4 w-4 mr-2" />
+                      Record New Delivery
+                    </Button>
+                  </div>
+
+                  {/* Delivery Records */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Baby className="h-5 w-5 text-pink-500" />
+                        Delivery Records ({deliveryRecords.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {deliveryRecords.length === 0 ? (
+                        <div className="text-center py-8 text-gray-600">
+                          <Baby className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                          <p>No delivery records found</p>
+                          <p className="text-sm text-gray-500 mt-1">Click "Record New Delivery" to add birth details</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {deliveryRecords.map((record: any) => (
+                            <Card key={record.id} className="p-4 border-pink-200 bg-pink-50/50">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-semibold text-lg">
+                                    {record.baby_gender === 'Male' ? '👦' : '👧'} Baby {record.baby_gender}
+                                    {record.multiple_birth && ` (${record.birth_order}/${record.total_babies})`}
+                                  </p>
+                                  <div className="text-sm text-gray-600 space-y-1 mt-2">
+                                    <p><strong>Date/Time:</strong> {new Date(record.delivery_date).toLocaleDateString('en-GB')} at {record.delivery_time}</p>
+                                    <p><strong>Delivery Type:</strong> {record.delivery_type}</p>
+                                    <p><strong>Weight:</strong> {record.baby_weight_kg}kg ({record.baby_weight_grams}g)</p>
+                                    {record.apgar_score_1min && (
+                                      <p><strong>APGAR:</strong> {record.apgar_score_1min}/10 (1min), {record.apgar_score_5min}/10 (5min)</p>
+                                    )}
+                                    <p><strong>Condition:</strong> <Badge variant={record.baby_condition === 'Healthy' ? 'default' : 'destructive'}>{record.baby_condition}</Badge></p>
+                                    <p><strong>Birth Certificate:</strong> #{record.birth_certificate_number}</p>
+                                    {record.doctors?.name && <p><strong>Obstetrician:</strong> {record.doctors.name}</p>}
+                                  </div>
+                                </div>
+                                <div className="text-right space-y-2">
+                                  <Button variant="outline" size="sm">
+                                    <Printer className="h-4 w-4 mr-1" />
+                                    Print Certificate
+                                  </Button>
+                                  {record.baby_condition !== 'Healthy' && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-orange-500 hover:bg-orange-600"
+                                      onClick={() => {
+                                        // Find the baby patient and open NICU form
+                                        const babyPatient = babyPatients.find(b => b.id === record.baby_patient_id);
+                                        if (babyPatient) {
+                                          setSelectedBabyForNICU(babyPatient);
+                                          setShowNICUForm(true);
+                                        }
+                                      }}
+                                    >
+                                      <Stethoscope className="h-4 w-4 mr-1" />
+                                      NICU
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Baby Patients (Children of this mother) */}
+                  {babyPatients.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Users className="h-5 w-5 text-blue-500" />
+                          Registered Babies ({babyPatients.length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {babyPatients.map((baby: any) => (
+                            <Card key={baby.id} className="p-4 border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold">{baby.name}</p>
+                                  <p className="text-sm text-gray-600">
+                                    <span className="font-mono bg-blue-100 px-2 py-0.5 rounded">{baby.mr_number}</span>
+                                    {' '} • {baby.gender}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Registered: {new Date(baby.created_at).toLocaleDateString('en-GB')}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedBabyForNICU(baby);
+                                      setShowNICUForm(true);
+                                    }}
+                                  >
+                                    <Stethoscope className="h-4 w-4 mr-1" />
+                                    NICU Records
+                                  </Button>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+            )}
 
             {/* Documents Tab */}
             <TabsContent value="documents">
@@ -2375,6 +2557,48 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
             }}
           />
         </div>
+      )}
+
+      {/* Delivery Record Form Modal */}
+      {selectedPatient && selectedPatient.gender === 'Female' && (
+        <DeliveryRecordForm
+          isOpen={showDeliveryForm}
+          onClose={() => setShowDeliveryForm(false)}
+          patient={{
+            id: selectedPatient.id,
+            mr_number: selectedPatient.mrNumber || '',
+            name: selectedPatient.name,
+            age: selectedPatient.age,
+            gender: selectedPatient.gender,
+            contact: selectedPatient.contact,
+            address: selectedPatient.address,
+            care_of: selectedPatient.careOf
+          }}
+          admission={history.admissions?.data?.find((a: any) => a.status === 'active')}
+          onSuccess={() => {
+            loadMaternityData();
+            toast.success('Delivery record saved successfully');
+          }}
+        />
+      )}
+
+      {/* NICU Observation Form Modal */}
+      {selectedBabyForNICU && (
+        <NICUObservationForm
+          isOpen={showNICUForm}
+          onClose={() => {
+            setShowNICUForm(false);
+            setSelectedBabyForNICU(null);
+          }}
+          patient={{
+            id: selectedBabyForNICU.id,
+            mr_number: selectedBabyForNICU.mr_number,
+            name: selectedBabyForNICU.name
+          }}
+          onSuccess={() => {
+            toast.success('NICU observation recorded');
+          }}
+        />
       )}
     </div>
   );
