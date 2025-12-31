@@ -64,6 +64,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [showBirthCertificate, setShowBirthCertificate] = useState(false);
   const [birthCertificateData, setBirthCertificateData] = useState<any>(null);
 
+  // Baby management states
+  const [selectedBabyForActions, setSelectedBabyForActions] = useState<any>(null);
+  const [showBabyActionsDialog, setShowBabyActionsDialog] = useState(false);
+  const [babyNicuObservations, setBabyNicuObservations] = useState<any[]>([]);
+  const [babyDeliveryRecord, setBabyDeliveryRecord] = useState<any>(null);
+  const [loadingBabyData, setLoadingBabyData] = useState(false);
+
   // Refs for patient file forms printing
   const birthCertificateRef = useRef<HTMLDivElement>(null);
   const coverSheetRef = useRef<HTMLDivElement>(null);
@@ -127,6 +134,53 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     } catch (error) {
       console.error('Error loading maternity data:', error);
     }
+  };
+
+  // Load data for a specific baby (for baby actions dialog)
+  const loadBabyData = async (baby: any) => {
+    setLoadingBabyData(true);
+    try {
+      // Load NICU observations for this baby
+      const { data: nicuData, error: nicuError } = await db.nicuObservations.getByBabyPatientId(baby.id);
+      if (!nicuError && nicuData) {
+        setBabyNicuObservations(nicuData);
+      }
+
+      // Find delivery record for this baby
+      const { data: deliveryData, error: deliveryError } = await db.deliveryRecords.getByBabyPatientId(baby.id);
+      if (!deliveryError && deliveryData) {
+        setBabyDeliveryRecord(deliveryData);
+      }
+    } catch (error) {
+      console.error('Error loading baby data:', error);
+    } finally {
+      setLoadingBabyData(false);
+    }
+  };
+
+  // Open baby actions dialog
+  const openBabyActions = (baby: any) => {
+    setSelectedBabyForActions({
+      ...baby,
+      mother_patient_id: baby.mother_patient_id || selectedPatient?.id
+    });
+    loadBabyData(baby);
+    setShowBabyActionsDialog(true);
+  };
+
+  // Calculate age in days
+  const getAgeInDays = (createdAt: string) => {
+    const birth = new Date(createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - birth.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Calculate NICU charges for a baby
+  const calculateBabyNicuCharges = () => {
+    return babyNicuObservations.reduce((sum, obs) => {
+      return sum + (obs.total_charge || 0);
+    }, 0);
   };
 
   const handleSearch = async () => {
@@ -1889,38 +1943,66 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                           <Users className="h-5 w-5 text-blue-500" />
                           Registered Babies ({babyPatients.length})
                         </CardTitle>
+                        <p className="text-sm text-gray-500">Click on a baby to manage treatments, lab tests, NICU, and billing</p>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {babyPatients.map((baby: any) => (
-                            <Card key={baby.id} className="p-4 border-blue-200">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="font-semibold">{baby.name}</p>
-                                  <p className="text-sm text-gray-600">
-                                    <span className="font-mono bg-blue-100 px-2 py-0.5 rounded">{baby.mr_number}</span>
-                                    {' '} • {baby.gender}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Registered: {new Date(baby.created_at).toLocaleDateString('en-GB')}
-                                  </p>
+                            <Card
+                              key={baby.id}
+                              className={`p-4 cursor-pointer hover:shadow-lg transition-all border-l-4 ${baby.gender === 'Male' ? 'border-l-blue-400 hover:bg-blue-50' : 'border-l-pink-400 hover:bg-pink-50'}`}
+                              onClick={() => openBabyActions(baby)}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-full ${baby.gender === 'Male' ? 'bg-blue-100' : 'bg-pink-100'}`}>
+                                    <Baby className={`h-5 w-5 ${baby.gender === 'Male' ? 'text-blue-600' : 'text-pink-600'}`} />
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold">{baby.name}</p>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs">{baby.mr_number}</span>
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                      <span>{baby.gender}</span>
+                                      <span>•</span>
+                                      <span>{getAgeInDays(baby.created_at)} days old</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedBabyForNICU({
-                                        ...baby,
-                                        mother_patient_id: baby.mother_patient_id || selectedPatient?.id
-                                      });
-                                      setShowNICUForm(true);
-                                    }}
-                                  >
-                                    <Stethoscope className="h-4 w-4 mr-1" />
-                                    NICU Records
-                                  </Button>
-                                </div>
+                                <Badge variant={baby.gender === 'Male' ? 'default' : 'secondary'} className={baby.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'}>
+                                  {baby.gender}
+                                </Badge>
+                              </div>
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openBabyActions(baby);
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Manage Baby
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs border-orange-300 text-orange-600 hover:bg-orange-50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBabyForNICU({
+                                      ...baby,
+                                      mother_patient_id: baby.mother_patient_id || selectedPatient?.id
+                                    });
+                                    setShowNICUForm(true);
+                                  }}
+                                >
+                                  <Heart className="h-3 w-3 mr-1" />
+                                  NICU
+                                </Button>
                               </div>
                             </Card>
                           ))}
@@ -2689,6 +2771,355 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
               <Button onClick={() => handlePrintBirthCertificate()}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print Certificate
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Baby Actions/Management Dialog */}
+      {showBabyActionsDialog && selectedBabyForActions && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
+            {/* Header */}
+            <div className={`p-4 ${selectedBabyForActions.gender === 'Male' ? 'bg-blue-50' : 'bg-pink-50'} border-b`}>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-full ${selectedBabyForActions.gender === 'Male' ? 'bg-blue-100' : 'bg-pink-100'}`}>
+                    <Baby className={`h-6 w-6 ${selectedBabyForActions.gender === 'Male' ? 'text-blue-600' : 'text-pink-600'}`} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">{selectedBabyForActions.name}</h2>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-mono bg-white px-2 py-0.5 rounded">{selectedBabyForActions.mr_number}</span>
+                      <span className="mx-2">•</span>
+                      <span>{selectedBabyForActions.gender}</span>
+                      <span className="mx-2">•</span>
+                      <span>{getAgeInDays(selectedBabyForActions.created_at)} days old</span>
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowBabyActionsDialog(false)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              {/* Billing Info Banner */}
+              <div className="mt-3 p-2 bg-white rounded-lg border border-green-200 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-700">
+                  <strong>Billing linked to:</strong> {selectedPatient?.name} ({selectedPatient?.mrNumber})
+                </span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <Tabs defaultValue="info">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="info">Baby Info</TabsTrigger>
+                  <TabsTrigger value="nicu">NICU ({babyNicuObservations.length})</TabsTrigger>
+                  <TabsTrigger value="actions">Quick Actions</TabsTrigger>
+                  <TabsTrigger value="billing">Billing</TabsTrigger>
+                </TabsList>
+
+                {/* Baby Info Tab */}
+                <TabsContent value="info" className="mt-4">
+                  {loadingBabyData ? (
+                    <div className="text-center py-8">
+                      <RefreshCw className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
+                      <p className="text-gray-500 mt-2">Loading baby data...</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-gray-500">Baby Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Name:</span>
+                            <span className="font-medium">{selectedBabyForActions.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">MR Number:</span>
+                            <span className="font-mono">{selectedBabyForActions.mr_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Gender:</span>
+                            <Badge className={selectedBabyForActions.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'}>
+                              {selectedBabyForActions.gender}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Age:</span>
+                            <span>{getAgeInDays(selectedBabyForActions.created_at)} days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Date of Birth:</span>
+                            <span>{new Date(selectedBabyForActions.created_at).toLocaleDateString('en-GB')}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-gray-500">Birth Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                          {babyDeliveryRecord ? (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Delivery Type:</span>
+                                <span className="font-medium">{babyDeliveryRecord.delivery_type}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Weight:</span>
+                                <span>{babyDeliveryRecord.baby_weight_kg}kg ({babyDeliveryRecord.baby_weight_grams}g)</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">APGAR (1/5 min):</span>
+                                <span>{babyDeliveryRecord.apgar_score_1min || '-'}/{babyDeliveryRecord.apgar_score_5min || '-'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Condition:</span>
+                                <Badge variant={babyDeliveryRecord.baby_condition === 'Healthy' ? 'default' : 'destructive'}>
+                                  {babyDeliveryRecord.baby_condition}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Birth Cert #:</span>
+                                <span className="font-mono">{babyDeliveryRecord.birth_certificate_number}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">No delivery record found</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className="col-span-2">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-gray-500">Mother Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Name:</span>
+                            <p className="font-medium">{selectedPatient?.name}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">MR Number:</span>
+                            <p className="font-mono">{selectedPatient?.mrNumber}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Contact:</span>
+                            <p>{selectedPatient?.contact || 'N/A'}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* NICU Tab */}
+                <TabsContent value="nicu" className="mt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold">NICU Observations</h3>
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600"
+                      onClick={() => {
+                        setSelectedBabyForNICU(selectedBabyForActions);
+                        setShowNICUForm(true);
+                      }}
+                    >
+                      <Heart className="h-4 w-4 mr-2" />
+                      Add NICU Observation
+                    </Button>
+                  </div>
+
+                  {loadingBabyData ? (
+                    <div className="text-center py-8">
+                      <RefreshCw className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
+                    </div>
+                  ) : babyNicuObservations.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Heart className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                      <p>No NICU observations recorded</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {babyNicuObservations.map((obs: any) => (
+                        <Card key={obs.id} className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">
+                                {new Date(obs.observation_date).toLocaleDateString('en-GB')}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {obs.start_time && new Date(obs.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                {obs.end_time && ` - ${new Date(obs.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
+                                {!obs.end_time && ' - Ongoing'}
+                              </p>
+                            </div>
+                            <Badge variant={obs.condition === 'Stable' ? 'default' : 'destructive'}>
+                              {obs.condition}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2 mt-3 text-xs">
+                            {obs.temperature && <div><span className="text-gray-500">Temp:</span> {obs.temperature}°C</div>}
+                            {obs.heart_rate && <div><span className="text-gray-500">HR:</span> {obs.heart_rate} bpm</div>}
+                            {obs.respiratory_rate && <div><span className="text-gray-500">RR:</span> {obs.respiratory_rate}/min</div>}
+                            {obs.oxygen_saturation && <div><span className="text-gray-500">SpO2:</span> {obs.oxygen_saturation}%</div>}
+                          </div>
+                          {obs.hours_charged > 0 && (
+                            <div className="mt-2 pt-2 border-t text-sm text-green-600">
+                              <DollarSign className="h-3 w-3 inline mr-1" />
+                              Rs. {obs.total_charge?.toLocaleString()} ({obs.hours_charged} hrs)
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Quick Actions Tab */}
+                <TabsContent value="actions" className="mt-4">
+                  <div className="text-center mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-green-700 text-sm">
+                      <DollarSign className="h-4 w-4 inline mr-1" />
+                      All charges will be added to <strong>{selectedPatient?.name}'s</strong> account
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-orange-300 hover:bg-orange-50"
+                      onClick={() => {
+                        setSelectedBabyForNICU(selectedBabyForActions);
+                        setShowNICUForm(true);
+                      }}
+                    >
+                      <Heart className="h-8 w-8 text-orange-600" />
+                      <span className="text-sm">NICU Observation</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-teal-300 hover:bg-teal-50"
+                      onClick={() => {
+                        toast.info(`To add treatment for ${selectedBabyForActions.name}: Go to Treatments module and select the baby as patient. Charges will be tracked under mother's file.`);
+                      }}
+                    >
+                      <Activity className="h-8 w-8 text-teal-600" />
+                      <span className="text-sm">Add Treatment</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-purple-300 hover:bg-purple-50"
+                      onClick={() => {
+                        toast.info(`To order lab tests for ${selectedBabyForActions.name}: Go to Laboratory module and select the baby as patient. Charges will be tracked under mother's file.`);
+                      }}
+                    >
+                      <TestTube className="h-8 w-8 text-purple-600" />
+                      <span className="text-sm">Order Lab Test</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-green-300 hover:bg-green-50"
+                      onClick={() => {
+                        if (babyDeliveryRecord) {
+                          reprintBirthCertificate(babyDeliveryRecord);
+                        } else {
+                          toast.error('No delivery record found for this baby');
+                        }
+                      }}
+                    >
+                      <Printer className="h-8 w-8 text-green-600" />
+                      <span className="text-sm">Print Birth Cert</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-blue-300 hover:bg-blue-50"
+                      onClick={() => {
+                        toast.info(`Baby MR: ${selectedBabyForActions.mr_number} - You can search for this patient in Patient Files to view full history`);
+                      }}
+                    >
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <span className="text-sm">View Baby File</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="h-24 flex flex-col gap-2 border-gray-300 hover:bg-gray-50"
+                      onClick={() => {
+                        loadBabyData(selectedBabyForActions);
+                        toast.success('Data refreshed');
+                      }}
+                    >
+                      <RefreshCw className="h-8 w-8 text-gray-600" />
+                      <span className="text-sm">Refresh Data</span>
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Billing Tab */}
+                <TabsContent value="billing" className="mt-4">
+                  <Card className="mb-4 bg-green-50 border-green-200">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-8 w-8 text-green-600" />
+                        <div>
+                          <p className="font-semibold text-green-800">Billing Account: {selectedPatient?.name}</p>
+                          <p className="text-sm text-green-600">MR: {selectedPatient?.mrNumber}</p>
+                          <p className="text-xs text-gray-500 mt-1">All baby charges are linked to mother's account for consolidated billing</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Baby Charges Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Heart className="h-5 w-5 text-orange-600" />
+                            <span>NICU Observations ({babyNicuObservations.length})</span>
+                          </div>
+                          <span className="font-bold text-orange-600">
+                            Rs. {calculateBabyNicuCharges().toLocaleString()}
+                          </span>
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
+                          <span className="font-semibold">Total Baby Charges</span>
+                          <span className="text-xl font-bold text-green-600">
+                            Rs. {calculateBabyNicuCharges().toLocaleString()}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-500 text-center mt-2">
+                          * These charges will appear in the mother's billing invoice
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowBabyActionsDialog(false)}>
+                Close
               </Button>
             </div>
           </div>
