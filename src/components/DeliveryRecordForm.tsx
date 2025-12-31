@@ -213,9 +213,16 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
       for (let i = 0; i < babies.length; i++) {
         const baby = babies[i];
 
-        // 1. Create baby as new patient (first create without special fields to avoid MR trigger issues)
+        // 1. Generate MR number for baby (bypass database trigger by providing mr_number)
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const babyMrNumber = `MR-${dateStr}-${randomNum}`;
+
+        // 2. Create baby as new patient
         const babyName = `Baby of ${patient.name} ${babies.length > 1 ? `(${i + 1})` : ''}`.trim();
         const { data: babyPatient, error: babyError } = await db.patients.create({
+          mr_number: babyMrNumber,
           name: babyName,
           age: 0,
           gender: baby.gender,
@@ -229,21 +236,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
           throw new Error(`Failed to create baby patient record: ${babyError.message}`);
         }
 
-        // Update patient with mother link (if columns exist)
-        try {
-          await db.patients.update(babyPatient.id, {
-            mother_patient_id: patient.id,
-            patient_type: 'newborn'
-          });
-        } catch (e) {
-          // Columns might not exist yet, continue anyway
-          console.log('Could not set mother_patient_id/patient_type:', e);
-        }
-
-        // 2. Generate birth certificate number (simple format: BC-YYYYMMDD-XXXX)
-        const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        // 3. Generate birth certificate number
         const birthCertNumber = `${dateStr}-${randomNum}`;
 
         // 3. Create delivery record
