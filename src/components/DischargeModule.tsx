@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { LogOut, Printer, DollarSign, Bed } from 'lucide-react';
+import { LogOut, Printer, DollarSign, Bed, TestTube, Activity, Heart, Baby, RefreshCw, Eye, ChevronDown, ChevronUp, Percent } from 'lucide-react';
 import { formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -75,8 +75,32 @@ export default function DischargeModule() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
   const [shouldPrint, setShouldPrint] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showChargesBreakdown, setShowChargesBreakdown] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
-  
+
+  // Fetched charges from database
+  const [labCharges, setLabCharges] = useState<{ total: number; items: any[] }>({ total: 0, items: [] });
+  const [treatmentCharges, setTreatmentCharges] = useState<{ total: number; items: any[] }>({ total: 0, items: [] });
+  const [nicuCharges, setNicuCharges] = useState<{ total: number; items: any[] }>({ total: 0, items: [] });
+  const [babyPatients, setBabyPatients] = useState<any[]>([]);
+  const [loadingCharges, setLoadingCharges] = useState(false);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Calculate discount on total
+  const calculateDiscount = (total: number): { discountAmount: number; finalTotal: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (total * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    discountAmount = Math.min(discountAmount, total);
+    const finalTotal = total - discountAmount;
+    return { discountAmount, finalTotal };
+  };
+
   const [dischargeData, setDischargeData] = useState<DischargeData>({
     discharge_date: new Date().toISOString().split('T')[0],
     discharge_notes: '',
@@ -102,7 +126,7 @@ export default function DischargeModule() {
     if (selectedAdmission && room) {
       calculateCharges();
     }
-  }, [selectedAdmission, room, dischargeData.discharge_date, dischargeData.medical_charges, dischargeData.medicine_charges, dischargeData.other_charges]);
+  }, [selectedAdmission, room, dischargeData.discharge_date, dischargeData.medical_charges, dischargeData.medicine_charges, dischargeData.other_charges, labCharges.total, treatmentCharges.total, nicuCharges.total, discountType, discountValue]);
 
   const fetchActiveAdmissions = async () => {
     try {
@@ -129,18 +153,86 @@ export default function DischargeModule() {
 
   const handleSelectAdmission = async (admission: Admission) => {
     setSelectedAdmission(admission);
-    
+    setLoadingCharges(true);
+
     // Fetch patient details
     const { data: patientData } = await db.patients.getById(admission.patient_id);
     setPatient(patientData);
-    
+
     // Fetch doctor details
     const { data: doctorData } = await db.doctors.getById(admission.doctor_id);
     setDoctor(doctorData);
-    
+
     // Fetch room details
     const { data: roomData } = await db.rooms.getById(admission.room_id);
     setRoom(roomData);
+
+    // Fetch all charges for this admission
+    await loadAllCharges(admission, patientData);
+    setLoadingCharges(false);
+  };
+
+  // Load all charges for an admission (lab, treatment, NICU, baby charges)
+  const loadAllCharges = async (admission: Admission, patientData: any) => {
+    try {
+      // 1. Fetch lab orders for this patient during admission period
+      const { data: labOrders } = await db.labOrders.getByPatientId(admission.patient_id);
+      const admissionDate = new Date(admission.admission_date);
+      const relevantLabs = (labOrders || []).filter((lab: any) => {
+        const labDate = new Date(lab.created_at);
+        return labDate >= admissionDate;
+      });
+      const labTotal = relevantLabs.reduce((sum: number, lab: any) => sum + (lab.total_cost || 0), 0);
+      setLabCharges({ total: labTotal, items: relevantLabs });
+
+      // 2. Fetch treatments for this patient during admission
+      const { data: treatments } = await db.treatments.getByPatientId(admission.patient_id);
+      const relevantTreatments = (treatments || []).filter((t: any) => {
+        const treatDate = new Date(t.treatment_date || t.created_at);
+        return treatDate >= admissionDate;
+      });
+      const treatmentTotal = relevantTreatments.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+      setTreatmentCharges({ total: treatmentTotal, items: relevantTreatments });
+
+      // 3. Fetch NICU observations for this admission
+      let allNicuItems: any[] = [];
+      let nicuTotal = 0;
+
+      // NICU directly linked to admission
+      const { data: nicuObs } = await db.nicuObservations.getByAdmissionId(admission.id);
+      if (nicuObs && nicuObs.length > 0) {
+        allNicuItems = [...nicuObs];
+        nicuTotal = nicuObs.reduce((sum: number, obs: any) => sum + (obs.total_charge || 0), 0);
+      }
+
+      // 4. If patient is female, check for baby patients and their NICU charges
+      if (patientData?.gender === 'Female') {
+        const { data: babies } = await db.babyPatients.getByMotherId(admission.patient_id);
+        if (babies && babies.length > 0) {
+          setBabyPatients(babies);
+
+          // Fetch NICU for each baby
+          for (const baby of babies) {
+            const { data: babyNicu } = await db.nicuObservations.getByBabyPatientId(baby.id);
+            if (babyNicu && babyNicu.length > 0) {
+              // Filter NICU during admission period
+              const relevantNicu = babyNicu.filter((obs: any) => {
+                const obsDate = new Date(obs.observation_date || obs.created_at);
+                return obsDate >= admissionDate;
+              });
+              allNicuItems = [...allNicuItems, ...relevantNicu.map((obs: any) => ({ ...obs, babyName: baby.name }))];
+              nicuTotal += relevantNicu.reduce((sum: number, obs: any) => sum + (obs.total_charge || 0), 0);
+            }
+          }
+        }
+      }
+
+      setNicuCharges({ total: nicuTotal, items: allNicuItems });
+
+    } catch (error) {
+      console.error('Error loading charges:', error);
+      toast.error('Failed to load some charges');
+    }
   };
 
   const calculateCharges = () => {
@@ -149,16 +241,29 @@ export default function DischargeModule() {
     const admissionDate = new Date(selectedAdmission.admission_date);
     const dischargeDate = new Date(dischargeData.discharge_date);
     const totalDays = Math.max(1, Math.ceil((dischargeDate.getTime() - admissionDate.getTime()) / (1000 * 60 * 60 * 24)));
-    
+
     const roomCharges = totalDays * room.price_per_day;
-    const totalCharges = roomCharges + dischargeData.medical_charges + dischargeData.medicine_charges + dischargeData.other_charges;
-    const balanceDue = totalCharges - selectedAdmission.deposit;
+
+    // Subtotal includes: Room + Lab + Treatment + NICU + Manual charges
+    const subtotal =
+      roomCharges +
+      labCharges.total +
+      treatmentCharges.total +
+      nicuCharges.total +
+      dischargeData.medical_charges +
+      dischargeData.medicine_charges +
+      dischargeData.other_charges;
+
+    // Apply discount
+    const { discountAmount, finalTotal } = calculateDiscount(subtotal);
+
+    const balanceDue = finalTotal - selectedAdmission.deposit;
 
     setDischargeData(prev => ({
       ...prev,
       total_days: totalDays,
       room_charges: roomCharges,
-      total_charges: totalCharges,
+      total_charges: finalTotal, // Final after discount
       amount_paid: selectedAdmission.deposit,
       balance_due: balanceDue
     }));
@@ -359,9 +464,109 @@ export default function DischargeModule() {
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
                 Billing Details
+                {loadingCharges && <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* System-fetched charges (read-only) */}
+              {(labCharges.total > 0 || treatmentCharges.total > 0 || nicuCharges.total > 0 || babyPatients.length > 0) && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-medium text-blue-800">Auto-fetched Charges</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowChargesBreakdown(!showChargesBreakdown)}
+                      className="text-blue-600"
+                    >
+                      {showChargesBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {showChargesBreakdown ? 'Hide Details' : 'Show Details'}
+                    </Button>
+                  </div>
+
+                  {labCharges.total > 0 && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="flex items-center gap-2">
+                        <TestTube className="h-4 w-4 text-purple-600" />
+                        Lab Tests ({labCharges.items.length})
+                      </span>
+                      <span className="font-medium text-purple-600">{formatCurrency(labCharges.total)}</span>
+                    </div>
+                  )}
+
+                  {treatmentCharges.total > 0 && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-teal-600" />
+                        Treatments ({treatmentCharges.items.length})
+                      </span>
+                      <span className="font-medium text-teal-600">{formatCurrency(treatmentCharges.total)}</span>
+                    </div>
+                  )}
+
+                  {nicuCharges.total > 0 && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-orange-600" />
+                        NICU Charges ({nicuCharges.items.length})
+                      </span>
+                      <span className="font-medium text-orange-600">{formatCurrency(nicuCharges.total)}</span>
+                    </div>
+                  )}
+
+                  {babyPatients.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <span className="flex items-center gap-2 text-sm text-blue-700">
+                        <Baby className="h-4 w-4" />
+                        Baby charges included: {babyPatients.map(b => b.name).join(', ')}
+                      </span>
+                    </div>
+                  )}
+
+                  {showChargesBreakdown && (
+                    <div className="mt-3 pt-3 border-t border-blue-200 space-y-2 text-sm">
+                      {labCharges.items.length > 0 && (
+                        <div>
+                          <p className="font-medium text-purple-700">Lab Tests:</p>
+                          {labCharges.items.map((lab: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-gray-600 pl-4">
+                              <span>{lab.test_names || 'Lab Order'}</span>
+                              <span>{formatCurrency(lab.total_cost || 0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {treatmentCharges.items.length > 0 && (
+                        <div>
+                          <p className="font-medium text-teal-700">Treatments:</p>
+                          {treatmentCharges.items.map((t: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-gray-600 pl-4">
+                              <span>{t.treatment_types?.name || 'Treatment'}</span>
+                              <span>{formatCurrency(t.price || 0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {nicuCharges.items.length > 0 && (
+                        <div>
+                          <p className="font-medium text-orange-700">NICU Observations:</p>
+                          {nicuCharges.items.map((obs: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-gray-600 pl-4">
+                              <span>
+                                {obs.babyName ? `${obs.babyName} - ` : ''}
+                                {obs.hours_charged || 0} hrs @ Rs.{obs.hourly_rate || 500}/hr
+                              </span>
+                              <span>{formatCurrency(obs.total_charge || 0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual charges input */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="medicalCharges">Medical Charges</Label>
@@ -392,17 +597,73 @@ export default function DischargeModule() {
                 </div>
               </div>
 
+              {/* Discount Section */}
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <Percent className="h-4 w-4 text-green-600" />
+                  Discount on Total Bill / رعایت
+                </Label>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">Type</Label>
+                    <select
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-white text-sm"
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (Rs.)</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">
+                      {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max={discountType === 'percentage' ? 100 : undefined}
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                      placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 5000'}
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-green-600 mt-2">Optional - Apply discount on final bill if applicable</p>
+              </div>
+
               <Separator />
 
+              {/* Total Summary */}
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span>Total Days:</span>
                   <span className="font-medium">{dischargeData.total_days} days</span>
                 </div>
+                <Separator className="my-2" />
                 <div className="flex justify-between">
-                  <span>Room Charges:</span>
+                  <span className="flex items-center gap-2"><Bed className="h-4 w-4" /> Room Charges:</span>
                   <span className="font-medium">{formatCurrency(dischargeData.room_charges)}</span>
                 </div>
+                {labCharges.total > 0 && (
+                  <div className="flex justify-between text-purple-700">
+                    <span className="flex items-center gap-2"><TestTube className="h-4 w-4" /> Lab Tests:</span>
+                    <span className="font-medium">{formatCurrency(labCharges.total)}</span>
+                  </div>
+                )}
+                {treatmentCharges.total > 0 && (
+                  <div className="flex justify-between text-teal-700">
+                    <span className="flex items-center gap-2"><Activity className="h-4 w-4" /> Treatments:</span>
+                    <span className="font-medium">{formatCurrency(treatmentCharges.total)}</span>
+                  </div>
+                )}
+                {nicuCharges.total > 0 && (
+                  <div className="flex justify-between text-orange-700">
+                    <span className="flex items-center gap-2"><Heart className="h-4 w-4" /> NICU Charges:</span>
+                    <span className="font-medium">{formatCurrency(nicuCharges.total)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Medical Charges:</span>
                   <span className="font-medium">{formatCurrency(dischargeData.medical_charges)}</span>
@@ -416,10 +677,63 @@ export default function DischargeModule() {
                   <span className="font-medium">{formatCurrency(dischargeData.other_charges)}</span>
                 </div>
                 <Separator />
+
+                {/* Subtotal */}
+                <div className="flex justify-between font-medium">
+                  <span>Subtotal:</span>
+                  <span className={discountValue > 0 ? 'line-through text-gray-400' : ''}>
+                    {formatCurrency(
+                      dischargeData.room_charges +
+                      labCharges.total +
+                      treatmentCharges.total +
+                      nicuCharges.total +
+                      dischargeData.medical_charges +
+                      dischargeData.medicine_charges +
+                      dischargeData.other_charges
+                    )}
+                  </span>
+                </div>
+
+                {/* Discount Display */}
+                {discountValue > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'}) / رعایت:
+                    </span>
+                    <span className="font-medium">
+                      -{formatCurrency(calculateDiscount(
+                        dischargeData.room_charges +
+                        labCharges.total +
+                        treatmentCharges.total +
+                        nicuCharges.total +
+                        dischargeData.medical_charges +
+                        dischargeData.medicine_charges +
+                        dischargeData.other_charges
+                      ).discountAmount)}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Charges:</span>
                   <span>{formatCurrency(dischargeData.total_charges)}</span>
                 </div>
+
+                {discountValue > 0 && (
+                  <div className="text-right text-sm text-green-600">
+                    You saved {formatCurrency(calculateDiscount(
+                      dischargeData.room_charges +
+                      labCharges.total +
+                      treatmentCharges.total +
+                      nicuCharges.total +
+                      dischargeData.medical_charges +
+                      dischargeData.medicine_charges +
+                      dischargeData.other_charges
+                    ).discountAmount)}!
+                  </div>
+                )}
+
                 <div className="flex justify-between">
                   <span>Advance Paid:</span>
                   <span className="font-medium text-green-600">{formatCurrency(dischargeData.amount_paid)}</span>

@@ -7,11 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Activity, Printer, Trash2, Plus, UserCheck, CreditCard } from 'lucide-react';
+import { Activity, Printer, Trash2, Plus, UserCheck, CreditCard, Percent, DollarSign } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -49,9 +48,22 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
   const [referredBy, setReferredBy] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Calculate discounted price
+  const calculateDiscountedPrice = (originalPrice: number): { discountAmount: number; finalPrice: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (originalPrice * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    discountAmount = Math.min(discountAmount, originalPrice);
+    const finalPrice = originalPrice - discountAmount;
+    return { discountAmount, finalPrice };
+  };
 
   useEffect(() => {
     fetchDoctors();
@@ -127,29 +139,27 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       return;
     }
 
-    // Prepare treatment data and show consent modal
-    const treatmentData = {
-      patient_id: selectedPatient.id,
-      doctor_id: selectedDoctor || null,
-      treatment_type: selectedTreatmentType.name,
-      treatment_name: treatmentName,
-      description: description || null,
-      price: price,
-      payment_status: paymentStatus,
-      date: new Date().toISOString().split('T')[0],
-      notes: notes || null
-    };
-
-    setPendingTreatmentData(treatmentData);
-    setShowConsentModal(true);
-  };
-
-  const handleConsentAccepted = async () => {
-    setShowConsentModal(false);
     setLoading(true);
 
     try {
-      const { data, error } = await db.treatments.create(pendingTreatmentData);
+      const { finalPrice, discountAmount } = calculateDiscountedPrice(price);
+      const treatmentData = {
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor || null,
+        treatment_type: selectedTreatmentType.name,
+        treatment_name: treatmentName,
+        description: description || null,
+        price: finalPrice, // Store final discounted price
+        original_price: price,
+        discount_type: discountValue > 0 ? discountType : null,
+        discount_value: discountValue > 0 ? discountValue : null,
+        discount_amount: discountValue > 0 ? discountAmount : null,
+        payment_status: paymentStatus,
+        date: new Date().toISOString().split('T')[0],
+        notes: notes || null
+      };
+
+      const { data, error } = await db.treatments.create(treatmentData);
 
       if (error) {
         console.error('Error creating treatment:', error);
@@ -158,7 +168,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         return;
       }
 
-      toast.success('Treatment added successfully with consent!');
+      toast.success('Treatment added successfully!');
       fetchTreatments();
 
       // Reset form
@@ -169,20 +179,15 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       setPaymentStatus('pending');
       setDescription('');
       setNotes('');
+      setDiscountType('percentage');
+      setDiscountValue(0);
       setShowForm(false);
-      setPendingTreatmentData(null);
     } catch (error) {
       console.error('Error creating treatment:', error);
       toast.error('Failed to add treatment');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleConsentDeclined = () => {
-    setShowConsentModal(false);
-    setPendingTreatmentData(null);
-    toast.info('Treatment cancelled - consent not provided');
   };
 
   const handleDeleteTreatment = async (treatmentId: string) => {
@@ -304,12 +309,27 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                 ${treatment.description ? `<br><span style="font-size: 13px; color: #666;">${treatment.description}</span>` : ''}
                 ${doctor ? `<br><span style="font-size: 13px; color: #666;">Doctor: Dr. ${doctor.name}</span>` : ''}
               </td>
-              <td style="text-align: right;">${formatCurrency(treatment.price)}</td>
+              <td style="text-align: right;">${formatCurrency(treatment.original_price || treatment.price)}</td>
             </tr>
+            ${treatment.discount_amount && treatment.discount_amount > 0 ? `
+            <tr style="color: green;">
+              <td style="text-align: right;">
+                <strong>Discount (${treatment.discount_type === 'percentage' ? treatment.discount_value + '%' : 'Fixed'}) / رعایت:</strong>
+              </td>
+              <td style="text-align: right;">-${formatCurrency(treatment.discount_amount)}</td>
+            </tr>
+            ` : ''}
             <tr class="total-row">
               <td style="text-align: right;"><strong>TOTAL:</strong></td>
               <td style="text-align: right;"><strong>${formatCurrency(treatment.price)}</strong></td>
             </tr>
+            ${treatment.discount_amount && treatment.discount_amount > 0 ? `
+            <tr>
+              <td colspan="2" style="text-align: right; color: green; font-size: 12px;">
+                You saved ${formatCurrency(treatment.discount_amount)}!
+              </td>
+            </tr>
+            ` : ''}
           </tbody>
         </table>
 
@@ -531,6 +551,74 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
                   <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
                 </div>
 
+                {/* Discount Section */}
+                <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <Label className="flex items-center gap-2 mb-3">
+                    <Percent className="h-4 w-4 text-green-600" />
+                    Discount / رعایت
+                  </Label>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-xs text-gray-600 mb-1 block">Type</Label>
+                      <Select value={discountType} onValueChange={(val: 'percentage' | 'fixed') => setDiscountType(val)}>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">
+                            <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Percentage (%)</span>
+                          </SelectItem>
+                          <SelectItem value="fixed">
+                            <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Fixed Amount (Rs.)</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-xs text-gray-600 mb-1 block">
+                        {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max={discountType === 'percentage' ? 100 : price}
+                        value={discountValue || ''}
+                        onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                        placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 500'}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-600 mt-2">Optional - Apply discount if applicable</p>
+                </div>
+
+                {/* Price Summary with Discount */}
+                {price > 0 && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                    <h4 className="font-semibold mb-2">Price Summary</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Original Price:</span>
+                        <span className={discountValue > 0 ? 'line-through text-gray-400' : 'font-semibold'}>
+                          {formatCurrency(price)}
+                        </span>
+                      </div>
+                      {discountValue > 0 && (
+                        <>
+                          <div className="flex justify-between text-green-600">
+                            <span>Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'}):</span>
+                            <span>-{formatCurrency(calculateDiscountedPrice(price).discountAmount)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-lg border-t pt-1">
+                            <span>Final Price:</span>
+                            <span className="text-green-600">{formatCurrency(calculateDiscountedPrice(price).finalPrice)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-4">
                   <Button onClick={handleAddTreatment} disabled={loading}>
                     {loading ? 'Adding...' : 'Add Treatment'}
@@ -627,16 +715,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
           </div>
         </CardContent>
       </Card>
-
-      {/* Treatment Consent Modal */}
-      <ConsentModal
-        isOpen={showConsentModal}
-        consentType="treatment"
-        patientName={selectedPatient?.name || ''}
-        procedureName={treatmentName || selectedTreatmentType?.name}
-        onAccept={handleConsentAccepted}
-        onDecline={handleConsentDeclined}
-      />
     </div>
   );
 }
