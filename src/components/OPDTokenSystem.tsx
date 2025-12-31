@@ -10,7 +10,6 @@ import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Per
 import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -43,7 +42,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
   const [loading, setLoading] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number>(0);
-  const [showConsentModal, setShowConsentModal] = useState(false);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientTokens, setPatientTokens] = useState<OPDToken[]>([]);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
@@ -124,23 +122,19 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       toast.error('Please select both patient and doctor');
       return;
     }
-    setShowConsentModal(true);
-  };
 
-  const handleConsentAccepted = async () => {
-    setShowConsentModal(false);
     setLoading(true);
 
     try {
-      const { finalFee } = calculateDiscountedFee(selectedDoctor!.opd_fee);
+      const { finalFee } = calculateDiscountedFee(selectedDoctor.opd_fee);
       const tokenData = {
         token_number: generateTokenNumber(),
-        patient_id: selectedPatient!.id,
-        doctor_id: selectedDoctor!.id,
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor.id,
         date: new Date().toISOString().split('T')[0],
         status: 'waiting',
         fee: finalFee, // Store discounted fee
-        original_fee: selectedDoctor!.opd_fee,
+        original_fee: selectedDoctor.opd_fee,
         discount_type: discountValue > 0 ? discountType : null,
         discount_value: discountValue > 0 ? discountValue : null,
         payment_status: paymentStatus
@@ -156,18 +150,13 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       setGeneratedToken(data);
-      toast.success('OPD Token generated successfully with consent!');
+      toast.success('OPD Token generated successfully!');
     } catch (error) {
       console.error('Error creating token:', error);
       toast.error('Failed to generate token');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleConsentDeclined = () => {
-    setShowConsentModal(false);
-    toast.info('OPD consultation cancelled - consent not provided');
   };
 
   const fetchPatientTokens = async () => {
@@ -860,15 +849,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </CardContent>
         </Card>
       )}
-
-      <ConsentModal
-        isOpen={showConsentModal}
-        consentType="opd"
-        patientName={selectedPatient?.name || ''}
-        procedureName={`OPD Consultation with Dr. ${selectedDoctor?.name}`}
-        onAccept={handleConsentAccepted}
-        onDecline={handleConsentDeclined}
-      />
     </div>
   );
 }

@@ -11,7 +11,6 @@ import { Activity, Printer, Trash2, Plus, UserCheck, CreditCard, Percent, Dollar
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -49,8 +48,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [pendingTreatmentData, setPendingTreatmentData] = useState<any>(null);
   const [referredBy, setReferredBy] = useState<string>('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -142,34 +139,27 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       return;
     }
 
-    // Prepare treatment data and show consent modal
-    const { finalPrice, discountAmount } = calculateDiscountedPrice(price);
-    const treatmentData = {
-      patient_id: selectedPatient.id,
-      doctor_id: selectedDoctor || null,
-      treatment_type: selectedTreatmentType.name,
-      treatment_name: treatmentName,
-      description: description || null,
-      price: finalPrice, // Store final discounted price
-      original_price: price,
-      discount_type: discountValue > 0 ? discountType : null,
-      discount_value: discountValue > 0 ? discountValue : null,
-      discount_amount: discountValue > 0 ? discountAmount : null,
-      payment_status: paymentStatus,
-      date: new Date().toISOString().split('T')[0],
-      notes: notes || null
-    };
-
-    setPendingTreatmentData(treatmentData);
-    setShowConsentModal(true);
-  };
-
-  const handleConsentAccepted = async () => {
-    setShowConsentModal(false);
     setLoading(true);
 
     try {
-      const { data, error } = await db.treatments.create(pendingTreatmentData);
+      const { finalPrice, discountAmount } = calculateDiscountedPrice(price);
+      const treatmentData = {
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor || null,
+        treatment_type: selectedTreatmentType.name,
+        treatment_name: treatmentName,
+        description: description || null,
+        price: finalPrice, // Store final discounted price
+        original_price: price,
+        discount_type: discountValue > 0 ? discountType : null,
+        discount_value: discountValue > 0 ? discountValue : null,
+        discount_amount: discountValue > 0 ? discountAmount : null,
+        payment_status: paymentStatus,
+        date: new Date().toISOString().split('T')[0],
+        notes: notes || null
+      };
+
+      const { data, error } = await db.treatments.create(treatmentData);
 
       if (error) {
         console.error('Error creating treatment:', error);
@@ -178,7 +168,7 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
         return;
       }
 
-      toast.success('Treatment added successfully with consent!');
+      toast.success('Treatment added successfully!');
       fetchTreatments();
 
       // Reset form
@@ -192,19 +182,12 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       setDiscountType('percentage');
       setDiscountValue(0);
       setShowForm(false);
-      setPendingTreatmentData(null);
     } catch (error) {
       console.error('Error creating treatment:', error);
       toast.error('Failed to add treatment');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleConsentDeclined = () => {
-    setShowConsentModal(false);
-    setPendingTreatmentData(null);
-    toast.info('Treatment cancelled - consent not provided');
   };
 
   const handleDeleteTreatment = async (treatmentId: string) => {
@@ -732,16 +715,6 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
           </div>
         </CardContent>
       </Card>
-
-      {/* Treatment Consent Modal */}
-      <ConsentModal
-        isOpen={showConsentModal}
-        consentType="treatment"
-        patientName={selectedPatient?.name || ''}
-        procedureName={treatmentName || selectedTreatmentType?.name}
-        onAccept={handleConsentAccepted}
-        onDecline={handleConsentDeclined}
-      />
     </div>
   );
 }

@@ -11,7 +11,6 @@ import { TestTube, User, Printer, CreditCard, FileText, UserCheck, Percent, Doll
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
-import ConsentModal from '@/components/ConsentModal';
 
 interface Doctor {
   id: string;
@@ -51,8 +50,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showConsentModal, setShowConsentModal] = useState(false);
-  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientLabOrders, setPatientLabOrders] = useState<LabOrder[]>([]);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
@@ -145,32 +142,25 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       return;
     }
 
-    // Prepare order data and show consent modal
-    const originalTotal = calculateTotal();
-    const { discountAmount, finalTotal } = calculateDiscountedTotal(originalTotal);
-    const orderData = {
-      patient_id: selectedPatient.id,
-      doctor_id: selectedDoctor?.id,
-      tests: selectedTests,
-      total_amount: finalTotal, // Store discounted total
-      original_amount: originalTotal,
-      discount_type: discountValue > 0 ? discountType : null,
-      discount_value: discountValue > 0 ? discountValue : null,
-      discount_amount: discountValue > 0 ? discountAmount : null,
-      status: 'pending',
-      order_date: new Date().toISOString().split('T')[0]
-    };
-
-    setPendingOrderData(orderData);
-    setShowConsentModal(true);
-  };
-
-  const handleConsentAccepted = async () => {
-    setShowConsentModal(false);
     setLoading(true);
 
     try {
-      const { data, error } = await db.labOrders.create(pendingOrderData);
+      const originalTotal = calculateTotal();
+      const { discountAmount, finalTotal } = calculateDiscountedTotal(originalTotal);
+      const orderData = {
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor?.id,
+        tests: selectedTests,
+        total_amount: finalTotal, // Store discounted total
+        original_amount: originalTotal,
+        discount_type: discountValue > 0 ? discountType : null,
+        discount_value: discountValue > 0 ? discountValue : null,
+        discount_amount: discountValue > 0 ? discountAmount : null,
+        status: 'pending',
+        order_date: new Date().toISOString().split('T')[0]
+      };
+
+      const { data, error } = await db.labOrders.create(orderData);
 
       if (error) {
         console.error('Error creating lab order:', error);
@@ -180,20 +170,13 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       }
 
       setGeneratedOrder(data);
-      toast.success('Lab order created successfully with consent!');
-      setPendingOrderData(null);
+      toast.success('Lab order created successfully!');
     } catch (error) {
       console.error('Error creating lab order:', error);
       toast.error('Failed to create lab order');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleConsentDeclined = () => {
-    setShowConsentModal(false);
-    setPendingOrderData(null);
-    toast.info('Lab order cancelled - consent not provided');
   };
 
   const fetchPatientLabOrders = async () => {
@@ -895,16 +878,6 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* Lab Test Consent Modal */}
-      <ConsentModal
-        isOpen={showConsentModal}
-        consentType="lab"
-        patientName={selectedPatient?.name || ''}
-        procedureName={`Laboratory Testing (${selectedTests.length} test${selectedTests.length !== 1 ? 's' : ''})`}
-        onAccept={handleConsentAccepted}
-        onDecline={handleConsentDeclined}
-      />
     </div>
   );
 }
