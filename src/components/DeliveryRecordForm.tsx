@@ -224,7 +224,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
           care_of: patient.name,
           patient_type: 'newborn',
           mother_patient_id: patient.id,
-          notes: `Born on ${deliveryDate} at ${deliveryTime}. Weight: ${baby.weightKg}kg (${baby.weightGrams}g). APGAR: ${baby.apgarScore1Min}/${baby.apgarScore5Min}. Condition: ${baby.condition}`,
+          medical_history: `Born on ${deliveryDate} at ${deliveryTime}. Weight: ${baby.weightKg}kg (${baby.weightGrams}g). APGAR: ${baby.apgarScore1Min}/${baby.apgarScore5Min}. Condition: ${baby.condition}`,
         });
 
         if (babyError) {
