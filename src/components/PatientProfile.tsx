@@ -1707,19 +1707,33 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.admissions?.data?.map((admission: any) => (
-                    <Card key={admission.id} className="p-4">
+                    <Card key={admission.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-lg">
                             Room {admission.rooms?.room_number} - {admission.rooms?.type}
                           </p>
                           <p className="text-sm text-gray-600">Type: {admission.admission_type}</p>
                           <p className="text-sm text-gray-600">Doctor: {admission.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Deposit: {formatCurrency(admission.deposit || 0)}</p>
+                          <p className="text-sm text-gray-600">
+                            Admitted: {new Date(admission.admission_date).toLocaleDateString('en-GB')}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 mb-1">{formatDateTime(admission.created_at || admission.admission_date)}</p>
-                          <Badge>{admission.status}</Badge>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <p className="text-sm text-gray-600">{formatDateTime(admission.created_at || admission.admission_date)}</p>
+                          <Badge className={admission.status === 'active' ? 'bg-green-500' : admission.status === 'discharged' ? 'bg-blue-500' : 'bg-gray-500'}>
+                            {admission.status}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedAdmissionDetail(admission)}
+                            className="mt-2"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -2615,6 +2629,145 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </Button>
                   <Button
                     onClick={() => setSelectedTreatmentDetail(null)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Admission Detail Modal */}
+      {selectedAdmissionDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b bg-indigo-50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Bed className="h-6 w-6 text-indigo-600" />
+                  Admission Details
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedAdmissionDetail(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {/* Admission ID */}
+                <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-600">
+                  <p className="text-sm text-gray-600">Admission Reference</p>
+                  <p className="text-2xl font-bold text-indigo-700">
+                    ADM-{selectedAdmissionDetail.id.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Patient Info */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-medium">{selectedPatient?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">MR Number</p>
+                      <p className="font-medium">{selectedPatient?.mrNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Age / Gender</p>
+                      <p className="font-medium">{selectedPatient?.age} years / {selectedPatient?.gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Contact</p>
+                      <p className="font-medium">{selectedPatient?.contact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admission Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <Bed className="h-5 w-5 text-indigo-600" />
+                    Admission Information
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Room</p>
+                        <p className="font-medium text-lg">
+                          {selectedAdmissionDetail.rooms?.room_number} - {selectedAdmissionDetail.rooms?.type}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Bed Number</p>
+                        <p className="font-medium">{selectedAdmissionDetail.bed_number || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Admission Type</p>
+                        <p className="font-medium">{selectedAdmissionDetail.admission_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Status</p>
+                        <Badge className={selectedAdmissionDetail.status === 'active' ? 'bg-green-500' : selectedAdmissionDetail.status === 'discharged' ? 'bg-blue-500' : 'bg-gray-500'}>
+                          {selectedAdmissionDetail.status?.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Admission Date</p>
+                        <p className="font-medium">{new Date(selectedAdmissionDetail.admission_date).toLocaleDateString('en-GB')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Doctor</p>
+                        <p className="font-medium">{selectedAdmissionDetail.doctors?.name || 'N/A'}</p>
+                      </div>
+                    </div>
+                    {selectedAdmissionDetail.notes && (
+                      <div>
+                        <p className="text-xs text-gray-500">Notes</p>
+                        <p className="font-medium">{selectedAdmissionDetail.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Financial Details */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Financial Information
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Room Rate</span>
+                      <span className="font-medium">{formatCurrency(selectedAdmissionDetail.rooms?.price_per_day || 0)}/day</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Deposit Paid</span>
+                      <span className="font-bold text-lg text-green-600">{formatCurrency(selectedAdmissionDetail.deposit || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => setSelectedAdmissionDetail(null)}
                     variant="outline"
                     className="flex-1"
                   >
