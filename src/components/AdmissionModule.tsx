@@ -669,36 +669,37 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
           </div>
 
           {selectedRoom && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="bedNumber">Bed Number</Label>
-                <Input
-                  id="bedNumber"
-                  type="number"
-                  min="1"
-                  max={selectedRoom.bed_count}
-                  value={bedNumber}
-                  onChange={(e) => setBedNumber(parseInt(e.target.value))}
-                />
-                <p className="text-sm text-gray-600 mt-1">
-                  Available beds: 1 to {selectedRoom.bed_count}
-                </p>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bedNumber">Bed Number</Label>
+                  <Input
+                    id="bedNumber"
+                    type="number"
+                    min="1"
+                    max={selectedRoom.bed_count}
+                    value={bedNumber}
+                    onChange={(e) => setBedNumber(parseInt(e.target.value))}
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Available beds: 1 to {selectedRoom.bed_count}
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="deposit">Deposit Amount</Label>
+                  <Input
+                    id="deposit"
+                    type="number"
+                    value={deposit}
+                    onChange={(e) => setDeposit(parseInt(e.target.value))}
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Suggested: {formatCurrency(selectedRoom.price_per_day * 3)} (3 days)
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="deposit">Deposit Amount</Label>
-                <Input
-                  id="deposit"
-                  type="number"
-                  value={deposit}
-                  onChange={(e) => setDeposit(parseInt(e.target.value))}
-                />
-                <p className="text-sm text-gray-600 mt-1">
-                  Suggested: {formatCurrency(selectedRoom.price_per_day * 3)} (3 days)
-                </p>
-              </div>
-            </div>
 
-            {/* Discount Section */}
+              {/* Discount Section */}
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <Label className="flex items-center gap-2 mb-3">
                 <Percent className="h-4 w-4 text-green-600" />
@@ -765,6 +766,7 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 </div>
               </div>
             )}
+            </>
           )}
 
           <div>
