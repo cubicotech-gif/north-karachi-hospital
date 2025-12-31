@@ -133,10 +133,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         doctor_id: selectedDoctor.id,
         date: new Date().toISOString().split('T')[0],
         status: 'waiting',
-        fee: finalFee, // Store discounted fee
-        original_fee: selectedDoctor.opd_fee,
-        discount_type: discountValue > 0 ? discountType : null,
-        discount_value: discountValue > 0 ? discountValue : null,
+        fee: finalFee,
         payment_status: paymentStatus
       };
 
