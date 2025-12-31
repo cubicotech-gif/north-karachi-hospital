@@ -36,10 +36,12 @@ import {
 } from '@/components/ui/table';
 import { Clock, Thermometer, Heart, Wind, Droplets, Plus, StopCircle, AlertCircle } from 'lucide-react';
 
-interface Patient {
+interface BabyPatient {
   id: string;
   mr_number: string;
   name: string;
+  gender?: string;
+  mother_patient_id?: string;
 }
 
 interface Doctor {
@@ -82,7 +84,8 @@ interface NICUObservation {
 interface NICUObservationFormProps {
   isOpen: boolean;
   onClose: () => void;
-  patient: Patient; // Baby patient
+  patient?: BabyPatient; // Legacy prop name
+  babyPatient?: BabyPatient; // New prop name
   admission?: Admission;
   onSuccess: () => void;
 }
@@ -91,15 +94,20 @@ const NICUObservationForm: React.FC<NICUObservationFormProps> = ({
   isOpen,
   onClose,
   patient,
+  babyPatient,
   admission,
   onSuccess,
 }) => {
+  // Use babyPatient if provided, otherwise fall back to patient (legacy prop)
+  const baby = babyPatient || patient;
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [observations, setObservations] = useState<NICUObservation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNewObservation, setShowNewObservation] = useState(false);
   const [hourlyRate, setHourlyRate] = useState<number>(500); // Default NICU hourly rate
+  const [motherInfo, setMotherInfo] = useState<any>(null);
 
   // Form state for new observation
   const [formData, setFormData] = useState({
@@ -120,12 +128,22 @@ const NICUObservationForm: React.FC<NICUObservationFormProps> = ({
 
   // Load data on mount
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && baby) {
       loadDoctors();
       loadObservations();
       loadHourlyRate();
+      loadMotherInfo();
     }
-  }, [isOpen, patient.id]);
+  }, [isOpen, baby?.id]);
+
+  const loadMotherInfo = async () => {
+    if (baby?.mother_patient_id) {
+      const { data, error } = await db.patients.getById(baby.mother_patient_id);
+      if (!error && data) {
+        setMotherInfo(data);
+      }
+    }
+  };
 
   const loadDoctors = async () => {
     const { data, error } = await db.doctors.getAll();
@@ -135,7 +153,8 @@ const NICUObservationForm: React.FC<NICUObservationFormProps> = ({
   };
 
   const loadObservations = async () => {
-    const { data, error } = await db.nicuObservations.getByBabyPatientId(patient.id);
+    if (!baby?.id) return;
+    const { data, error } = await db.nicuObservations.getByBabyPatientId(baby.id);
     if (!error && data) {
       setObservations(data);
     }
@@ -166,13 +185,14 @@ const NICUObservationForm: React.FC<NICUObservationFormProps> = ({
 
   // Start new observation
   const handleStartObservation = async () => {
+    if (!baby?.id) return;
     setLoading(true);
     setError(null);
 
     try {
       const now = new Date().toISOString();
       const { data, error: createError } = await db.nicuObservations.create({
-        baby_patient_id: patient.id,
+        baby_patient_id: baby.id,
         admission_id: admission?.id || null,
         observation_date: now.split('T')[0],
         start_time: now,
@@ -261,14 +281,24 @@ const NICUObservationForm: React.FC<NICUObservationFormProps> = ({
   // Get active (ongoing) observations
   const activeObservations = observations.filter((obs) => !obs.end_time);
 
+  // Guard: Don't render if no baby patient
+  if (!baby) {
+    return null;
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-red-500" />
-            NICU Observations - {patient.name}
+            NICU Observations - {baby.name}
           </DialogTitle>
+          {motherInfo && (
+            <p className="text-sm text-gray-500">
+              Billing linked to mother: <strong>{motherInfo.name}</strong> ({motherInfo.mr_number})
+            </p>
+          )}
         </DialogHeader>
 
         {error && (

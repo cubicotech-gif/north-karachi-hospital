@@ -73,6 +73,7 @@ interface DeliveryRecordFormProps {
   patient: Patient;
   admission?: Admission;
   onSuccess: () => void;
+  onNICUAdmit?: (babyPatient: any) => void;
 }
 
 const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
@@ -81,6 +82,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
   patient,
   admission,
   onSuccess,
+  onNICUAdmit,
 }) => {
   const birthCertificateRef = useRef<HTMLDivElement>(null);
 
@@ -213,27 +215,31 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
       for (let i = 0; i < babies.length; i++) {
         const baby = babies[i];
 
-        // 1. Create baby as new patient (newborn type)
+        // 1. Generate MR number for baby (bypass database trigger by providing mr_number)
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const babyMrNumber = `MR-${dateStr}-${randomNum}`;
+
+        // 2. Create baby as new patient
         const babyName = `Baby of ${patient.name} ${babies.length > 1 ? `(${i + 1})` : ''}`.trim();
         const { data: babyPatient, error: babyError } = await db.patients.create({
+          mr_number: babyMrNumber,
           name: babyName,
           age: 0,
           gender: baby.gender,
           contact: patient.contact,
           address: patient.address,
           care_of: patient.name,
-          patient_type: 'newborn',
-          mother_patient_id: patient.id,
-          notes: `Born on ${deliveryDate} at ${deliveryTime}. Weight: ${baby.weightKg}kg (${baby.weightGrams}g). APGAR: ${baby.apgarScore1Min}/${baby.apgarScore5Min}. Condition: ${baby.condition}`,
+          medical_history: `Born on ${deliveryDate} at ${deliveryTime}. Weight: ${baby.weightKg}kg (${baby.weightGrams}g). APGAR: ${baby.apgarScore1Min}/${baby.apgarScore5Min}. Condition: ${baby.condition}. Mother MR: ${patient.mr_number}`,
         });
 
         if (babyError) {
           throw new Error(`Failed to create baby patient record: ${babyError.message}`);
         }
 
-        // 2. Get birth certificate number
-        const { data: bcNumber } = await db.hospitalSettings.getNextBirthCertificateNumber();
-        const birthCertNumber = bcNumber || `${Date.now()}`;
+        // 3. Generate birth certificate number
+        const birthCertNumber = `${dateStr}-${randomNum}`;
 
         // 3. Create delivery record
         const { data: deliveryRecord, error: deliveryError } = await db.deliveryRecords.create({
@@ -316,13 +322,39 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
   // Print birth certificate
   const handlePrintBirthCertificate = useReactToPrint({
     contentRef: birthCertificateRef,
-    documentTitle: `Birth_Certificate_${birthCertificateData?.serialNumber || ''}`,
+    documentTitle: 'Birth_Certificate',
   });
 
   // Print certificate for specific baby
   const printCertificateForBaby = (index: number) => {
-    prepareBirthCertificate(index);
-    setShowBirthCertificate(true);
+    // Prepare data first
+    const recordsToUse = createdRecords;
+    const record = recordsToUse[index];
+    if (!record) return;
+
+    const dateObj = new Date(deliveryDate);
+    const certData = {
+      serialNumber: record.birthCertNumber,
+      date: new Date().toLocaleDateString('en-GB'),
+      babyGender: babies[index].gender,
+      weightKg: parseFloat(babies[index].weightKg) || 0,
+      weightGrams: parseInt(babies[index].weightGrams) || 0,
+      motherName: patient.name,
+      fatherName: patient.care_of || '',
+      address: patient.address || '',
+      birthDay: dateObj.getDate().toString(),
+      birthMonth: (dateObj.getMonth() + 1).toString(),
+      birthYear: dateObj.getFullYear().toString(),
+      birthTime: deliveryTime,
+      attendingObstetrician: doctors.find(d => d.id === deliveringDoctorId)?.name || '',
+    };
+
+    setBirthCertificateData(certData);
+    setSelectedBabyForCertificate(index);
+    // Use setTimeout to ensure state is updated before showing dialog
+    setTimeout(() => {
+      setShowBirthCertificate(true);
+    }, 50);
   };
 
   const selectedDoctor = doctors.find(d => d.id === deliveringDoctorId);
@@ -383,11 +415,19 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
                           <Printer className="h-4 w-4 mr-1" />
                           Print Birth Certificate
                         </Button>
-                        {babies[index]?.condition !== 'Healthy' && (
+                        {babies[index]?.condition !== 'Healthy' && onNICUAdmit && (
                           <Button
                             variant="default"
                             size="sm"
                             className="bg-orange-500 hover:bg-orange-600"
+                            onClick={() => {
+                              onNICUAdmit({
+                                id: record.babyPatient?.id,
+                                mr_number: record.babyPatient?.mr_number,
+                                name: record.babyPatient?.name || `Baby of ${patient.name}`,
+                              });
+                              onClose();
+                            }}
                           >
                             <Building2 className="h-4 w-4 mr-1" />
                             Admit to NICU

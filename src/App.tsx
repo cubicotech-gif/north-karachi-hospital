@@ -32,10 +32,12 @@ import {
   FolderOpen,
   LayoutDashboard,
   UserPlus,
-  Clipboard
+  Clipboard,
+  Baby
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
+import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 import PatientRegistration from '@/components/PatientRegistration';
 import PatientProfile from '@/components/PatientProfile';
@@ -58,10 +60,11 @@ import HospitalSettings from '@/components/HospitalSettings';
 import DocumentsManagement from '@/components/DocumentsManagement';
 import PatientDocumentPortfolio from '@/components/PatientDocumentPortfolio';
 import ConsentDocumentsCenter from '@/components/ConsentDocumentsCenter';
+import NewbornBabyModule from '@/components/NewbornBabyModule';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio' | 'consent';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'newborns' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio' | 'consent';
 
 // Hospital Logo Component
 const HospitalLogo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -204,6 +207,7 @@ const App = () => {
       modules: [
         { id: 'patients' as ModuleType, name: 'Registration', icon: UserPlus },
         { id: 'allpatients' as ModuleType, name: 'Patient Files', icon: FolderOpen },
+        { id: 'newborns' as ModuleType, name: 'Newborn Babies', icon: Baby },
         { id: 'opd' as ModuleType, name: 'OPD Tokens', icon: Clipboard },
         { id: 'appointments' as ModuleType, name: 'Appointments', icon: Calendar },
         { id: 'queue' as ModuleType, name: 'Doctor Queue', icon: Users },
@@ -443,6 +447,20 @@ const App = () => {
         );
       case 'allpatients':
         return <PatientProfile selectedPatient={selectedPatient} />;
+      case 'newborns':
+        return (
+          <NewbornBabyModule
+            onNavigateToPatient={(patientId) => {
+              // Load patient by ID and navigate to patient files
+              db.patients.getById(patientId).then(({ data }) => {
+                if (data) {
+                  setSelectedPatient(data as Patient);
+                  setCurrentModule('allpatients');
+                }
+              });
+            }}
+          />
+        );
       case 'opd':
         return <OPDTokenSystem selectedPatient={selectedPatient} />;
       case 'treatment':
