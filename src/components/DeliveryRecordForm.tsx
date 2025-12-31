@@ -73,6 +73,7 @@ interface DeliveryRecordFormProps {
   patient: Patient;
   admission?: Admission;
   onSuccess: () => void;
+  onNICUAdmit?: (babyPatient: any) => void;
 }
 
 const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
@@ -81,6 +82,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
   patient,
   admission,
   onSuccess,
+  onNICUAdmit,
 }) => {
   const birthCertificateRef = useRef<HTMLDivElement>(null);
 
@@ -320,13 +322,39 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
   // Print birth certificate
   const handlePrintBirthCertificate = useReactToPrint({
     contentRef: birthCertificateRef,
-    documentTitle: `Birth_Certificate_${birthCertificateData?.serialNumber || ''}`,
+    documentTitle: 'Birth_Certificate',
   });
 
   // Print certificate for specific baby
   const printCertificateForBaby = (index: number) => {
-    prepareBirthCertificate(index);
-    setShowBirthCertificate(true);
+    // Prepare data first
+    const recordsToUse = createdRecords;
+    const record = recordsToUse[index];
+    if (!record) return;
+
+    const dateObj = new Date(deliveryDate);
+    const certData = {
+      serialNumber: record.birthCertNumber,
+      date: new Date().toLocaleDateString('en-GB'),
+      babyGender: babies[index].gender,
+      weightKg: parseFloat(babies[index].weightKg) || 0,
+      weightGrams: parseInt(babies[index].weightGrams) || 0,
+      motherName: patient.name,
+      fatherName: patient.care_of || '',
+      address: patient.address || '',
+      birthDay: dateObj.getDate().toString(),
+      birthMonth: (dateObj.getMonth() + 1).toString(),
+      birthYear: dateObj.getFullYear().toString(),
+      birthTime: deliveryTime,
+      attendingObstetrician: doctors.find(d => d.id === deliveringDoctorId)?.name || '',
+    };
+
+    setBirthCertificateData(certData);
+    setSelectedBabyForCertificate(index);
+    // Use setTimeout to ensure state is updated before showing dialog
+    setTimeout(() => {
+      setShowBirthCertificate(true);
+    }, 50);
   };
 
   const selectedDoctor = doctors.find(d => d.id === deliveringDoctorId);
@@ -387,11 +415,19 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
                           <Printer className="h-4 w-4 mr-1" />
                           Print Birth Certificate
                         </Button>
-                        {babies[index]?.condition !== 'Healthy' && (
+                        {babies[index]?.condition !== 'Healthy' && onNICUAdmit && (
                           <Button
                             variant="default"
                             size="sm"
                             className="bg-orange-500 hover:bg-orange-600"
+                            onClick={() => {
+                              onNICUAdmit({
+                                id: record.babyPatient?.id,
+                                mr_number: record.babyPatient?.mr_number,
+                                name: record.babyPatient?.name || `Baby of ${patient.name}`,
+                              });
+                              onClose();
+                            }}
                           >
                             <Building2 className="h-4 w-4 mr-1" />
                             Admit to NICU

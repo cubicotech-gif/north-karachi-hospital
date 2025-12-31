@@ -2579,6 +2579,10 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
             loadMaternityData();
             toast.success('Delivery record saved successfully');
           }}
+          onNICUAdmit={(babyPatient) => {
+            setSelectedBabyForNICU(babyPatient);
+            setShowNICUForm(true);
+          }}
         />
       )}
 
