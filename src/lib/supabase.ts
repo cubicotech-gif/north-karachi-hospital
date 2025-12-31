@@ -301,6 +301,9 @@ export const db = {
     },
     getNextDocumentNumber: async (docType: string) => {
       return await supabase.rpc('get_next_document_number', { doc_type: docType });
+    },
+    getNextBirthCertificateNumber: async () => {
+      return await supabase.rpc('get_next_birth_certificate_number');
     }
   },
 
@@ -396,6 +399,130 @@ export const db = {
     },
     delete: async (id: string) => {
       return await supabase.from('document_template_mappings').delete().eq('id', id);
+    }
+  },
+
+  // DELIVERY RECORDS
+  deliveryRecords: {
+    getAll: async () => {
+      return await supabase.from('delivery_records').select('*').order('delivery_date', { ascending: false });
+    },
+    getById: async (id: string) => {
+      return await supabase.from('delivery_records').select('*').eq('id', id).single();
+    },
+    getByMotherPatientId: async (mother_patient_id: string) => {
+      return await supabase
+        .from('delivery_records')
+        .select('*, doctors(name)')
+        .eq('mother_patient_id', mother_patient_id)
+        .order('delivery_date', { ascending: false });
+    },
+    getByAdmissionId: async (admission_id: string) => {
+      return await supabase
+        .from('delivery_records')
+        .select('*, doctors(name)')
+        .eq('admission_id', admission_id)
+        .order('birth_order', { ascending: true });
+    },
+    getByBabyPatientId: async (baby_patient_id: string) => {
+      return await supabase
+        .from('delivery_records')
+        .select('*')
+        .eq('baby_patient_id', baby_patient_id)
+        .single();
+    },
+    create: async (data: any) => {
+      return await supabase.from('delivery_records').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('delivery_records').update(data).eq('id', id).select().single();
+    },
+    markCertificatePrinted: async (id: string) => {
+      return await supabase
+        .from('delivery_records')
+        .update({
+          birth_certificate_printed: true,
+          birth_certificate_printed_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    }
+  },
+
+  // NICU OBSERVATIONS
+  nicuObservations: {
+    getAll: async () => {
+      return await supabase.from('nicu_observations').select('*').order('created_at', { ascending: false });
+    },
+    getByBabyPatientId: async (baby_patient_id: string) => {
+      return await supabase
+        .from('nicu_observations')
+        .select('*, doctors(name)')
+        .eq('baby_patient_id', baby_patient_id)
+        .order('observation_date', { ascending: false });
+    },
+    getByAdmissionId: async (admission_id: string) => {
+      return await supabase
+        .from('nicu_observations')
+        .select('*')
+        .eq('admission_id', admission_id)
+        .order('start_time', { ascending: false });
+    },
+    getActiveObservations: async () => {
+      return await supabase
+        .from('nicu_observations')
+        .select('*, patients(name, mr_number)')
+        .is('end_time', null)
+        .order('start_time', { ascending: true });
+    },
+    create: async (data: any) => {
+      return await supabase.from('nicu_observations').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('nicu_observations').update(data).eq('id', id).select().single();
+    },
+    endObservation: async (id: string, endTime: string, hoursCharged: number, totalCharge: number) => {
+      return await supabase
+        .from('nicu_observations')
+        .update({
+          end_time: endTime,
+          hours_charged: hoursCharged,
+          total_charge: totalCharge
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    },
+    getTotalChargesForAdmission: async (admission_id: string) => {
+      const { data, error } = await supabase
+        .from('nicu_observations')
+        .select('total_charge')
+        .eq('admission_id', admission_id);
+
+      if (error) return { data: 0, error };
+
+      const total = data?.reduce((sum, obs) => sum + (obs.total_charge || 0), 0) || 0;
+      return { data: total, error: null };
+    }
+  },
+
+  // BABY PATIENTS (Linked to mothers)
+  babyPatients: {
+    getByMotherId: async (mother_patient_id: string) => {
+      return await supabase
+        .from('patients')
+        .select('*')
+        .eq('mother_patient_id', mother_patient_id)
+        .eq('patient_type', 'newborn')
+        .order('created_at', { ascending: false });
+    },
+    getAllNewborns: async () => {
+      return await supabase
+        .from('patients')
+        .select('*, mother:mother_patient_id(name, mr_number)')
+        .eq('patient_type', 'newborn')
+        .order('created_at', { ascending: false });
     }
   }
 };
