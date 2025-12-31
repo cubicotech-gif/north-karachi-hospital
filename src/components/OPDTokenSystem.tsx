@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck } from 'lucide-react';
+import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign } from 'lucide-react';
 import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -46,6 +46,22 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientTokens, setPatientTokens] = useState<OPDToken[]>([]);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Calculate discounted fee
+  const calculateDiscountedFee = (originalFee: number): { discountAmount: number; finalFee: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (originalFee * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    // Ensure discount doesn't exceed original fee
+    discountAmount = Math.min(discountAmount, originalFee);
+    const finalFee = originalFee - discountAmount;
+    return { discountAmount, finalFee };
+  };
 
   useEffect(() => {
     fetchDoctors();
@@ -116,13 +132,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     setLoading(true);
 
     try {
+      const { finalFee } = calculateDiscountedFee(selectedDoctor!.opd_fee);
       const tokenData = {
         token_number: generateTokenNumber(),
         patient_id: selectedPatient!.id,
         doctor_id: selectedDoctor!.id,
         date: new Date().toISOString().split('T')[0],
         status: 'waiting',
-        fee: selectedDoctor!.opd_fee,
+        fee: finalFee, // Store discounted fee
+        original_fee: selectedDoctor!.opd_fee,
+        discount_type: discountValue > 0 ? discountType : null,
+        discount_value: discountValue > 0 ? discountValue : null,
         payment_status: paymentStatus
       };
 
@@ -301,9 +321,29 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
           <div class="divider"></div>
 
-          <div class="info-row">
-            <span><strong>Fee:</strong> ${formatCurrency(selectedDoctor.opd_fee)}</span>
-            <span><strong>${generatedToken.payment_status.toUpperCase()}</strong></span>
+          <div class="info-row" style="flex-direction: column;">
+            ${discountValue > 0 ? `
+              <div style="display: flex; justify-content: space-between;">
+                <span>Original Fee:</span>
+                <span style="text-decoration: line-through;">${formatCurrency(selectedDoctor.opd_fee)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; color: green;">
+                <span>Discount (${discountType === 'percentage' ? discountValue + '%' : 'Fixed'}):</span>
+                <span>-${formatCurrency(calculateDiscountedFee(selectedDoctor.opd_fee).discountAmount)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Final Fee:</span>
+                <span>${formatCurrency(generatedToken.fee)}</span>
+              </div>
+            ` : `
+              <div style="display: flex; justify-content: space-between;">
+                <span><strong>Fee:</strong></span>
+                <span>${formatCurrency(generatedToken.fee)}</span>
+              </div>
+            `}
+            <div style="text-align: right; margin-top: 2mm;">
+              <strong>${generatedToken.payment_status.toUpperCase()}</strong>
+            </div>
           </div>
 
           <div class="footer">
@@ -395,11 +435,23 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </div>
           <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number} | Queue #${queueNumber}</div>
 
+          ${discountValue > 0 ? `
+          <div class="item-row" style="color: green;">
+            <span>Discount (${discountType === 'percentage' ? discountValue + '%' : 'Fixed'}) / رعایت</span>
+            <span>-${formatCurrency(calculateDiscountedFee(selectedDoctor.opd_fee).discountAmount)}</span>
+          </div>
+          ` : ''}
+
           <div class="total-section">
             <div class="total-row">
               <span>TOTAL / کل:</span>
-              <span>${formatCurrency(selectedDoctor.opd_fee)}</span>
+              <span>${formatCurrency(generatedToken.fee)}</span>
             </div>
+            ${discountValue > 0 ? `
+            <div style="font-size: 8px; text-align: right; color: green;">
+              You saved ${formatCurrency(calculateDiscountedFee(selectedDoctor.opd_fee).discountAmount)}!
+            </div>
+            ` : ''}
           </div>
 
           <div class="status ${isPaid ? 'paid' : 'unpaid'}">
@@ -607,14 +659,80 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">Total OPD Fee</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(selectedDoctor.opd_fee)}</p>
+              {/* Discount Section */}
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <Percent className="h-4 w-4 text-green-600" />
+                  Discount / رعایت
+                </Label>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="discountType" className="text-xs text-gray-600 mb-1 block">Type</Label>
+                    <Select value={discountType} onValueChange={(val: 'percentage' | 'fixed') => setDiscountType(val)}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">
+                          <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Percentage (%)</span>
+                        </SelectItem>
+                        <SelectItem value="fixed">
+                          <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Fixed Amount (Rs.)</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="discountValue" className="text-xs text-gray-600 mb-1 block">
+                      {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                    </Label>
+                    <Input
+                      id="discountValue"
+                      type="number"
+                      min="0"
+                      max={discountType === 'percentage' ? 100 : selectedDoctor.opd_fee}
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                      placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 100'}
+                      className="bg-white"
+                    />
+                  </div>
                 </div>
-                <Badge variant={paymentStatus === 'paid' ? 'default' : 'secondary'}>
-                  {paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                </Badge>
+                <p className="text-xs text-green-600 mt-2">Optional - Apply discount if applicable</p>
+              </div>
+
+              {/* Fee Display with Discount */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600">Original OPD Fee</p>
+                    <p className={`text-lg font-semibold ${discountValue > 0 ? 'line-through text-gray-400' : 'text-blue-600'}`}>
+                      {formatCurrency(selectedDoctor.opd_fee)}
+                    </p>
+
+                    {discountValue > 0 && (
+                      <>
+                        <p className="text-sm text-green-600 mt-1">
+                          Discount: {discountType === 'percentage' ? `${discountValue}%` : formatCurrency(discountValue)}
+                          {' = '}-{formatCurrency(calculateDiscountedFee(selectedDoctor.opd_fee).discountAmount)}
+                        </p>
+                        <p className="text-sm font-medium mt-1">Final Fee</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {formatCurrency(calculateDiscountedFee(selectedDoctor.opd_fee).finalFee)}
+                        </p>
+                      </>
+                    )}
+
+                    {discountValue === 0 && (
+                      <p className="text-2xl font-bold text-blue-600 mt-1">
+                        {formatCurrency(selectedDoctor.opd_fee)}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={paymentStatus === 'paid' ? 'default' : 'secondary'}>
+                    {paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                  </Badge>
+                </div>
               </div>
 
               <div className="flex gap-2">

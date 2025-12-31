@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Bed, Building, User, Printer, UserCheck } from 'lucide-react';
+import { Bed, Building, User, Printer, UserCheck, Percent, DollarSign } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -59,6 +59,21 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [referredBy, setReferredBy] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Calculate discounted deposit
+  const calculateDiscountedDeposit = (originalDeposit: number): { discountAmount: number; finalDeposit: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (originalDeposit * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    discountAmount = Math.min(discountAmount, originalDeposit);
+    const finalDeposit = originalDeposit - discountAmount;
+    return { discountAmount, finalDeposit };
+  };
 
   // Fetch doctors and rooms from database
   useEffect(() => {
@@ -120,6 +135,7 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
 
     setLoading(true);
     try {
+      const { discountAmount, finalDeposit } = calculateDiscountedDeposit(deposit);
       const admissionData = {
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor.id,
@@ -127,7 +143,11 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
         bed_number: bedNumber,
         admission_date: new Date().toISOString().split('T')[0],
         admission_type: admissionType,
-        deposit: deposit,
+        deposit: finalDeposit, // Store discounted deposit
+        original_deposit: deposit,
+        discount_type: discountValue > 0 ? discountType : null,
+        discount_value: discountValue > 0 ? discountValue : null,
+        discount_amount: discountValue > 0 ? discountAmount : null,
         status: 'active',
         notes: notes
       };
@@ -511,12 +531,27 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                   Daily Rate: ${formatCurrency(selectedRoom.price_per_day)}
                 </span>
               </td>
-              <td style="text-align: right; vertical-align: top;">${formatCurrency(generatedAdmission.deposit)}</td>
+              <td style="text-align: right; vertical-align: top;">${formatCurrency(generatedAdmission.original_deposit || generatedAdmission.deposit)}</td>
             </tr>
+            ${generatedAdmission.discount_amount && generatedAdmission.discount_amount > 0 ? `
+            <tr style="color: green;">
+              <td style="text-align: right;">
+                <strong>Discount (${generatedAdmission.discount_type === 'percentage' ? generatedAdmission.discount_value + '%' : 'Fixed'}) / رعایت:</strong>
+              </td>
+              <td style="text-align: right;">-${formatCurrency(generatedAdmission.discount_amount)}</td>
+            </tr>
+            ` : ''}
             <tr class="total-row">
               <td style="text-align: right;"><strong>TOTAL DEPOSIT:</strong></td>
               <td style="text-align: right;"><strong>${formatCurrency(generatedAdmission.deposit)}</strong></td>
             </tr>
+            ${generatedAdmission.discount_amount && generatedAdmission.discount_amount > 0 ? `
+            <tr>
+              <td colspan="2" style="text-align: right; color: green; font-size: 12px;">
+                You saved ${formatCurrency(generatedAdmission.discount_amount)}!
+              </td>
+            </tr>
+            ` : ''}
           </tbody>
         </table>
 
@@ -662,6 +697,74 @@ export default function AdmissionModule({ selectedPatient }: AdmissionModuleProp
                 </p>
               </div>
             </div>
+
+            {/* Discount Section */}
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <Label className="flex items-center gap-2 mb-3">
+                <Percent className="h-4 w-4 text-green-600" />
+                Discount on Deposit / رعایت
+              </Label>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-600 mb-1 block">Type</Label>
+                  <Select value={discountType} onValueChange={(val: 'percentage' | 'fixed') => setDiscountType(val)}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">
+                        <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Percentage (%)</span>
+                      </SelectItem>
+                      <SelectItem value="fixed">
+                        <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Fixed Amount (Rs.)</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-600 mb-1 block">
+                    {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max={discountType === 'percentage' ? 100 : deposit}
+                    value={discountValue || ''}
+                    onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                    placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 1000'}
+                    className="bg-white"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-green-600 mt-2">Optional - Apply discount on deposit if applicable</p>
+            </div>
+
+            {/* Deposit Summary with Discount */}
+            {deposit > 0 && (
+              <div className="p-4 bg-gray-50 rounded-lg border">
+                <h4 className="font-semibold mb-2">Deposit Summary</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Original Deposit:</span>
+                    <span className={discountValue > 0 ? 'line-through text-gray-400' : 'font-semibold'}>
+                      {formatCurrency(deposit)}
+                    </span>
+                  </div>
+                  {discountValue > 0 && (
+                    <>
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'}):</span>
+                        <span>-{formatCurrency(calculateDiscountedDeposit(deposit).discountAmount)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-lg border-t pt-1">
+                        <span>Final Deposit:</span>
+                        <span className="text-green-600">{formatCurrency(calculateDiscountedDeposit(deposit).finalDeposit)}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           )}
 
           <div>

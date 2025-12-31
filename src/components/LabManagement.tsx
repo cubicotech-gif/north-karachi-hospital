@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TestTube, User, Printer, CreditCard, FileText, UserCheck } from 'lucide-react';
+import { TestTube, User, Printer, CreditCard, FileText, UserCheck, Percent, DollarSign } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -55,6 +55,8 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
   const [pendingOrderData, setPendingOrderData] = useState<any>(null);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientLabOrders, setPatientLabOrders] = useState<LabOrder[]>([]);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
 
   // Fetch doctors and lab tests from database
   useEffect(() => {
@@ -114,6 +116,19 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     }, 0);
   };
 
+  // Calculate discounted total
+  const calculateDiscountedTotal = (originalTotal: number): { discountAmount: number; finalTotal: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (originalTotal * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    discountAmount = Math.min(discountAmount, originalTotal);
+    const finalTotal = originalTotal - discountAmount;
+    return { discountAmount, finalTotal };
+  };
+
   const createLabOrder = async () => {
     if (!selectedPatient) {
       toast.error('Please select a patient first');
@@ -131,11 +146,17 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     }
 
     // Prepare order data and show consent modal
+    const originalTotal = calculateTotal();
+    const { discountAmount, finalTotal } = calculateDiscountedTotal(originalTotal);
     const orderData = {
       patient_id: selectedPatient.id,
       doctor_id: selectedDoctor?.id,
       tests: selectedTests,
-      total_amount: calculateTotal(),
+      total_amount: finalTotal, // Store discounted total
+      original_amount: originalTotal,
+      discount_type: discountValue > 0 ? discountType : null,
+      discount_value: discountValue > 0 ? discountValue : null,
+      discount_amount: discountValue > 0 ? discountAmount : null,
       status: 'pending',
       order_date: new Date().toISOString().split('T')[0]
     };
@@ -309,10 +330,27 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
                 <td style="text-align: right;">${formatCurrency(test.price)}</td>
               </tr>
             `).join('')}
+            ${generatedOrder.discount_amount && generatedOrder.discount_amount > 0 ? `
+            <tr>
+              <td colspan="3" style="text-align: right;"><strong>Subtotal:</strong></td>
+              <td style="text-align: right;">${formatCurrency(generatedOrder.original_amount || generatedOrder.total_amount)}</td>
+            </tr>
+            <tr style="color: green;">
+              <td colspan="3" style="text-align: right;"><strong>Discount (${generatedOrder.discount_type === 'percentage' ? generatedOrder.discount_value + '%' : 'Fixed'}) / رعایت:</strong></td>
+              <td style="text-align: right;">-${formatCurrency(generatedOrder.discount_amount)}</td>
+            </tr>
+            ` : ''}
             <tr class="total-row">
               <td colspan="3" style="text-align: right;"><strong>TOTAL:</strong></td>
               <td style="text-align: right;"><strong>${formatCurrency(generatedOrder.total_amount)}</strong></td>
             </tr>
+            ${generatedOrder.discount_amount && generatedOrder.discount_amount > 0 ? `
+            <tr>
+              <td colspan="4" style="text-align: right; color: green; font-size: 12px;">
+                You saved ${formatCurrency(generatedOrder.discount_amount)}!
+              </td>
+            </tr>
+            ` : ''}
           </tbody>
         </table>
 
@@ -657,14 +695,78 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           </div>
 
           {selectedTests.length > 0 && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Selected Tests: {selectedTests.length}</span>
-                <span className="text-xl font-bold text-blue-600">
-                  Total: {formatCurrency(calculateTotal())}
-                </span>
+            <>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Selected Tests: {selectedTests.length}</span>
+                  <span className={`text-xl font-bold ${discountValue > 0 ? 'line-through text-gray-400' : 'text-blue-600'}`}>
+                    Total: {formatCurrency(calculateTotal())}
+                  </span>
+                </div>
               </div>
-            </div>
+
+              {/* Discount Section */}
+              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <Percent className="h-4 w-4 text-green-600" />
+                  Discount / رعایت
+                </Label>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">Type</Label>
+                    <Select value={discountType} onValueChange={(val: 'percentage' | 'fixed') => setDiscountType(val)}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">
+                          <span className="flex items-center gap-1"><Percent className="h-3 w-3" /> Percentage (%)</span>
+                        </SelectItem>
+                        <SelectItem value="fixed">
+                          <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Fixed Amount (Rs.)</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">
+                      {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max={discountType === 'percentage' ? 100 : calculateTotal()}
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                      placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 500'}
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-green-600 mt-2">Optional - Apply discount if applicable</p>
+              </div>
+
+              {/* Price Summary with Discount */}
+              {discountValue > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                  <h4 className="font-semibold mb-2">Price Summary</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Subtotal ({selectedTests.length} tests):</span>
+                      <span className="line-through text-gray-400">{formatCurrency(calculateTotal())}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'}):</span>
+                      <span>-{formatCurrency(calculateDiscountedTotal(calculateTotal()).discountAmount)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-1">
+                      <span>Final Total:</span>
+                      <span className="text-green-600">{formatCurrency(calculateDiscountedTotal(calculateTotal()).finalTotal)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -674,8 +776,8 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
           <CardTitle>Create Lab Order</CardTitle>
         </CardHeader>
         <CardContent>
-          <Button 
-            onClick={createLabOrder} 
+          <Button
+            onClick={createLabOrder}
             className="w-full"
             disabled={selectedTests.length === 0 || loading}
           >

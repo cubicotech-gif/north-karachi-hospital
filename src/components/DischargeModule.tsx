@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { LogOut, Printer, DollarSign, Bed, TestTube, Activity, Heart, Baby, RefreshCw, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { LogOut, Printer, DollarSign, Bed, TestTube, Activity, Heart, Baby, RefreshCw, Eye, ChevronDown, ChevronUp, Percent } from 'lucide-react';
 import { formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -85,6 +85,21 @@ export default function DischargeModule() {
   const [nicuCharges, setNicuCharges] = useState<{ total: number; items: any[] }>({ total: 0, items: [] });
   const [babyPatients, setBabyPatients] = useState<any[]>([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Calculate discount on total
+  const calculateDiscount = (total: number): { discountAmount: number; finalTotal: number } => {
+    let discountAmount = 0;
+    if (discountType === 'percentage') {
+      discountAmount = (total * discountValue) / 100;
+    } else {
+      discountAmount = discountValue;
+    }
+    discountAmount = Math.min(discountAmount, total);
+    const finalTotal = total - discountAmount;
+    return { discountAmount, finalTotal };
+  };
 
   const [dischargeData, setDischargeData] = useState<DischargeData>({
     discharge_date: new Date().toISOString().split('T')[0],
@@ -111,7 +126,7 @@ export default function DischargeModule() {
     if (selectedAdmission && room) {
       calculateCharges();
     }
-  }, [selectedAdmission, room, dischargeData.discharge_date, dischargeData.medical_charges, dischargeData.medicine_charges, dischargeData.other_charges, labCharges.total, treatmentCharges.total, nicuCharges.total]);
+  }, [selectedAdmission, room, dischargeData.discharge_date, dischargeData.medical_charges, dischargeData.medicine_charges, dischargeData.other_charges, labCharges.total, treatmentCharges.total, nicuCharges.total, discountType, discountValue]);
 
   const fetchActiveAdmissions = async () => {
     try {
@@ -229,8 +244,8 @@ export default function DischargeModule() {
 
     const roomCharges = totalDays * room.price_per_day;
 
-    // Total includes: Room + Lab + Treatment + NICU + Manual charges
-    const totalCharges =
+    // Subtotal includes: Room + Lab + Treatment + NICU + Manual charges
+    const subtotal =
       roomCharges +
       labCharges.total +
       treatmentCharges.total +
@@ -239,13 +254,16 @@ export default function DischargeModule() {
       dischargeData.medicine_charges +
       dischargeData.other_charges;
 
-    const balanceDue = totalCharges - selectedAdmission.deposit;
+    // Apply discount
+    const { discountAmount, finalTotal } = calculateDiscount(subtotal);
+
+    const balanceDue = finalTotal - selectedAdmission.deposit;
 
     setDischargeData(prev => ({
       ...prev,
       total_days: totalDays,
       room_charges: roomCharges,
-      total_charges: totalCharges,
+      total_charges: finalTotal, // Final after discount
       amount_paid: selectedAdmission.deposit,
       balance_due: balanceDue
     }));
@@ -579,6 +597,42 @@ export default function DischargeModule() {
                 </div>
               </div>
 
+              {/* Discount Section */}
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <Percent className="h-4 w-4 text-green-600" />
+                  Discount on Total Bill / رعایت
+                </Label>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">Type</Label>
+                    <select
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-white text-sm"
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (Rs.)</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-gray-600 mb-1 block">
+                      {discountType === 'percentage' ? 'Percentage' : 'Amount'}
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max={discountType === 'percentage' ? 100 : undefined}
+                      value={discountValue || ''}
+                      onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
+                      placeholder={discountType === 'percentage' ? 'e.g. 10' : 'e.g. 5000'}
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-green-600 mt-2">Optional - Apply discount on final bill if applicable</p>
+              </div>
+
               <Separator />
 
               {/* Total Summary */}
@@ -623,10 +677,63 @@ export default function DischargeModule() {
                   <span className="font-medium">{formatCurrency(dischargeData.other_charges)}</span>
                 </div>
                 <Separator />
+
+                {/* Subtotal */}
+                <div className="flex justify-between font-medium">
+                  <span>Subtotal:</span>
+                  <span className={discountValue > 0 ? 'line-through text-gray-400' : ''}>
+                    {formatCurrency(
+                      dischargeData.room_charges +
+                      labCharges.total +
+                      treatmentCharges.total +
+                      nicuCharges.total +
+                      dischargeData.medical_charges +
+                      dischargeData.medicine_charges +
+                      dischargeData.other_charges
+                    )}
+                  </span>
+                </div>
+
+                {/* Discount Display */}
+                {discountValue > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'}) / رعایت:
+                    </span>
+                    <span className="font-medium">
+                      -{formatCurrency(calculateDiscount(
+                        dischargeData.room_charges +
+                        labCharges.total +
+                        treatmentCharges.total +
+                        nicuCharges.total +
+                        dischargeData.medical_charges +
+                        dischargeData.medicine_charges +
+                        dischargeData.other_charges
+                      ).discountAmount)}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total Charges:</span>
                   <span>{formatCurrency(dischargeData.total_charges)}</span>
                 </div>
+
+                {discountValue > 0 && (
+                  <div className="text-right text-sm text-green-600">
+                    You saved {formatCurrency(calculateDiscount(
+                      dischargeData.room_charges +
+                      labCharges.total +
+                      treatmentCharges.total +
+                      nicuCharges.total +
+                      dischargeData.medical_charges +
+                      dischargeData.medicine_charges +
+                      dischargeData.other_charges
+                    ).discountAmount)}!
+                  </div>
+                )}
+
                 <div className="flex justify-between">
                   <span>Advance Paid:</span>
                   <span className="font-medium text-green-600">{formatCurrency(dischargeData.amount_paid)}</span>
