@@ -221,7 +221,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
         const randomNum = Math.floor(1000 + Math.random() * 9000);
         const babyMrNumber = `MR-${dateStr}-${randomNum}`;
 
-        // 2. Create baby as new patient
+        // 2. Create baby as new patient (with newborn type and mother link)
         const babyName = `Baby of ${patient.name} ${babies.length > 1 ? `(${i + 1})` : ''}`.trim();
         const { data: babyPatient, error: babyError } = await db.patients.create({
           mr_number: babyMrNumber,
@@ -231,6 +231,8 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
           contact: patient.contact,
           address: patient.address,
           care_of: patient.name,
+          patient_type: 'newborn',
+          mother_patient_id: patient.id,
           medical_history: `Born on ${deliveryDate} at ${deliveryTime}. Weight: ${baby.weightKg}kg (${baby.weightGrams}g). APGAR: ${baby.apgarScore1Min}/${baby.apgarScore5Min}. Condition: ${baby.condition}. Mother MR: ${patient.mr_number}`,
         });
 

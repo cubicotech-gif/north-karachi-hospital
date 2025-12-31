@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import DeliveryRecordForm from './DeliveryRecordForm';
 import NICUObservationForm from './NICUObservationForm';
+import BirthCertificateTemplate from './documents/BirthCertificateTemplate';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -60,8 +61,11 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [deliveryRecords, setDeliveryRecords] = useState<any[]>([]);
   const [babyPatients, setBabyPatients] = useState<any[]>([]);
   const [selectedBabyForNICU, setSelectedBabyForNICU] = useState<any>(null);
+  const [showBirthCertificate, setShowBirthCertificate] = useState(false);
+  const [birthCertificateData, setBirthCertificateData] = useState<any>(null);
 
   // Refs for patient file forms printing
+  const birthCertificateRef = useRef<HTMLDivElement>(null);
   const coverSheetRef = useRef<HTMLDivElement>(null);
   const visitNotesRef = useRef<HTMLDivElement>(null);
   const vitalsChartRef = useRef<HTMLDivElement>(null);
@@ -296,6 +300,42 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setTimeout(() => handlePrintMedicationChart(), 5000);
     setTimeout(() => handlePrintPrescriptionPad(), 6000);
     setTimeout(() => handlePrintFollowupChecklist(), 7000);
+  };
+
+  // Print birth certificate handler
+  const handlePrintBirthCertificate = useReactToPrint({
+    contentRef: birthCertificateRef,
+    documentTitle: 'Birth_Certificate',
+    onAfterPrint: () => {
+      toast.success('Birth certificate printed');
+    }
+  });
+
+  // Reprint Birth Certificate from delivery record
+  const reprintBirthCertificate = (deliveryRecord: any) => {
+    if (!selectedPatient) return;
+
+    const dateObj = new Date(deliveryRecord.delivery_date);
+    const certData = {
+      serialNumber: deliveryRecord.birth_certificate_number || 'N/A',
+      date: new Date().toLocaleDateString('en-GB'),
+      babyGender: deliveryRecord.baby_gender as 'Male' | 'Female',
+      weightKg: Math.floor(deliveryRecord.baby_weight_kg || 0),
+      weightGrams: deliveryRecord.baby_weight_grams || Math.round(((deliveryRecord.baby_weight_kg || 0) % 1) * 1000),
+      motherName: selectedPatient.name,
+      fatherName: selectedPatient.care_of || '',
+      address: selectedPatient.address || '',
+      birthDay: dateObj.getDate().toString(),
+      birthMonth: (dateObj.getMonth() + 1).toString(),
+      birthYear: dateObj.getFullYear().toString(),
+      birthTime: deliveryRecord.delivery_time || '',
+      attendingObstetrician: deliveryRecord.doctors?.name || '',
+    };
+
+    setBirthCertificateData(certData);
+    setTimeout(() => {
+      setShowBirthCertificate(true);
+    }, 50);
   };
 
   // Reprint OPD Receipt
@@ -1795,21 +1835,37 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                                   </div>
                                 </div>
                                 <div className="text-right space-y-2">
-                                  <Button variant="outline" size="sm">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => reprintBirthCertificate(record)}
+                                  >
                                     <Printer className="h-4 w-4 mr-1" />
                                     Print Certificate
                                   </Button>
-                                  {record.baby_condition !== 'Healthy' && (
+                                  {record.baby_patient_id && (
                                     <Button
                                       size="sm"
                                       className="bg-orange-500 hover:bg-orange-600"
                                       onClick={() => {
-                                        // Find the baby patient and open NICU form
+                                        // Find the baby patient or create minimal data for NICU form
                                         const babyPatient = babyPatients.find(b => b.id === record.baby_patient_id);
                                         if (babyPatient) {
-                                          setSelectedBabyForNICU(babyPatient);
-                                          setShowNICUForm(true);
+                                          setSelectedBabyForNICU({
+                                            ...babyPatient,
+                                            mother_patient_id: selectedPatient?.id
+                                          });
+                                        } else {
+                                          // Use delivery record data if baby not found
+                                          setSelectedBabyForNICU({
+                                            id: record.baby_patient_id,
+                                            mr_number: 'N/A',
+                                            name: `Baby of ${selectedPatient?.name}`,
+                                            gender: record.baby_gender,
+                                            mother_patient_id: selectedPatient?.id
+                                          });
                                         }
+                                        setShowNICUForm(true);
                                       }}
                                     >
                                       <Stethoscope className="h-4 w-4 mr-1" />
@@ -1854,7 +1910,10 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      setSelectedBabyForNICU(baby);
+                                      setSelectedBabyForNICU({
+                                        ...baby,
+                                        mother_patient_id: baby.mother_patient_id || selectedPatient?.id
+                                      });
                                       setShowNICUForm(true);
                                     }}
                                   >
@@ -2594,15 +2653,46 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
             setShowNICUForm(false);
             setSelectedBabyForNICU(null);
           }}
-          patient={{
+          babyPatient={{
             id: selectedBabyForNICU.id,
             mr_number: selectedBabyForNICU.mr_number,
-            name: selectedBabyForNICU.name
+            name: selectedBabyForNICU.name,
+            gender: selectedBabyForNICU.gender,
+            mother_patient_id: selectedBabyForNICU.mother_patient_id
           }}
           onSuccess={() => {
             toast.success('NICU observation recorded');
+            if (selectedPatient?.gender === 'Female') {
+              loadMaternityData();
+            }
           }}
         />
+      )}
+
+      {/* Birth Certificate Print Dialog */}
+      {showBirthCertificate && birthCertificateData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Birth Certificate Preview</h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowBirthCertificate(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="border rounded-lg overflow-hidden">
+              <BirthCertificateTemplate ref={birthCertificateRef} data={birthCertificateData} />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setShowBirthCertificate(false)}>
+                Close
+              </Button>
+              <Button onClick={() => handlePrintBirthCertificate()}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Certificate
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
