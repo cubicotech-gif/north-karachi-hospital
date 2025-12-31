@@ -16,6 +16,7 @@ const MODULE_PERMISSION_MAP: Record<string, string[]> = {
   'dashboard': ['all'], // Everyone can see dashboard
   'patients': ['Patient Registration'],
   'allpatients': ['Patient Registration'], // Same permission as patient registration
+  'newborns': ['Patient Registration', 'Admission Management'], // Newborn babies - accessible by patient reg and admission staff
   'opd': ['OPD Token System'],
   'treatment': ['Treatment Management'],
   'treatmenttypes': ['Treatment Types Management'], // Admin only
