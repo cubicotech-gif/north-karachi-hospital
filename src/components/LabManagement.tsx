@@ -146,16 +146,12 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
 
     try {
       const originalTotal = calculateTotal();
-      const { discountAmount, finalTotal } = calculateDiscountedTotal(originalTotal);
+      const { finalTotal } = calculateDiscountedTotal(originalTotal);
       const orderData = {
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor?.id,
         tests: selectedTests,
-        total_amount: finalTotal, // Store discounted total
-        original_amount: originalTotal,
-        discount_type: discountValue > 0 ? discountType : null,
-        discount_value: discountValue > 0 ? discountValue : null,
-        discount_amount: discountValue > 0 ? discountAmount : null,
+        total_amount: finalTotal,
         status: 'pending',
         order_date: new Date().toISOString().split('T')[0]
       };

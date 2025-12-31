@@ -142,18 +142,14 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
     setLoading(true);
 
     try {
-      const { finalPrice, discountAmount } = calculateDiscountedPrice(price);
+      const { finalPrice } = calculateDiscountedPrice(price);
       const treatmentData = {
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor || null,
         treatment_type: selectedTreatmentType.name,
         treatment_name: treatmentName,
         description: description || null,
-        price: finalPrice, // Store final discounted price
-        original_price: price,
-        discount_type: discountValue > 0 ? discountType : null,
-        discount_value: discountValue > 0 ? discountValue : null,
-        discount_amount: discountValue > 0 ? discountAmount : null,
+        price: finalPrice,
         payment_status: paymentStatus,
         date: new Date().toISOString().split('T')[0],
         notes: notes || null

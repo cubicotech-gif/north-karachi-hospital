@@ -133,10 +133,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         doctor_id: selectedDoctor.id,
         date: new Date().toISOString().split('T')[0],
         status: 'waiting',
-        fee: finalFee, // Store discounted fee
-        original_fee: selectedDoctor.opd_fee,
-        discount_type: discountValue > 0 ? discountType : null,
-        discount_value: discountValue > 0 ? discountValue : null,
+        fee: finalFee,
         payment_status: paymentStatus
       };
 
@@ -471,60 +468,156 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            @page { size: A4; margin: 50mm 25mm 20mm 25mm; }
+            @page {
+              size: A4;
+              margin: 45mm 20mm 30mm 20mm;
+            }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body {
+              height: 100%;
+              width: 100%;
+              overflow: hidden;
+            }
             body {
               font-family: Arial, sans-serif;
-              font-size: 14px;
-              line-height: 1.5;
-              width: 100%;
-              max-width: 210mm;
-              display: flex;
-              flex-direction: column;
-              min-height: 100%;
+              font-size: 16px;
+              line-height: 1.4;
             }
-            .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
-            .patient-box { padding: 10px 0; border-bottom: 1px solid #ccc; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
-            .blank-area { flex: 1; min-height: 280px; }
-            .bottom-sections { margin-top: auto; }
-            .section { margin-bottom: 12px; }
-            .section-title { font-weight: bold; font-size: 15px; color: #000; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px; }
-            .write-area { min-height: 80px; border: 1px solid #999; padding: 8px; background: #fafafa; }
-            .two-col { display: flex; gap: 15px; }
-            .two-col > div { flex: 1; }
-            .signature { margin-top: 20px; text-align: right; }
-            .signature-line { border-top: 1px solid #333; width: 200px; margin-left: auto; padding-top: 6px; font-size: 13px; }
+            .content {
+              page-break-inside: avoid;
+            }
+            .header-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #333;
+            }
+            .queue-box {
+              background: #000;
+              color: #fff;
+              padding: 8px 20px;
+              font-size: 22px;
+              font-weight: bold;
+              border-radius: 5px;
+            }
+            .doctor-info {
+              text-align: right;
+              font-size: 20px;
+            }
+            .doctor-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #000;
+            }
+            .doctor-detail {
+              font-size: 16px;
+              color: #444;
+            }
+            .patient-box {
+              padding: 15px;
+              background: #f5f5f5;
+              border: 1px solid #ccc;
+              border-radius: 5px;
+              margin-bottom: 20px;
+            }
+            .patient-name {
+              font-size: 22px;
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 8px;
+            }
+            .patient-details {
+              font-size: 18px;
+              color: #333;
+            }
+            .patient-details span {
+              margin-right: 20px;
+            }
+            .rx-symbol {
+              font-size: 32px;
+              font-weight: bold;
+              margin: 15px 0;
+              color: #000;
+            }
+            .prescription-area {
+              min-height: 300px;
+              border-left: 2px solid #ccc;
+              padding-left: 15px;
+              margin-bottom: 20px;
+            }
+            .bottom-sections {
+              display: flex;
+              gap: 20px;
+            }
+            .section {
+              flex: 1;
+            }
+            .section-title {
+              font-weight: bold;
+              font-size: 16px;
+              color: #000;
+              border-bottom: 1px solid #000;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+            }
+            .write-area {
+              min-height: 60px;
+              border: 1px solid #999;
+              padding: 8px;
+              background: #fafafa;
+            }
+            .signature {
+              margin-top: 25px;
+              text-align: right;
+            }
+            .signature-line {
+              border-top: 2px solid #333;
+              width: 220px;
+              margin-left: auto;
+              padding-top: 8px;
+            }
+            .signature-name {
+              font-size: 18px;
+              font-weight: bold;
+            }
+            .signature-spec {
+              font-size: 14px;
+              color: #444;
+            }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              html, body { height: auto; overflow: visible; }
             }
           </style>
         </head>
         <body>
-          <div class="info-row">
-            <div>
-              <strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')} &nbsp;&nbsp;
-              <strong>Token:</strong> ${generatedToken?.token_number || 'N/A'} &nbsp;&nbsp;
-              <strong>Queue:</strong> ${queueNumber}
+          <div class="content">
+            <div class="header-row">
+              <div class="queue-box">Q# ${queueNumber}</div>
+              <div class="doctor-info">
+                <div class="doctor-name">Dr. ${selectedDoctor.name}</div>
+                <div class="doctor-detail">${selectedDoctor.department} | ${selectedDoctor.specialization}</div>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <strong>Dr. ${selectedDoctor.name}</strong> &nbsp;|&nbsp; ${selectedDoctor.department} &nbsp;|&nbsp; ${selectedDoctor.specialization}
+
+            <div class="patient-box">
+              <div class="patient-name">${selectedPatient.name}</div>
+              <div class="patient-details">
+                <span><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
+                <span><strong>Age:</strong> ${selectedPatient.age}Y</span>
+                <span><strong>Gender:</strong> ${selectedPatient.gender}</span>
+                <span><strong>Contact:</strong> ${selectedPatient.contact}</span>
+                ${referredBy ? `<span><strong>Ref:</strong> ${referredBy}</span>` : ''}
+              </div>
             </div>
-          </div>
 
-          <div class="patient-box">
-            <strong>Patient:</strong> ${selectedPatient.name} &nbsp;&nbsp;
-            <strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'} &nbsp;&nbsp;
-            <strong>Age:</strong> ${selectedPatient.age}Y &nbsp;&nbsp;
-            <strong>Gender:</strong> ${selectedPatient.gender} &nbsp;&nbsp;
-            <strong>Contact:</strong> ${selectedPatient.contact}
-            ${referredBy ? ` &nbsp;&nbsp;<strong>Referred By:</strong> ${referredBy}` : ''}
-            <br><strong>Chief Complaint:</strong> ${selectedPatient.problem || 'N/A'}
-          </div>
+            <div class="rx-symbol">℞</div>
 
-          <div class="blank-area"></div>
+            <div class="prescription-area"></div>
 
-          <div class="bottom-sections">
-            <div class="two-col">
+            <div class="bottom-sections">
               <div class="section">
                 <div class="section-title">Diagnosis</div>
                 <div class="write-area"></div>
@@ -537,8 +630,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
             <div class="signature">
               <div class="signature-line">
-                <strong>Dr. ${selectedDoctor.name}</strong><br>
-                ${selectedDoctor.specialization}
+                <div class="signature-name">Dr. ${selectedDoctor.name}</div>
+                <div class="signature-spec">${selectedDoctor.specialization}</div>
               </div>
             </div>
           </div>
