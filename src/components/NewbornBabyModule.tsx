@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 import {
@@ -22,7 +25,10 @@ import {
   ExternalLink,
   RefreshCw,
   Stethoscope,
-  AlertCircle
+  AlertCircle,
+  UserPlus,
+  Building,
+  Phone
 } from 'lucide-react';
 import { db } from '@/lib/supabase';
 import NICUObservationForm from './NICUObservationForm';
@@ -37,14 +43,34 @@ interface NewbornBaby {
   contact: string;
   address: string;
   care_of: string;
+  father_name?: string;
   medical_history: string;
   mother_patient_id: string;
   patient_type: string;
+  is_external_admission?: boolean;
+  referral_source?: string;
+  referral_notes?: string;
+  date_of_birth?: string;
   created_at: string;
   mother?: {
     name: string;
     mr_number: string;
   };
+}
+
+interface ExternalNewbornForm {
+  name: string;
+  gender: string;
+  date_of_birth: string;
+  weight_kg: string;
+  weight_grams: string;
+  mother_name: string;
+  father_name: string;
+  contact: string;
+  address: string;
+  referral_source: string;
+  referral_notes: string;
+  medical_history: string;
 }
 
 interface DeliveryRecord {
@@ -69,6 +95,21 @@ interface NewbornBabyModuleProps {
   onNavigateToPatient?: (patientId: string) => void;
 }
 
+const initialExternalForm: ExternalNewbornForm = {
+  name: '',
+  gender: '',
+  date_of_birth: new Date().toISOString().split('T')[0],
+  weight_kg: '',
+  weight_grams: '',
+  mother_name: '',
+  father_name: '',
+  contact: '',
+  address: '',
+  referral_source: '',
+  referral_notes: '',
+  medical_history: ''
+};
+
 const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatient }) => {
   const [newborns, setNewborns] = useState<NewbornBaby[]>([]);
   const [filteredNewborns, setFilteredNewborns] = useState<NewbornBaby[]>([]);
@@ -82,6 +123,11 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
   const [nicuObservations, setNicuObservations] = useState<any[]>([]);
   const [showBirthCertificate, setShowBirthCertificate] = useState(false);
   const birthCertificateRef = useRef<HTMLDivElement>(null);
+
+  // External Newborn Registration
+  const [showExternalForm, setShowExternalForm] = useState(false);
+  const [externalForm, setExternalForm] = useState<ExternalNewbornForm>(initialExternalForm);
+  const [savingExternal, setSavingExternal] = useState(false);
 
   useEffect(() => {
     loadNewborns();
@@ -172,6 +218,71 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
     setShowNICUForm(true);
   };
 
+  // Handle External Newborn Registration
+  const handleRegisterExternalNewborn = async () => {
+    // Validate required fields
+    if (!externalForm.gender) {
+      toast.error('Please select baby gender');
+      return;
+    }
+    if (!externalForm.mother_name.trim()) {
+      toast.error('Mother name is required');
+      return;
+    }
+    if (!externalForm.contact.trim()) {
+      toast.error('Contact number is required');
+      return;
+    }
+
+    setSavingExternal(true);
+    try {
+      // Generate baby name if not provided
+      const babyName = externalForm.name.trim() || `Baby of ${externalForm.mother_name.trim()}`;
+
+      // Build medical history with weight info
+      let medicalHistory = externalForm.medical_history || '';
+      if (externalForm.weight_kg || externalForm.weight_grams) {
+        const weightInfo = `Birth Weight: ${externalForm.weight_kg || '0'}.${externalForm.weight_grams || '0'} kg`;
+        medicalHistory = medicalHistory ? `${weightInfo}\n\n${medicalHistory}` : weightInfo;
+      }
+
+      const { data, error } = await db.babyPatients.createExternalNewborn({
+        name: babyName,
+        gender: externalForm.gender,
+        date_of_birth: externalForm.date_of_birth || undefined,
+        contact: externalForm.contact.trim(),
+        father_name: externalForm.father_name.trim() || undefined,
+        care_of: externalForm.mother_name.trim(), // Mother name goes in care_of
+        address: externalForm.address.trim() || undefined,
+        referral_source: externalForm.referral_source.trim() || undefined,
+        referral_notes: externalForm.referral_notes.trim() || undefined,
+        medical_history: medicalHistory || undefined
+      });
+
+      if (error) {
+        console.error('Error registering external newborn:', error);
+        toast.error('Failed to register baby');
+        return;
+      }
+
+      toast.success(`Baby registered successfully! MR#: ${data.mr_number}`);
+      setShowExternalForm(false);
+      setExternalForm(initialExternalForm);
+      loadNewborns();
+
+      // Optionally open the baby details
+      if (data) {
+        setSelectedBaby(data);
+        setShowBabyDetails(true);
+      }
+    } catch (error) {
+      console.error('Error registering external newborn:', error);
+      toast.error('Failed to register baby');
+    } finally {
+      setSavingExternal(false);
+    }
+  };
+
   const handlePrintBirthCertificate = useReactToPrint({
     contentRef: birthCertificateRef,
     documentTitle: `Birth_Certificate_${selectedBaby?.mr_number || 'Baby'}`,
@@ -255,15 +366,24 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
                 <p className="text-sm text-pink-600">Manage all newborn babies and their records</p>
               </div>
             </div>
-            <Button
-              onClick={loadNewborns}
-              variant="outline"
-              size="sm"
-              className="border-pink-300 hover:bg-pink-100"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowExternalForm(true)}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Register External Baby
+              </Button>
+              <Button
+                onClick={loadNewborns}
+                variant="outline"
+                size="sm"
+                className="border-pink-300 hover:bg-pink-100"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -776,6 +896,226 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
           </DialogContent>
         </Dialog>
       )}
+
+      {/* External Newborn Registration Dialog */}
+      <Dialog open={showExternalForm} onOpenChange={setShowExternalForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-teal-100 rounded-full">
+                <UserPlus className="h-5 w-5 text-teal-600" />
+              </div>
+              Register External Newborn
+            </DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              Register a baby born outside the hospital for NICU or other treatment
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Baby Information */}
+            <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
+              <h3 className="font-semibold text-pink-800 mb-3 flex items-center gap-2">
+                <Baby className="h-4 w-4" />
+                Baby Information
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="babyName">Baby Name (Optional)</Label>
+                  <Input
+                    id="babyName"
+                    value={externalForm.name}
+                    onChange={(e) => setExternalForm({ ...externalForm, name: e.target.value })}
+                    placeholder="e.g., Baby Ahmed (or leave empty)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Will use "Baby of [Mother]" if empty</p>
+                </div>
+                <div>
+                  <Label htmlFor="gender">Gender *</Label>
+                  <Select
+                    value={externalForm.gender}
+                    onValueChange={(value) => setExternalForm({ ...externalForm, gender: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    value={externalForm.date_of_birth}
+                    onChange={(e) => setExternalForm({ ...externalForm, date_of_birth: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="weightKg">Weight (kg)</Label>
+                    <Input
+                      id="weightKg"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={externalForm.weight_kg}
+                      onChange={(e) => setExternalForm({ ...externalForm, weight_kg: e.target.value })}
+                      placeholder="e.g., 2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="weightGrams">Grams</Label>
+                    <Input
+                      id="weightGrams"
+                      type="number"
+                      min="0"
+                      max="999"
+                      value={externalForm.weight_grams}
+                      onChange={(e) => setExternalForm({ ...externalForm, weight_grams: e.target.value })}
+                      placeholder="e.g., 500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Parent Information */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Parent Information
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="motherName">Mother's Name *</Label>
+                  <Input
+                    id="motherName"
+                    value={externalForm.mother_name}
+                    onChange={(e) => setExternalForm({ ...externalForm, mother_name: e.target.value })}
+                    placeholder="Enter mother's name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fatherName">Father's Name</Label>
+                  <Input
+                    id="fatherName"
+                    value={externalForm.father_name}
+                    onChange={(e) => setExternalForm({ ...externalForm, father_name: e.target.value })}
+                    placeholder="Enter father's name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact">Contact Number *</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="contact"
+                      value={externalForm.contact}
+                      onChange={(e) => setExternalForm({ ...externalForm, contact: e.target.value })}
+                      placeholder="0300-1234567"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={externalForm.address}
+                    onChange={(e) => setExternalForm({ ...externalForm, address: e.target.value })}
+                    placeholder="Enter address"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Referral Information */}
+            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <h3 className="font-semibold text-orange-800 mb-3 flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Referral Information
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="referralSource">Referred From</Label>
+                  <Input
+                    id="referralSource"
+                    value={externalForm.referral_source}
+                    onChange={(e) => setExternalForm({ ...externalForm, referral_source: e.target.value })}
+                    placeholder="e.g., ABC Hospital, Home Birth, Dr. Ahmed Clinic"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="referralNotes">Reason for Referral / Notes</Label>
+                  <Textarea
+                    id="referralNotes"
+                    value={externalForm.referral_notes}
+                    onChange={(e) => setExternalForm({ ...externalForm, referral_notes: e.target.value })}
+                    placeholder="e.g., Preterm, jaundice, respiratory distress, low birth weight..."
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="medicalHistory">Medical History / Prior Treatment</Label>
+                  <Textarea
+                    id="medicalHistory"
+                    value={externalForm.medical_history}
+                    onChange={(e) => setExternalForm({ ...externalForm, medical_history: e.target.value })}
+                    placeholder="Any previous treatment, complications, medications..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Info Note */}
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
+              <p className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 text-blue-500" />
+                <span>
+                  After registration, you can admit the baby to NICU and add treatments.
+                  All charges will be linked to this baby's file.
+                </span>
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowExternalForm(false);
+                  setExternalForm(initialExternalForm);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRegisterExternalNewborn}
+                disabled={savingExternal}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                {savingExternal ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Register Baby
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

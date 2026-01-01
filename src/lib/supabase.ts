@@ -523,6 +523,104 @@ export const db = {
         .select('*, mother:mother_patient_id(name, mr_number)')
         .eq('patient_type', 'newborn')
         .order('created_at', { ascending: false });
+    },
+    getExternalNewborns: async () => {
+      return await supabase
+        .from('patients')
+        .select('*')
+        .eq('patient_type', 'newborn')
+        .eq('is_external_admission', true)
+        .order('created_at', { ascending: false });
+    },
+    createExternalNewborn: async (data: {
+      name: string;
+      gender: string;
+      date_of_birth?: string;
+      contact: string;
+      father_name?: string;
+      care_of?: string;
+      address?: string;
+      referral_source?: string;
+      referral_notes?: string;
+      medical_history?: string;
+    }) => {
+      return await supabase.from('patients').insert([{
+        ...data,
+        patient_type: 'newborn',
+        is_external_admission: true,
+        age: 0
+      }]).select().single();
+    }
+  },
+
+  // DISCHARGES
+  discharges: {
+    getAll: async () => {
+      return await supabase
+        .from('discharges')
+        .select('*, patients(name, mr_number, gender, age), doctors(name)')
+        .order('discharge_date', { ascending: false });
+    },
+    getById: async (id: string) => {
+      return await supabase
+        .from('discharges')
+        .select('*, patients(name, mr_number, gender, age, contact, address, patient_type), doctors(name, specialization)')
+        .eq('id', id)
+        .single();
+    },
+    getByPatientId: async (patient_id: string) => {
+      return await supabase
+        .from('discharges')
+        .select('*, doctors(name)')
+        .eq('patient_id', patient_id)
+        .order('discharge_date', { ascending: false });
+    },
+    getByAdmissionId: async (admission_id: string) => {
+      return await supabase
+        .from('discharges')
+        .select('*')
+        .eq('admission_id', admission_id)
+        .single();
+    },
+    getRecent: async (limit: number = 50) => {
+      return await supabase
+        .from('discharges')
+        .select('*, patients(name, mr_number, gender, age), doctors(name)')
+        .order('discharge_date', { ascending: false })
+        .limit(limit);
+    },
+    search: async (query: string) => {
+      return await supabase
+        .from('discharges')
+        .select('*, patients(name, mr_number, gender, age), doctors(name)')
+        .or(`discharge_number.ilike.%${query}%`)
+        .order('discharge_date', { ascending: false });
+    },
+    create: async (data: any) => {
+      return await supabase.from('discharges').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('discharges').update(data).eq('id', id).select().single();
+    },
+    incrementPrintCount: async (id: string) => {
+      const { data: current } = await supabase
+        .from('discharges')
+        .select('print_count')
+        .eq('id', id)
+        .single();
+
+      return await supabase
+        .from('discharges')
+        .update({
+          print_count: (current?.print_count || 0) + 1,
+          last_printed_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+    },
+    getNextDischargeNumber: async () => {
+      return await supabase.rpc('get_next_discharge_number');
     }
   }
 };
