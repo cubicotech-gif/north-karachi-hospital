@@ -525,17 +525,17 @@ export const db = {
         .order('created_at', { ascending: false });
     },
     getExternalNewborns: async () => {
+      // External newborns are identified by patient_type='newborn' and no mother_patient_id
       return await supabase
         .from('patients')
         .select('*')
         .eq('patient_type', 'newborn')
-        .eq('is_external_admission', true)
+        .is('mother_patient_id', null)
         .order('created_at', { ascending: false });
     },
     createExternalNewborn: async (data: {
       name: string;
       gender: string;
-      date_of_birth?: string;
       contact: string;
       father_name?: string;
       care_of?: string;
@@ -544,10 +544,26 @@ export const db = {
       referral_notes?: string;
       medical_history?: string;
     }) => {
+      // Store father_name in care_of field, and referral info in medical_history
+      // External babies have patient_type='newborn' but no mother_patient_id
+      const careOfValue = data.father_name ? `Father: ${data.father_name}` : data.care_of;
+
+      let medicalHistoryValue = data.medical_history || '';
+      if (data.referral_source) {
+        medicalHistoryValue = `[EXTERNAL ADMISSION] Referral: ${data.referral_source}${data.referral_notes ? ` - ${data.referral_notes}` : ''}${medicalHistoryValue ? `\n${medicalHistoryValue}` : ''}`;
+      } else {
+        medicalHistoryValue = `[EXTERNAL ADMISSION]${medicalHistoryValue ? `\n${medicalHistoryValue}` : ''}`;
+      }
+
       return await supabase.from('patients').insert([{
-        ...data,
+        name: data.name,
+        gender: data.gender,
+        contact: data.contact,
+        address: data.address,
+        care_of: careOfValue,
+        medical_history: medicalHistoryValue,
         patient_type: 'newborn',
-        is_external_admission: true,
+        mother_patient_id: null, // No mother patient for external babies
         age: 0
       }]).select().single();
     }

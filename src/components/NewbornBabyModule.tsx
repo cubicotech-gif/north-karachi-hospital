@@ -249,7 +249,6 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
       const { data, error } = await db.babyPatients.createExternalNewborn({
         name: babyName,
         gender: externalForm.gender,
-        date_of_birth: externalForm.date_of_birth || undefined,
         contact: externalForm.contact.trim(),
         father_name: externalForm.father_name.trim() || undefined,
         care_of: externalForm.mother_name.trim(), // Mother name goes in care_of
