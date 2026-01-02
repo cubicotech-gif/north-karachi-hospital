@@ -415,36 +415,83 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
         <head>
           <title>OPD Token - ${tokenData.token_number}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
-            .hospital-name { font-size: 22px; font-weight: bold; color: #333; margin: 5px 0; }
-            .subtitle { color: #666; font-size: 14px; }
-            .queue-box { background: #e74c3c; color: white; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
-            .queue-number { font-size: 48px; font-weight: bold; margin: 0; }
-            .info-section { margin: 15px 0; }
-            .footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 11px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+            .hospital-name { font-size: 14px; font-weight: bold; }
+            .hospital-urdu { font-size: 12px; }
+            .subtitle { font-size: 10px; margin-top: 2px; }
+            .reprint-badge { background: #ff9800; color: white; padding: 1mm 3mm; font-size: 8px; border-radius: 2mm; display: inline-block; margin-top: 2mm; }
+            .queue-box { background: #000; color: white; padding: 3mm; text-align: center; margin: 3mm 0; }
+            .queue-number { font-size: 36px; font-weight: bold; }
+            .queue-label { font-size: 10px; }
+            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
+            .info-section { margin: 2mm 0; font-size: 10px; line-height: 1.4; }
+            .info-label { font-weight: bold; }
+            .mr-number { font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <div class="subtitle">OPD Token</div>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="subtitle">OPD Token / او پی ڈی ٹوکن</div>
+            <div class="reprint-badge">REPRINT / دوبارہ پرنٹ</div>
+          </div>
+
+          <div class="queue-box">
+            <div class="queue-number">${tokenData.token_number}</div>
+            <div class="queue-label">TOKEN NUMBER</div>
+          </div>
+
+          <div class="info-row">
+            <span><strong>Token:</strong> ${tokenData.token_number}</span>
+            <span><strong>Date:</strong> ${new Date(tokenData.date).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <div class="info-label">Patient:</div>
+            <div>${selectedPatient.name}</div>
+            <div class="mr-number">MR#: ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <div class="info-label">Doctor:</div>
+            <div>Dr. ${doctor?.name || 'N/A'}</div>
+            <div>${doctor?.department || 'N/A'}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-row" style="flex-direction: column;">
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>Fee:</strong></span>
+              <span>${formatCurrency(tokenData.fee || 0)}</span>
             </div>
-            <div class="queue-box">
-              <p class="queue-number">${tokenData.token_number}</p>
+            <div style="text-align: right; margin-top: 2mm;">
+              <strong>${(tokenData.payment_status || 'pending').toUpperCase()}</strong>
             </div>
-            <div class="info-section">
-              <p><strong>Patient:</strong> ${selectedPatient.name}</p>
-              <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
-              <p><strong>Doctor:</strong> Dr. ${doctor?.name || 'N/A'}</p>
-              <p><strong>Department:</strong> ${doctor?.department || 'N/A'}</p>
-              <p><strong>Date:</strong> ${new Date(tokenData.date).toLocaleDateString('en-GB')}</p>
-              <p><strong>Fee:</strong> Rs. ${tokenData.fee?.toLocaleString() || '0'}</p>
-              <p><strong>Status:</strong> ${tokenData.payment_status?.toUpperCase()}</p>
-            </div>
-            <div class="footer">Please wait for your turn. Show this token to the doctor.</div>
+          </div>
+
+          <div class="footer">
+            Reprinted: ${new Date().toLocaleString('en-PK')}<br>
+            براہ کرم اپنی باری کا انتظار کریں
           </div>
         </body>
       </html>
@@ -467,39 +514,167 @@ export default function PatientDocumentPortfolio({ selectedPatient }: PatientDoc
         <head>
           <title>Prescription - ${selectedPatient.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .container { max-width: 700px; margin: 0 auto; }
-            .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 25px; }
-            .hospital-name { font-size: 28px; font-weight: bold; color: #333; }
-            .patient-box { background: #f5f5f5; padding: 15px; border-left: 4px solid #e74c3c; margin-bottom: 25px; }
-            .section { margin-bottom: 25px; }
-            .section-title { font-weight: bold; font-size: 16px; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; margin-bottom: 10px; }
-            .write-area { min-height: 80px; border: 1px solid #ddd; padding: 10px; margin-top: 10px; }
-            .signature { margin-top: 60px; text-align: right; }
-            .signature-line { border-top: 1px solid #333; width: 200px; margin-left: auto; padding-top: 10px; }
+            @page {
+              size: A4;
+              margin: 45mm 20mm 30mm 20mm;
+            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body {
+              height: 100%;
+              width: 100%;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 16px;
+              line-height: 1.4;
+              position: relative;
+            }
+            .content {
+              min-height: 100%;
+              position: relative;
+              padding-bottom: 160px;
+            }
+            .header-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #333;
+            }
+            .queue-box {
+              background: #000;
+              color: #fff;
+              padding: 8px 20px;
+              font-size: 22px;
+              font-weight: bold;
+              border-radius: 5px;
+            }
+            .reprint-badge {
+              background: #ff9800;
+              color: white;
+              padding: 4px 10px;
+              font-size: 10px;
+              border-radius: 3px;
+              margin-left: 10px;
+            }
+            .doctor-info {
+              text-align: right;
+              font-size: 20px;
+            }
+            .doctor-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #000;
+            }
+            .doctor-detail {
+              font-size: 16px;
+              color: #444;
+            }
+            .patient-box {
+              padding: 12px 15px;
+              background: #f5f5f5;
+              border: 1px solid #ccc;
+              border-radius: 5px;
+              margin-bottom: 20px;
+            }
+            .patient-name {
+              font-size: 22px;
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 6px;
+            }
+            .patient-details {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 14px;
+              color: #333;
+            }
+            .patient-details .detail-item {
+              white-space: nowrap;
+            }
+            .rx-symbol {
+              font-size: 32px;
+              font-weight: bold;
+              margin: 15px 0;
+              color: #000;
+            }
+            .prescription-area {
+              min-height: 280px;
+              border-left: 2px solid #ccc;
+              padding-left: 15px;
+              margin-bottom: 20px;
+            }
+            .bottom-sections {
+              position: absolute;
+              bottom: 38mm;
+              left: 0;
+              right: 0;
+              display: flex;
+              gap: 20px;
+            }
+            .section {
+              flex: 1;
+            }
+            .section-title {
+              font-weight: bold;
+              font-size: 16px;
+              color: #000;
+              border-bottom: 1px solid #000;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+            }
+            .write-area {
+              min-height: 60px;
+              border: 1px solid #999;
+              padding: 8px;
+              background: #fafafa;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              html, body { height: auto; }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <div class="hospital-name">North Karachi Hospital</div>
-              <p>Prescription & Medical Record</p>
+          <div class="content">
+            <div class="header-row">
+              <div>
+                <span class="queue-box">Token# ${tokenData.token_number}</span>
+                <span class="reprint-badge">REPRINT</span>
+              </div>
+              <div class="doctor-info">
+                <div class="doctor-name">Dr. ${doctor?.name || 'N/A'}</div>
+                <div class="doctor-detail">${doctor?.department || ''} | ${doctor?.specialization || ''}</div>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-              <div><strong>Date:</strong> ${new Date(tokenData.date).toLocaleDateString('en-GB')}<br><strong>Token:</strong> ${tokenData.token_number}</div>
-              <div style="text-align: right;"><strong>Dr. ${doctor?.name || 'N/A'}</strong><br>${doctor?.department || ''}<br>${doctor?.specialization || ''}</div>
-            </div>
+
             <div class="patient-box">
-              <strong>Patient:</strong> ${selectedPatient.name}<br>
-              <strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}<br>
-              <strong>Contact:</strong> ${selectedPatient.contact}<br>
-              <strong>Complaint:</strong> ${selectedPatient.problem}
+              <div class="patient-name">${selectedPatient.name}</div>
+              <div class="patient-details">
+                <span class="detail-item"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
+                <span class="detail-item"><strong>Age:</strong> ${selectedPatient.age}Y</span>
+                <span class="detail-item"><strong>Gender:</strong> ${selectedPatient.gender}</span>
+                <span class="detail-item"><strong>Contact:</strong> ${selectedPatient.contact}</span>
+                <span class="detail-item"><strong>Date:</strong> ${new Date(tokenData.date).toLocaleDateString('en-PK')}</span>
+              </div>
             </div>
-            <div class="section"><div class="section-title">Clinical Examination</div><div class="write-area"></div></div>
-            <div class="section"><div class="section-title">Diagnosis</div><div class="write-area"></div></div>
-            <div class="section"><div class="section-title">℞ Prescription</div><div class="write-area" style="min-height: 150px;"></div></div>
-            <div class="section"><div class="section-title">Advice & Follow-up</div><div class="write-area"></div></div>
-            <div class="signature"><div class="signature-line"><strong>Dr. ${doctor?.name || ''}</strong></div></div>
+
+            <div class="rx-symbol">℞</div>
+
+            <div class="prescription-area"></div>
+
+            <div class="bottom-sections">
+              <div class="section">
+                <div class="section-title">Diagnosis</div>
+                <div class="write-area"></div>
+              </div>
+              <div class="section">
+                <div class="section-title">Advice & Follow-up</div>
+                <div class="write-area"></div>
+              </div>
+            </div>
           </div>
         </body>
       </html>
