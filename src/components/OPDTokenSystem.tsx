@@ -476,15 +476,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             html, body {
               height: 100%;
               width: 100%;
-              overflow: hidden;
             }
             body {
               font-family: Arial, sans-serif;
               font-size: 16px;
               line-height: 1.4;
+              position: relative;
             }
             .content {
-              page-break-inside: avoid;
+              min-height: 100%;
+              position: relative;
+              padding-bottom: 160px;
             }
             .header-row {
               display: flex;
@@ -516,7 +518,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               color: #444;
             }
             .patient-box {
-              padding: 15px;
+              padding: 12px 15px;
               background: #f5f5f5;
               border: 1px solid #ccc;
               border-radius: 5px;
@@ -526,14 +528,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               font-size: 22px;
               font-weight: bold;
               color: #000;
-              margin-bottom: 8px;
+              margin-bottom: 6px;
             }
             .patient-details {
-              font-size: 18px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 14px;
               color: #333;
             }
-            .patient-details span {
-              margin-right: 20px;
+            .patient-details .detail-item {
+              white-space: nowrap;
             }
             .rx-symbol {
               font-size: 32px;
@@ -542,12 +547,16 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               color: #000;
             }
             .prescription-area {
-              min-height: 300px;
+              min-height: 280px;
               border-left: 2px solid #ccc;
               padding-left: 15px;
               margin-bottom: 20px;
             }
             .bottom-sections {
+              position: absolute;
+              bottom: 38mm;
+              left: 0;
+              right: 0;
               display: flex;
               gap: 20px;
             }
@@ -568,27 +577,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               padding: 8px;
               background: #fafafa;
             }
-            .signature {
-              margin-top: 25px;
-              text-align: right;
-            }
-            .signature-line {
-              border-top: 2px solid #333;
-              width: 220px;
-              margin-left: auto;
-              padding-top: 8px;
-            }
-            .signature-name {
-              font-size: 18px;
-              font-weight: bold;
-            }
-            .signature-spec {
-              font-size: 14px;
-              color: #444;
-            }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              html, body { height: auto; overflow: visible; }
+              html, body { height: auto; }
             }
           </style>
         </head>
@@ -605,11 +596,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <div class="patient-box">
               <div class="patient-name">${selectedPatient.name}</div>
               <div class="patient-details">
-                <span><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
-                <span><strong>Age:</strong> ${selectedPatient.age}Y</span>
-                <span><strong>Gender:</strong> ${selectedPatient.gender}</span>
-                <span><strong>Contact:</strong> ${selectedPatient.contact}</span>
-                ${referredBy ? `<span><strong>Ref:</strong> ${referredBy}</span>` : ''}
+                <span class="detail-item"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
+                <span class="detail-item"><strong>Age:</strong> ${selectedPatient.age}Y</span>
+                <span class="detail-item"><strong>Gender:</strong> ${selectedPatient.gender}</span>
+                <span class="detail-item"><strong>Contact:</strong> ${selectedPatient.contact}</span>
+                ${referredBy ? `<span class="detail-item"><strong>Ref:</strong> ${referredBy}</span>` : ''}
               </div>
             </div>
 
@@ -625,13 +616,6 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <div class="section">
                 <div class="section-title">Advice & Follow-up</div>
                 <div class="write-area"></div>
-              </div>
-            </div>
-
-            <div class="signature">
-              <div class="signature-line">
-                <div class="signature-name">Dr. ${selectedDoctor.name}</div>
-                <div class="signature-spec">${selectedDoctor.specialization}</div>
               </div>
             </div>
           </div>
