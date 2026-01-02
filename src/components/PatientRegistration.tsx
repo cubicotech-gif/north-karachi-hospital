@@ -42,7 +42,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
     contact: '',
     careOf: '',
     problem: '',
-    department: 'General Medicine',
+    department: '',
     emergencyContact: '',
     address: '',
     bloodGroup: '',
@@ -60,23 +60,35 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
   const prescriptionPadRef = useRef<HTMLDivElement>(null);
   const followupChecklistRef = useRef<HTMLDivElement>(null);
 
-  const departments = [
-    'General Medicine',
-    'Pediatrics',
-    'Orthopedics',
-    'Gynecology',
-    'Cardiology',
-    'Dermatology',
-    'ENT',
-    'Neurology',
-    'Emergency'
-  ];
+  // Departments fetched from database
+  interface Department {
+    id: string;
+    name: string;
+    active: boolean;
+  }
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   useEffect(() => {
     loadPatients();
+    loadDepartments();
   }, []);
+
+  const loadDepartments = async () => {
+    try {
+      const { data, error } = await db.departments.getAll();
+      if (error) {
+        console.error('Error loading departments:', error);
+        return;
+      }
+      // Filter only active departments
+      const activeDepartments = (data || []).filter((dept: Department) => dept.active);
+      setDepartments(activeDepartments);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    }
+  };
 
   const loadPatients = async () => {
     setIsLoading(true);
@@ -320,7 +332,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         contact: '',
         careOf: '',
         problem: '',
-        department: 'General Medicine',
+        department: '',
         emergencyContact: '',
         address: '',
         bloodGroup: '',
@@ -593,7 +605,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                 gender: 'Male',
                 contact: '',
                 problem: '',
-                department: 'General Medicine',
+                department: '',
                 emergencyContact: '',
                 address: '',
                 bloodGroup: '',
@@ -918,11 +930,11 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                   <Label htmlFor="department">Department</Label>
                   <Select value={newPatient.department} onValueChange={(value) => setNewPatient({ ...newPatient, department: value })}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

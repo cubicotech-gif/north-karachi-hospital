@@ -12,8 +12,15 @@ import { Doctor, formatCurrency, validateCNIC, formatCNIC, calculateAge } from '
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+interface Department {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
 export default function EnhancedDoctorManagement() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
@@ -25,7 +32,7 @@ export default function EnhancedDoctorManagement() {
     contact: '',
     email: '',
     address: '',
-    department: 'General Medicine',
+    department: '',
     opdFee: 0,
     commissionType: 'percentage',
     commissionRate: 0,
@@ -37,22 +44,25 @@ export default function EnhancedDoctorManagement() {
     available: true
   });
 
-  const departments = [
-    'General Medicine',
-    'Pediatrics',
-    'Orthopedics',
-    'Gynecology',
-    'Cardiology',
-    'Dermatology',
-    'ENT',
-    'Ophthalmology',
-    'Neurology',
-    'Psychiatry'
-  ];
-
   useEffect(() => {
     loadDoctors();
+    loadDepartments();
   }, []);
+
+  const loadDepartments = async () => {
+    try {
+      const { data, error } = await db.departments.getAll();
+      if (error) {
+        console.error('Error loading departments:', error);
+        return;
+      }
+      // Filter only active departments
+      const activeDepartments = (data || []).filter((dept: Department) => dept.active);
+      setDepartments(activeDepartments);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    }
+  };
 
   const loadDoctors = async () => {
     setIsLoading(true);
@@ -271,7 +281,7 @@ export default function EnhancedDoctorManagement() {
         contact: '',
         email: '',
         address: '',
-        department: 'General Medicine',
+        department: '',
         opdFee: 0,
         commissionType: 'percentage',
         commissionRate: 0,
@@ -335,7 +345,7 @@ export default function EnhancedDoctorManagement() {
                 contact: '',
                 email: '',
                 address: '',
-                department: 'General Medicine',
+                department: '',
                 opdFee: 0,
                 commissionType: 'percentage',
                 commissionRate: 0,
@@ -451,7 +461,7 @@ export default function EnhancedDoctorManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

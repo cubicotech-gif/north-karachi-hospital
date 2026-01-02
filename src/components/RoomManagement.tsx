@@ -32,24 +32,39 @@ export default function RoomManagement() {
     type: 'General',
     bed_count: 1,
     price_per_day: 1000,
-    department: 'General Medicine',
+    department: '',
     active: true
   });
 
   const roomTypes = ['General', 'Private', 'ICU', 'Emergency'];
-  const departments = [
-    'General Medicine',
-    'Pediatrics',
-    'Orthopedics',
-    'Gynecology',
-    'Cardiology',
-    'Emergency',
-    'Surgery'
-  ];
+
+  // Departments fetched from database
+  interface Department {
+    id: string;
+    name: string;
+    active: boolean;
+  }
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
     fetchRooms();
+    fetchDepartments();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const { data, error } = await db.departments.getAll();
+      if (error) {
+        console.error('Error fetching departments:', error);
+        return;
+      }
+      // Filter only active departments
+      const activeDepartments = (data || []).filter((dept: Department) => dept.active);
+      setDepartments(activeDepartments);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -114,7 +129,7 @@ export default function RoomManagement() {
         type: 'General',
         bed_count: 1,
         price_per_day: 1000,
-        department: 'General Medicine',
+        department: '',
         active: true
       });
       setShowAddForm(false);
@@ -188,7 +203,7 @@ export default function RoomManagement() {
         type: 'General',
         bed_count: 1,
         price_per_day: 1000,
-        department: 'General Medicine',
+        department: '',
         active: true
       });
       setShowAddForm(false);
@@ -281,7 +296,7 @@ export default function RoomManagement() {
                 type: 'General',
                 bed_count: 1,
                 price_per_day: 1000,
-                department: 'General Medicine',
+                department: '',
                 active: true
               });
             }}>
@@ -350,11 +365,11 @@ export default function RoomManagement() {
                 <Label htmlFor="department">Department</Label>
                 <Select value={newRoom.department} onValueChange={(value) => setNewRoom({ ...newRoom, department: value })}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
