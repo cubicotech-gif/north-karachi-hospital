@@ -163,10 +163,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
       // Ensure the token number we used is set correctly (override in case DB returns different)
       setGeneratedToken({ ...data, token_number: tokenNumber });
-      // Reset manual token input and refresh next token number
+      // Reset manual token input and set next token to continue the series
       setManualTokenNumber('');
       setUseManualToken(false);
-      fetchNextTokenNumber();
+      // Directly set next token number (tokenNumber + 1) so auto continues from current
+      setNextTokenNumber(tokenNumber + 1);
       toast.success(`OPD Token #${tokenNumber} generated successfully!`);
     } catch (error) {
       console.error('Error creating token:', error);
