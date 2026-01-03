@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign } from 'lucide-react';
-import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
+import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -41,7 +41,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [generatedToken, setGeneratedToken] = useState<OPDToken | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
   const [loading, setLoading] = useState(false);
-  const [queueNumber, setQueueNumber] = useState<number>(0);
+  const [nextTokenNumber, setNextTokenNumber] = useState<number>(1);
+  const [manualTokenNumber, setManualTokenNumber] = useState<string>('');
+  const [useManualToken, setUseManualToken] = useState<boolean>(false);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientTokens, setPatientTokens] = useState<OPDToken[]>([]);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
@@ -63,13 +65,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
   useEffect(() => {
     fetchDoctors();
+    fetchNextTokenNumber();
   }, []);
-
-  useEffect(() => {
-    if (selectedDoctor) {
-      getQueueNumber(selectedDoctor.id);
-    }
-  }, [selectedDoctor]);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -92,7 +89,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     }
   };
 
-  const getQueueNumber = async (doctorId: string) => {
+  const fetchNextTokenNumber = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await db.opdTokens.getAll();
@@ -102,13 +99,19 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         return;
       }
 
+      // Get all tokens from today (any doctor) for daily reset
       const todayTokens = data?.filter(
-        token => token.doctor_id === doctorId && token.date === today
+        token => token.date === today
       ) || [];
 
-      setQueueNumber(todayTokens.length + 1);
+      // Find the max token number from today
+      const maxTokenNumber = todayTokens.reduce((max, token) => {
+        return Math.max(max, token.token_number || 0);
+      }, 0);
+
+      setNextTokenNumber(maxTokenNumber + 1);
     } catch (error) {
-      console.error('Error getting queue number:', error);
+      console.error('Error getting next token number:', error);
     }
   };
 
@@ -123,12 +126,24 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       return;
     }
 
+    // Determine the token number to use
+    let tokenNumber: number;
+    if (useManualToken && manualTokenNumber) {
+      tokenNumber = parseInt(manualTokenNumber, 10);
+      if (isNaN(tokenNumber) || tokenNumber < 1) {
+        toast.error('Please enter a valid token number');
+        return;
+      }
+    } else {
+      tokenNumber = nextTokenNumber;
+    }
+
     setLoading(true);
 
     try {
       const { finalFee } = calculateDiscountedFee(selectedDoctor.opd_fee);
       const tokenData = {
-        token_number: generateTokenNumber(),
+        token_number: tokenNumber,
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor.id,
         date: new Date().toISOString().split('T')[0],
@@ -147,6 +162,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       setGeneratedToken(data);
+      // Reset manual token input and refresh next token number
+      setManualTokenNumber('');
+      setUseManualToken(false);
+      fetchNextTokenNumber();
       toast.success('OPD Token generated successfully!');
     } catch (error) {
       console.error('Error creating token:', error);
@@ -278,12 +297,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </div>
 
           <div class="queue-box">
-            <div class="queue-number">${queueNumber}</div>
-            <div class="queue-label">QUEUE NUMBER</div>
+            <div class="queue-number">${generatedToken.token_number}</div>
+            <div class="queue-label">TOKEN NUMBER / ٹوکن نمبر</div>
           </div>
 
           <div class="info-row">
-            <span><strong>Token:</strong> ${generatedToken.token_number}</span>
             <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
           </div>
 
@@ -419,7 +437,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <span>OPD Fee - Dr. ${selectedDoctor.name}</span>
             <span>${formatCurrency(selectedDoctor.opd_fee)}</span>
           </div>
-          <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number} | Queue #${queueNumber}</div>
+          <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number}</div>
 
           ${discountValue > 0 ? `
           <div class="item-row" style="color: green;">
@@ -476,15 +494,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             html, body {
               height: 100%;
               width: 100%;
-              overflow: hidden;
             }
             body {
               font-family: Arial, sans-serif;
               font-size: 16px;
               line-height: 1.4;
+              position: relative;
             }
             .content {
-              page-break-inside: avoid;
+              min-height: 100%;
+              position: relative;
+              padding-bottom: 160px;
             }
             .header-row {
               display: flex;
@@ -516,7 +536,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               color: #444;
             }
             .patient-box {
-              padding: 15px;
+              padding: 12px 15px;
               background: #f5f5f5;
               border: 1px solid #ccc;
               border-radius: 5px;
@@ -526,14 +546,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               font-size: 22px;
               font-weight: bold;
               color: #000;
-              margin-bottom: 8px;
+              margin-bottom: 6px;
             }
             .patient-details {
-              font-size: 18px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 14px;
               color: #333;
             }
-            .patient-details span {
-              margin-right: 20px;
+            .patient-details .detail-item {
+              white-space: nowrap;
             }
             .rx-symbol {
               font-size: 32px;
@@ -542,12 +565,16 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               color: #000;
             }
             .prescription-area {
-              min-height: 300px;
+              min-height: 280px;
               border-left: 2px solid #ccc;
               padding-left: 15px;
               margin-bottom: 20px;
             }
             .bottom-sections {
+              position: absolute;
+              bottom: 38mm;
+              left: 0;
+              right: 0;
               display: flex;
               gap: 20px;
             }
@@ -568,34 +595,16 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               padding: 8px;
               background: #fafafa;
             }
-            .signature {
-              margin-top: 25px;
-              text-align: right;
-            }
-            .signature-line {
-              border-top: 2px solid #333;
-              width: 220px;
-              margin-left: auto;
-              padding-top: 8px;
-            }
-            .signature-name {
-              font-size: 18px;
-              font-weight: bold;
-            }
-            .signature-spec {
-              font-size: 14px;
-              color: #444;
-            }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              html, body { height: auto; overflow: visible; }
+              html, body { height: auto; }
             }
           </style>
         </head>
         <body>
           <div class="content">
             <div class="header-row">
-              <div class="queue-box">Q# ${queueNumber}</div>
+              <div class="queue-box">Token# ${generatedToken?.token_number || nextTokenNumber}</div>
               <div class="doctor-info">
                 <div class="doctor-name">Dr. ${selectedDoctor.name}</div>
                 <div class="doctor-detail">${selectedDoctor.department} | ${selectedDoctor.specialization}</div>
@@ -605,11 +614,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <div class="patient-box">
               <div class="patient-name">${selectedPatient.name}</div>
               <div class="patient-details">
-                <span><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
-                <span><strong>Age:</strong> ${selectedPatient.age}Y</span>
-                <span><strong>Gender:</strong> ${selectedPatient.gender}</span>
-                <span><strong>Contact:</strong> ${selectedPatient.contact}</span>
-                ${referredBy ? `<span><strong>Ref:</strong> ${referredBy}</span>` : ''}
+                <span class="detail-item"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
+                <span class="detail-item"><strong>Age:</strong> ${selectedPatient.age}Y</span>
+                <span class="detail-item"><strong>Gender:</strong> ${selectedPatient.gender}</span>
+                <span class="detail-item"><strong>Contact:</strong> ${selectedPatient.contact}</span>
+                ${referredBy ? `<span class="detail-item"><strong>Ref:</strong> ${referredBy}</span>` : ''}
               </div>
             </div>
 
@@ -627,11 +636,285 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 <div class="write-area"></div>
               </div>
             </div>
+          </div>
+        </body>
+      </html>
+    `;
 
-            <div class="signature">
-              <div class="signature-line">
-                <div class="signature-name">Dr. ${selectedDoctor.name}</div>
-                <div class="signature-spec">${selectedDoctor.specialization}</div>
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  // ========== REPRINT FUNCTIONS FOR PREVIOUS VISITS ==========
+
+  const reprintToken = (token: OPDToken, doctor: Doctor) => {
+    if (!selectedPatient) return;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>OPD Token - ${token.token_number}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', sans-serif;
+              width: 80mm;
+              padding: 3mm;
+              font-size: 11px;
+            }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+            .hospital-name { font-size: 14px; font-weight: bold; }
+            .hospital-urdu { font-size: 12px; }
+            .subtitle { font-size: 10px; margin-top: 2px; }
+            .reprint-badge { background: #ff9800; color: white; padding: 1mm 3mm; font-size: 8px; border-radius: 2mm; display: inline-block; margin-top: 2mm; }
+            .queue-box { background: #000; color: white; padding: 3mm; text-align: center; margin: 3mm 0; }
+            .queue-number { font-size: 36px; font-weight: bold; }
+            .queue-label { font-size: 10px; }
+            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
+            .info-section { margin: 2mm 0; font-size: 10px; line-height: 1.4; }
+            .info-label { font-weight: bold; }
+            .mr-number { font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="hospital-name">North Karachi Hospital</div>
+            <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+            <div class="subtitle">OPD Token / او پی ڈی ٹوکن</div>
+            <div class="reprint-badge">REPRINT / دوبارہ پرنٹ</div>
+          </div>
+
+          <div class="queue-box">
+            <div class="queue-number">${token.token_number}</div>
+            <div class="queue-label">TOKEN NUMBER / ٹوکن نمبر</div>
+          </div>
+
+          <div class="info-row">
+            <span><strong>Date:</strong> ${new Date(token.date).toLocaleDateString('en-PK')}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <div class="info-label">Patient:</div>
+            <div>${selectedPatient.name}</div>
+            <div class="mr-number">MR#: ${selectedPatient.mrNumber || 'N/A'}</div>
+            <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-section">
+            <div class="info-label">Doctor:</div>
+            <div>Dr. ${doctor.name}</div>
+            <div>${doctor.department}</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="info-row" style="flex-direction: column;">
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>Fee:</strong></span>
+              <span>${formatCurrency(token.fee)}</span>
+            </div>
+            <div style="text-align: right; margin-top: 2mm;">
+              <strong>${token.payment_status.toUpperCase()}</strong>
+            </div>
+          </div>
+
+          <div class="footer">
+            Reprinted: ${new Date().toLocaleString('en-PK')}<br>
+            براہ کرم اپنی باری کا انتظار کریں
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const reprintPrescription = (token: OPDToken, doctor: Doctor) => {
+    if (!selectedPatient) return;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Prescription - ${selectedPatient.name}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 45mm 20mm 30mm 20mm;
+            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body {
+              height: 100%;
+              width: 100%;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 16px;
+              line-height: 1.4;
+              position: relative;
+            }
+            .content {
+              min-height: 100%;
+              position: relative;
+              padding-bottom: 160px;
+            }
+            .header-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #333;
+            }
+            .queue-box {
+              background: #000;
+              color: #fff;
+              padding: 8px 20px;
+              font-size: 22px;
+              font-weight: bold;
+              border-radius: 5px;
+            }
+            .reprint-badge {
+              background: #ff9800;
+              color: white;
+              padding: 4px 10px;
+              font-size: 10px;
+              border-radius: 3px;
+              margin-left: 10px;
+            }
+            .doctor-info {
+              text-align: right;
+              font-size: 20px;
+            }
+            .doctor-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #000;
+            }
+            .doctor-detail {
+              font-size: 16px;
+              color: #444;
+            }
+            .patient-box {
+              padding: 12px 15px;
+              background: #f5f5f5;
+              border: 1px solid #ccc;
+              border-radius: 5px;
+              margin-bottom: 20px;
+            }
+            .patient-name {
+              font-size: 22px;
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 6px;
+            }
+            .patient-details {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 14px;
+              color: #333;
+            }
+            .patient-details .detail-item {
+              white-space: nowrap;
+            }
+            .rx-symbol {
+              font-size: 32px;
+              font-weight: bold;
+              margin: 15px 0;
+              color: #000;
+            }
+            .prescription-area {
+              min-height: 280px;
+              border-left: 2px solid #ccc;
+              padding-left: 15px;
+              margin-bottom: 20px;
+            }
+            .bottom-sections {
+              position: absolute;
+              bottom: 38mm;
+              left: 0;
+              right: 0;
+              display: flex;
+              gap: 20px;
+            }
+            .section {
+              flex: 1;
+            }
+            .section-title {
+              font-weight: bold;
+              font-size: 16px;
+              color: #000;
+              border-bottom: 1px solid #000;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+            }
+            .write-area {
+              min-height: 60px;
+              border: 1px solid #999;
+              padding: 8px;
+              background: #fafafa;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              html, body { height: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="content">
+            <div class="header-row">
+              <div>
+                <span class="queue-box">Token# ${token.token_number}</span>
+                <span class="reprint-badge">REPRINT</span>
+              </div>
+              <div class="doctor-info">
+                <div class="doctor-name">Dr. ${doctor.name}</div>
+                <div class="doctor-detail">${doctor.department} | ${doctor.specialization}</div>
+              </div>
+            </div>
+
+            <div class="patient-box">
+              <div class="patient-name">${selectedPatient.name}</div>
+              <div class="patient-details">
+                <span class="detail-item"><strong>MR#:</strong> ${selectedPatient.mrNumber || 'N/A'}</span>
+                <span class="detail-item"><strong>Age:</strong> ${selectedPatient.age}Y</span>
+                <span class="detail-item"><strong>Gender:</strong> ${selectedPatient.gender}</span>
+                <span class="detail-item"><strong>Contact:</strong> ${selectedPatient.contact}</span>
+                <span class="detail-item"><strong>Date:</strong> ${new Date(token.date).toLocaleDateString('en-PK')}</span>
+              </div>
+            </div>
+
+            <div class="rx-symbol">℞</div>
+
+            <div class="prescription-area"></div>
+
+            <div class="bottom-sections">
+              <div class="section">
+                <div class="section-title">Diagnosis</div>
+                <div class="write-area"></div>
+              </div>
+              <div class="section">
+                <div class="section-title">Advice & Follow-up</div>
+                <div class="write-area"></div>
               </div>
             </div>
           </div>
@@ -709,7 +992,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <p className="text-sm text-gray-600">{selectedDoctor.department}</p>
               <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
               <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opd_fee)}</p>
-              <p className="text-sm text-blue-600 mt-1">Next Queue Number: {queueNumber}</p>
+              <p className="text-sm text-blue-600 mt-1">Next Token Number: {nextTokenNumber}</p>
             </div>
           )}
         </CardContent>
@@ -739,6 +1022,51 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                   className="bg-white"
                 />
                 <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
+              </div>
+
+              {/* Token Number Section */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  Token Number / ٹوکن نمبر
+                </Label>
+                <div className="flex gap-3 items-center mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tokenType"
+                      checked={!useManualToken}
+                      onChange={() => setUseManualToken(false)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Auto ({nextTokenNumber})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tokenType"
+                      checked={useManualToken}
+                      onChange={() => setUseManualToken(true)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Manual</span>
+                  </label>
+                </div>
+                {useManualToken && (
+                  <Input
+                    type="number"
+                    min="1"
+                    value={manualTokenNumber}
+                    onChange={(e) => setManualTokenNumber(e.target.value)}
+                    placeholder="Enter token number"
+                    className="bg-white"
+                  />
+                )}
+                <p className="text-xs text-blue-600 mt-2">
+                  {useManualToken
+                    ? 'Enter custom token number to skip or use specific number'
+                    : `Token resets daily. Today's next token: ${nextTokenNumber}`}
+                </p>
               </div>
 
               {/* Discount Section */}
@@ -845,10 +1173,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           <CardContent>
             <div className="space-y-4">
               <div className="text-center p-6 bg-green-50 rounded-lg border-2 border-green-200">
-                <div className="text-sm text-gray-600 mb-2">Queue Number</div>
-                <h2 className="text-5xl font-bold text-red-600">{queueNumber}</h2>
-                <p className="text-gray-600 mt-3">Token #{generatedToken.token_number}</p>
-                <p className="text-sm text-gray-500">{new Date().toLocaleDateString('en-PK')}</p>
+                <div className="text-sm text-gray-600 mb-2">Token Number / ٹوکن نمبر</div>
+                <h2 className="text-5xl font-bold text-red-600">{generatedToken.token_number}</h2>
+                <p className="text-sm text-gray-500 mt-3">{new Date().toLocaleDateString('en-PK')}</p>
                 <Badge className="mt-2" variant={generatedToken.payment_status === 'paid' ? 'default' : 'secondary'}>
                   {generatedToken.payment_status === 'paid' ? 'Payment Completed' : 'Payment Pending'}
                 </Badge>
@@ -916,23 +1243,47 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                           <p><strong>Fee:</strong> {formatCurrency(token.fee)}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         {token.payment_status === 'pending' && (
                           <Button
                             onClick={() => recordPaymentForToken(token.id)}
                             disabled={loading}
+                            size="sm"
                             className="bg-green-600 hover:bg-green-700"
                           >
-                            <CreditCard className="h-4 w-4 mr-2" />
+                            <CreditCard className="h-3 w-3 mr-1" />
                             Record Payment
                           </Button>
                         )}
                         {token.payment_status === 'paid' && (
-                          <div className="flex items-center gap-1 text-green-700 font-semibold">
+                          <div className="flex items-center gap-1 text-green-700 font-semibold text-sm">
                             <CreditCard className="h-4 w-4" />
                             Paid
                           </div>
                         )}
+                        {/* Reprint Buttons */}
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => tokenDoctor && reprintToken(token, tokenDoctor)}
+                            disabled={!tokenDoctor}
+                            className="text-xs"
+                          >
+                            <Printer className="h-3 w-3 mr-1" />
+                            Token
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => tokenDoctor && reprintPrescription(token, tokenDoctor)}
+                            disabled={!tokenDoctor}
+                            className="text-xs"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Rx
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
