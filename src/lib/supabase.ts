@@ -130,6 +130,9 @@ export const db = {
     },
     update: async (id: string, data: any) => {
       return await supabase.from('opd_tokens').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('opd_tokens').delete().eq('id', id);
     }
   },
 

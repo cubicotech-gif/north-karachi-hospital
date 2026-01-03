@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign } from 'lucide-react';
+import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign, X } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -223,6 +223,40 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelToken = async (tokenId: string, tokenNumber: number) => {
+    if (!confirm(`Are you sure you want to cancel Token #${tokenNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await db.opdTokens.delete(tokenId);
+
+      if (error) {
+        console.error('Error cancelling token:', error);
+        toast.error('Failed to cancel token');
+        setLoading(false);
+        return;
+      }
+
+      toast.success(`Token #${tokenNumber} cancelled successfully!`);
+
+      // Clear generated token if it's the one being cancelled
+      if (generatedToken?.id === tokenId) {
+        setGeneratedToken(null);
+      }
+
+      // Refresh patient tokens list and next token number
+      fetchPatientTokens();
+      fetchNextTokenNumber();
+    } catch (error) {
+      console.error('Error cancelling token:', error);
+      toast.error('Failed to cancel token');
     } finally {
       setLoading(false);
     }
@@ -1060,6 +1094,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                     min="1"
                     value={manualTokenNumber}
                     onChange={(e) => setManualTokenNumber(e.target.value)}
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
                     placeholder="Enter token number"
                     className="bg-white"
                   />
@@ -1209,6 +1244,15 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                   <Printer className="h-3 w-3 mr-2" />
                   Print Receipt
                 </Button>
+                <Button
+                  onClick={() => cancelToken(generatedToken.id, generatedToken.token_number)}
+                  variant="destructive"
+                  size="sm"
+                  disabled={loading}
+                >
+                  <X className="h-3 w-3 mr-2" />
+                  Cancel Token
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -1284,6 +1328,16 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                           >
                             <FileText className="h-3 w-3 mr-1" />
                             Rx
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => cancelToken(token.id, token.token_number)}
+                            disabled={loading}
+                            className="text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
                           </Button>
                         </div>
                       </div>
