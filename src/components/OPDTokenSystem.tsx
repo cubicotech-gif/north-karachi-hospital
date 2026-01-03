@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign } from 'lucide-react';
-import { Patient, generateTokenNumber, formatCurrency } from '@/lib/hospitalData';
+import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -41,7 +41,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const [generatedToken, setGeneratedToken] = useState<OPDToken | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>('pending');
   const [loading, setLoading] = useState(false);
-  const [queueNumber, setQueueNumber] = useState<number>(0);
+  const [nextTokenNumber, setNextTokenNumber] = useState<number>(1);
+  const [manualTokenNumber, setManualTokenNumber] = useState<string>('');
+  const [useManualToken, setUseManualToken] = useState<boolean>(false);
   const [referredBy, setReferredBy] = useState<string>('');
   const [patientTokens, setPatientTokens] = useState<OPDToken[]>([]);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
@@ -63,13 +65,8 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
   useEffect(() => {
     fetchDoctors();
+    fetchNextTokenNumber();
   }, []);
-
-  useEffect(() => {
-    if (selectedDoctor) {
-      getQueueNumber(selectedDoctor.id);
-    }
-  }, [selectedDoctor]);
 
   useEffect(() => {
     if (selectedPatient) {
@@ -92,7 +89,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     }
   };
 
-  const getQueueNumber = async (doctorId: string) => {
+  const fetchNextTokenNumber = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await db.opdTokens.getAll();
@@ -102,13 +99,19 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         return;
       }
 
+      // Get all tokens from today (any doctor) for daily reset
       const todayTokens = data?.filter(
-        token => token.doctor_id === doctorId && token.date === today
+        token => token.date === today
       ) || [];
 
-      setQueueNumber(todayTokens.length + 1);
+      // Find the max token number from today
+      const maxTokenNumber = todayTokens.reduce((max, token) => {
+        return Math.max(max, token.token_number || 0);
+      }, 0);
+
+      setNextTokenNumber(maxTokenNumber + 1);
     } catch (error) {
-      console.error('Error getting queue number:', error);
+      console.error('Error getting next token number:', error);
     }
   };
 
@@ -123,12 +126,24 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       return;
     }
 
+    // Determine the token number to use
+    let tokenNumber: number;
+    if (useManualToken && manualTokenNumber) {
+      tokenNumber = parseInt(manualTokenNumber, 10);
+      if (isNaN(tokenNumber) || tokenNumber < 1) {
+        toast.error('Please enter a valid token number');
+        return;
+      }
+    } else {
+      tokenNumber = nextTokenNumber;
+    }
+
     setLoading(true);
 
     try {
       const { finalFee } = calculateDiscountedFee(selectedDoctor.opd_fee);
       const tokenData = {
-        token_number: generateTokenNumber(),
+        token_number: tokenNumber,
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctor.id,
         date: new Date().toISOString().split('T')[0],
@@ -147,6 +162,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       setGeneratedToken(data);
+      // Reset manual token input and refresh next token number
+      setManualTokenNumber('');
+      setUseManualToken(false);
+      fetchNextTokenNumber();
       toast.success('OPD Token generated successfully!');
     } catch (error) {
       console.error('Error creating token:', error);
@@ -278,12 +297,11 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           </div>
 
           <div class="queue-box">
-            <div class="queue-number">${queueNumber}</div>
-            <div class="queue-label">QUEUE NUMBER</div>
+            <div class="queue-number">${generatedToken.token_number}</div>
+            <div class="queue-label">TOKEN NUMBER / ٹوکن نمبر</div>
           </div>
 
           <div class="info-row">
-            <span><strong>Token:</strong> ${generatedToken.token_number}</span>
             <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-PK')}</span>
           </div>
 
@@ -419,7 +437,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
             <span>OPD Fee - Dr. ${selectedDoctor.name}</span>
             <span>${formatCurrency(selectedDoctor.opd_fee)}</span>
           </div>
-          <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number} | Queue #${queueNumber}</div>
+          <div style="font-size: 8px; color: #666;">Token #${generatedToken.token_number}</div>
 
           ${discountValue > 0 ? `
           <div class="item-row" style="color: green;">
@@ -586,7 +604,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         <body>
           <div class="content">
             <div class="header-row">
-              <div class="queue-box">Q# ${queueNumber}</div>
+              <div class="queue-box">Token# ${generatedToken?.token_number || nextTokenNumber}</div>
               <div class="doctor-info">
                 <div class="doctor-name">Dr. ${selectedDoctor.name}</div>
                 <div class="doctor-detail">${selectedDoctor.department} | ${selectedDoctor.specialization}</div>
@@ -678,11 +696,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
           <div class="queue-box">
             <div class="queue-number">${token.token_number}</div>
-            <div class="queue-label">TOKEN NUMBER</div>
+            <div class="queue-label">TOKEN NUMBER / ٹوکن نمبر</div>
           </div>
 
           <div class="info-row">
-            <span><strong>Token:</strong> ${token.token_number}</span>
             <span><strong>Date:</strong> ${new Date(token.date).toLocaleDateString('en-PK')}</span>
           </div>
 
@@ -975,7 +992,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <p className="text-sm text-gray-600">{selectedDoctor.department}</p>
               <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
               <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opd_fee)}</p>
-              <p className="text-sm text-blue-600 mt-1">Next Queue Number: {queueNumber}</p>
+              <p className="text-sm text-blue-600 mt-1">Next Token Number: {nextTokenNumber}</p>
             </div>
           )}
         </CardContent>
@@ -1005,6 +1022,51 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                   className="bg-white"
                 />
                 <p className="text-xs text-amber-600 mt-1">Optional - Enter if patient was referred by someone</p>
+              </div>
+
+              {/* Token Number Section */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  Token Number / ٹوکن نمبر
+                </Label>
+                <div className="flex gap-3 items-center mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tokenType"
+                      checked={!useManualToken}
+                      onChange={() => setUseManualToken(false)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Auto ({nextTokenNumber})</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tokenType"
+                      checked={useManualToken}
+                      onChange={() => setUseManualToken(true)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Manual</span>
+                  </label>
+                </div>
+                {useManualToken && (
+                  <Input
+                    type="number"
+                    min="1"
+                    value={manualTokenNumber}
+                    onChange={(e) => setManualTokenNumber(e.target.value)}
+                    placeholder="Enter token number"
+                    className="bg-white"
+                  />
+                )}
+                <p className="text-xs text-blue-600 mt-2">
+                  {useManualToken
+                    ? 'Enter custom token number to skip or use specific number'
+                    : `Token resets daily. Today's next token: ${nextTokenNumber}`}
+                </p>
               </div>
 
               {/* Discount Section */}
@@ -1111,10 +1173,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           <CardContent>
             <div className="space-y-4">
               <div className="text-center p-6 bg-green-50 rounded-lg border-2 border-green-200">
-                <div className="text-sm text-gray-600 mb-2">Queue Number</div>
-                <h2 className="text-5xl font-bold text-red-600">{queueNumber}</h2>
-                <p className="text-gray-600 mt-3">Token #{generatedToken.token_number}</p>
-                <p className="text-sm text-gray-500">{new Date().toLocaleDateString('en-PK')}</p>
+                <div className="text-sm text-gray-600 mb-2">Token Number / ٹوکن نمبر</div>
+                <h2 className="text-5xl font-bold text-red-600">{generatedToken.token_number}</h2>
+                <p className="text-sm text-gray-500 mt-3">{new Date().toLocaleDateString('en-PK')}</p>
                 <Badge className="mt-2" variant={generatedToken.payment_status === 'paid' ? 'default' : 'secondary'}>
                   {generatedToken.payment_status === 'paid' ? 'Payment Completed' : 'Payment Pending'}
                 </Badge>
