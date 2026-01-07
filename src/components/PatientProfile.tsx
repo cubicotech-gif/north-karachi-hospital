@@ -193,13 +193,11 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setCancellingId(tokenId);
     try {
       const { error } = await db.opdTokens.update(tokenId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
+        status: 'cancelled'
       });
 
       if (error) {
+        console.error('Cancel OPD error:', error);
         toast.error('Failed to cancel OPD token');
         return;
       }
@@ -220,13 +218,11 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setCancellingId(orderId);
     try {
       const { error } = await db.labOrders.update(orderId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
+        status: 'cancelled'
       });
 
       if (error) {
+        console.error('Cancel Lab error:', error);
         toast.error('Failed to cancel lab order');
         return;
       }
@@ -247,13 +243,11 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setCancellingId(treatmentId);
     try {
       const { error } = await db.treatments.update(treatmentId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
+        status: 'cancelled'
       });
 
       if (error) {
+        console.error('Cancel Treatment error:', error);
         toast.error('Failed to cancel treatment');
         return;
       }
@@ -274,13 +268,11 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     setCancellingId(admissionId);
     try {
       const { error } = await db.admissions.update(admissionId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
+        status: 'cancelled'
       });
 
       if (error) {
+        console.error('Cancel Admission error:', error);
         toast.error('Failed to cancel admission');
         return;
       }
