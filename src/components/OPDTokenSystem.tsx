@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign } from 'lucide-react';
+import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign, XCircle } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -29,6 +29,8 @@ interface OPDToken {
   status: string;
   fee: number;
   payment_status: string;
+  is_cancelled?: boolean;
+  is_deleted?: boolean;
 }
 
 interface OPDTokenSystemProps {
@@ -100,16 +102,32 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       // Get all tokens from today (any doctor) for daily reset
+      // IMPORTANT: Include ALL tokens (even deleted/cancelled) to prevent number skipping
       const todayTokens = data?.filter(
         token => token.date === today
       ) || [];
 
       // Find the max token number from today
+      // This ensures we never skip numbers even if tokens are deleted or cancelled
       const maxTokenNumber = todayTokens.reduce((max, token) => {
-        return Math.max(max, token.token_number || 0);
+        const tokenNum = parseInt(token.token_number) || 0;
+        return Math.max(max, tokenNum);
       }, 0);
 
-      setNextTokenNumber(maxTokenNumber + 1);
+      // Calculate next available number
+      // Check for gaps in the sequence (optional: fill gaps or continue from max)
+      const usedNumbers = new Set(todayTokens.map(t => parseInt(t.token_number) || 0));
+      let nextNum = maxTokenNumber + 1;
+
+      // If you want to fill gaps, uncomment the following:
+      // for (let i = 1; i <= maxTokenNumber; i++) {
+      //   if (!usedNumbers.has(i)) {
+      //     nextNum = i;
+      //     break;
+      //   }
+      // }
+
+      setNextTokenNumber(nextNum);
     } catch (error) {
       console.error('Error getting next token number:', error);
     }
@@ -221,6 +239,55 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelToken = async (tokenId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this token?')) return;
+
+    setLoading(true);
+    try {
+      const currentUser = localStorage.getItem('currentUser') || 'system';
+      const reason = window.prompt('Please enter a reason for cancellation:');
+
+      if (!reason) {
+        toast.error('Cancellation reason is required');
+        setLoading(false);
+        return;
+      }
+
+      // Use the extended function if available, otherwise update directly
+      if (db.opdTokensExtended?.cancel) {
+        const { error } = await db.opdTokensExtended.cancel(tokenId, currentUser, reason);
+        if (error) {
+          console.error('Error cancelling token:', error);
+          toast.error('Failed to cancel token');
+          setLoading(false);
+          return;
+        }
+      } else {
+        const { error } = await db.opdTokens.update(tokenId, {
+          status: 'cancelled',
+          is_cancelled: true,
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: currentUser,
+          cancellation_reason: reason
+        });
+        if (error) {
+          console.error('Error cancelling token:', error);
+          toast.error('Failed to cancel token');
+          setLoading(false);
+          return;
+        }
+      }
+
+      toast.success('Token cancelled successfully');
+      fetchPatientTokens();
+    } catch (error) {
+      console.error('Error cancelling token:', error);
+      toast.error('Failed to cancel token');
     } finally {
       setLoading(false);
     }
@@ -1261,13 +1328,29 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                             Paid
                           </div>
                         )}
+                        {/* Cancel Button */}
+                        {!token.is_cancelled && token.status !== 'cancelled' && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => cancelToken(token.id)}
+                            disabled={loading}
+                            className="text-xs"
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
+                        {(token.is_cancelled || token.status === 'cancelled') && (
+                          <Badge variant="destructive" className="text-xs">CANCELLED</Badge>
+                        )}
                         {/* Reprint Buttons */}
                         <div className="flex gap-1">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => tokenDoctor && reprintToken(token, tokenDoctor)}
-                            disabled={!tokenDoctor}
+                            disabled={!tokenDoctor || token.is_cancelled}
                             className="text-xs"
                           >
                             <Printer className="h-3 w-3 mr-1" />
@@ -1277,7 +1360,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                             variant="outline"
                             size="sm"
                             onClick={() => tokenDoctor && reprintPrescription(token, tokenDoctor)}
-                            disabled={!tokenDoctor}
+                            disabled={!tokenDoctor || token.is_cancelled}
                             className="text-xs"
                           >
                             <FileText className="h-3 w-3 mr-1" />
