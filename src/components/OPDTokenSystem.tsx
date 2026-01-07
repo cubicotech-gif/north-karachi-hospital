@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Printer, Clock, User, Stethoscope, CreditCard, UserCheck, Percent, DollarSign, XCircle } from 'lucide-react';
 import { Patient, formatCurrency } from '@/lib/hospitalData';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface Doctor {
@@ -249,20 +249,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
     setLoading(true);
     try {
-      const currentUser = localStorage.getItem('currentUser') || 'system';
-
-      // Cancel directly without asking for reason
-      const { error } = await db.opdTokens.update(tokenId, {
-        status: 'cancelled'
-      });
-
-      if (error) {
-        console.error('Error cancelling token:', error);
-        toast.error('Failed to cancel token');
-        setLoading(false);
-        return;
-      }
-
+      await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
       toast.success('Token cancelled successfully');
       fetchPatientTokens();
     } catch (error) {
