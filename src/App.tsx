@@ -33,7 +33,8 @@ import {
   LayoutDashboard,
   UserPlus,
   Clipboard,
-  Baby
+  Baby,
+  Trash2
 } from 'lucide-react';
 import { Patient } from '@/lib/hospitalData';
 import { useAuth } from '@/lib/useAuth';
@@ -61,10 +62,11 @@ import DocumentsManagement from '@/components/DocumentsManagement';
 import PatientDocumentPortfolio from '@/components/PatientDocumentPortfolio';
 import ConsentDocumentsCenter from '@/components/ConsentDocumentsCenter';
 import NewbornBabyModule from '@/components/NewbornBabyModule';
+import DeletedCancelledRecords from '@/components/DeletedCancelledRecords';
 
 const queryClient = new QueryClient();
 
-type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'newborns' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio' | 'consent';
+type ModuleType = 'dashboard' | 'patients' | 'allpatients' | 'newborns' | 'opd' | 'treatment' | 'treatmenttypes' | 'admission' | 'discharge' | 'lab' | 'doctors' | 'users' | 'departments' | 'labtests' | 'rooms' | 'queue' | 'appointments' | 'reports' | 'billing' | 'settings' | 'documents' | 'portfolio' | 'consent' | 'deletedrecords';
 
 // Hospital Logo Component
 const HospitalLogo = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -244,6 +246,7 @@ const App = () => {
       name: 'System',
       modules: [
         { id: 'reports' as ModuleType, name: 'Reports', icon: TrendingUp },
+        { id: 'deletedrecords' as ModuleType, name: 'Deleted Records', icon: Trash2 },
         { id: 'users' as ModuleType, name: 'Users', icon: UserCog },
         { id: 'settings' as ModuleType, name: 'Settings', icon: Settings },
       ]
@@ -499,6 +502,8 @@ const App = () => {
         return <ConsentDocumentsCenter selectedPatient={selectedPatient} />;
       case 'settings':
         return <HospitalSettings />;
+      case 'deletedrecords':
+        return <DeletedCancelledRecords />;
       default:
         return renderDashboard();
     }

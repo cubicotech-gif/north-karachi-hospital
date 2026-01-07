@@ -622,5 +622,110 @@ export const db = {
     getNextDischargeNumber: async () => {
       return await supabase.rpc('get_next_discharge_number');
     }
+  },
+
+  // VOUCHERS
+  vouchers: {
+    getAll: async () => {
+      return await supabase.from('vouchers').select('*, doctors(name)').order('created_at', { ascending: false });
+    },
+    getById: async (id: string) => {
+      return await supabase.from('vouchers').select('*, doctors(name)').eq('id', id).single();
+    },
+    getByDoctorId: async (doctor_id: string) => {
+      return await supabase.from('vouchers').select('*').eq('doctor_id', doctor_id).order('created_at', { ascending: false });
+    },
+    getByStatus: async (status: string) => {
+      return await supabase.from('vouchers').select('*, doctors(name)').eq('status', status).order('created_at', { ascending: false });
+    },
+    getPending: async () => {
+      return await supabase.from('vouchers').select('*, doctors(name)').in('status', ['pending', 'approved']).order('created_at', { ascending: false });
+    },
+    create: async (data: any) => {
+      return await supabase.from('vouchers').insert([data]).select().single();
+    },
+    update: async (id: string, data: any) => {
+      return await supabase.from('vouchers').update(data).eq('id', id).select().single();
+    },
+    delete: async (id: string) => {
+      return await supabase.from('vouchers').delete().eq('id', id);
+    },
+    calculateDoctorCommission: async (doctorId: string, startDate: string, endDate: string) => {
+      return await supabase.rpc('calculate_doctor_commission', {
+        p_doctor_id: doctorId,
+        p_start_date: startDate,
+        p_end_date: endDate
+      });
+    }
+  },
+
+  // AUDIT LOG
+  auditLog: {
+    getAll: async () => {
+      return await supabase.from('audit_log').select('*').order('created_at', { ascending: false });
+    },
+    getByTable: async (tableName: string) => {
+      return await supabase.from('audit_log').select('*').eq('table_name', tableName).order('created_at', { ascending: false });
+    },
+    getByAction: async (action: string) => {
+      return await supabase.from('audit_log').select('*').eq('action', action).order('created_at', { ascending: false });
+    },
+    getByRecordId: async (recordId: string) => {
+      return await supabase.from('audit_log').select('*').eq('record_id', recordId).order('created_at', { ascending: false });
+    },
+    create: async (data: any) => {
+      return await supabase.from('audit_log').insert([data]).select().single();
+    },
+    getDeletedRecords: async (tableName: string) => {
+      return await supabase.from('audit_log').select('*').eq('table_name', tableName).eq('action', 'delete').order('created_at', { ascending: false });
+    },
+    getCancelledRecords: async (tableName: string) => {
+      return await supabase.from('audit_log').select('*').eq('table_name', tableName).eq('action', 'cancel').order('created_at', { ascending: false });
+    }
+  },
+
+  // OPD TOKENS - Extended with soft delete
+  opdTokensExtended: {
+    getActive: async () => {
+      return await supabase.from('opd_tokens').select('*')
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .or('is_cancelled.is.null,is_cancelled.eq.false')
+        .order('created_at', { ascending: false });
+    },
+    getDeleted: async () => {
+      return await supabase.from('opd_tokens').select('*, patients(name, mr_number), doctors(name)')
+        .eq('is_deleted', true)
+        .order('deleted_at', { ascending: false });
+    },
+    getCancelled: async () => {
+      return await supabase.from('opd_tokens').select('*, patients(name, mr_number), doctors(name)')
+        .eq('is_cancelled', true)
+        .order('cancelled_at', { ascending: false });
+    },
+    softDelete: async (id: string, deletedBy: string, reason: string) => {
+      return await supabase.from('opd_tokens').update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy,
+        deletion_reason: reason
+      }).eq('id', id).select().single();
+    },
+    cancel: async (id: string, cancelledBy: string, reason: string) => {
+      return await supabase.from('opd_tokens').update({
+        is_cancelled: true,
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: cancelledBy,
+        cancellation_reason: reason
+      }).eq('id', id).select().single();
+    },
+    restore: async (id: string) => {
+      return await supabase.from('opd_tokens').update({
+        is_deleted: false,
+        deleted_at: null,
+        deleted_by: null,
+        deletion_reason: null
+      }).eq('id', id).select().single();
+    }
   }
 };
