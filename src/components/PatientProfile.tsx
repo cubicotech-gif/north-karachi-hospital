@@ -15,7 +15,7 @@ import DeliveryRecordForm from './DeliveryRecordForm';
 import NICUObservationForm from './NICUObservationForm';
 import BirthCertificateTemplate from './documents/BirthCertificateTemplate';
 import { Patient, formatCurrency, generateMRNumber } from '@/lib/hospitalData';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useReactToPrint } from 'react-to-print';
 
@@ -192,20 +192,9 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(tokenId);
     try {
-      const { error } = await db.opdTokens.update(tokenId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
-      });
-
-      if (error) {
-        toast.error('Failed to cancel OPD token');
-        return;
-      }
-
+      await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
       toast.success('OPD token cancelled successfully');
-      loadPatientHistory(); // Refresh data
+      loadPatientHistory();
     } catch (error) {
       console.error('Error cancelling OPD token:', error);
       toast.error('Failed to cancel OPD token');
@@ -219,18 +208,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(orderId);
     try {
-      const { error } = await db.labOrders.update(orderId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
-      });
-
-      if (error) {
-        toast.error('Failed to cancel lab order');
-        return;
-      }
-
+      await supabase.from('lab_orders').update({ status: 'cancelled' }).eq('id', orderId);
       toast.success('Lab order cancelled successfully');
       loadPatientHistory();
     } catch (error) {
@@ -246,18 +224,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(treatmentId);
     try {
-      const { error } = await db.treatments.update(treatmentId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
-      });
-
-      if (error) {
-        toast.error('Failed to cancel treatment');
-        return;
-      }
-
+      await supabase.from('treatments').update({ status: 'cancelled' }).eq('id', treatmentId);
       toast.success('Treatment cancelled successfully');
       loadPatientHistory();
     } catch (error) {
@@ -273,18 +240,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(admissionId);
     try {
-      const { error } = await db.admissions.update(admissionId, {
-        status: 'cancelled',
-        is_cancelled: true,
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: localStorage.getItem('currentUser') || 'system'
-      });
-
-      if (error) {
-        toast.error('Failed to cancel admission');
-        return;
-      }
-
+      await supabase.from('admissions').update({ status: 'cancelled' }).eq('id', admissionId);
       toast.success('Admission cancelled successfully');
       loadPatientHistory();
     } catch (error) {

@@ -129,7 +129,8 @@ export const db = {
       return await supabase.from('opd_tokens').insert([data]).select().single();
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('opd_tokens').update(data).eq('id', id).select().single();
+      const result = await supabase.from('opd_tokens').update(data).eq('id', id);
+      return result;
     }
   },
 
@@ -148,7 +149,8 @@ export const db = {
       return await supabase.from('admissions').insert([data]).select().single();
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('admissions').update(data).eq('id', id).select().single();
+      const result = await supabase.from('admissions').update(data).eq('id', id);
+      return result;
     }
   },
 
@@ -164,7 +166,8 @@ export const db = {
       return await supabase.from('lab_orders').insert([data]).select().single();
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('lab_orders').update(data).eq('id', id).select().single();
+      const result = await supabase.from('lab_orders').update(data).eq('id', id);
+      return result;
     }
   },
 
@@ -218,7 +221,8 @@ export const db = {
       return await supabase.from('treatments').insert([data]).select().single();
     },
     update: async (id: string, data: any) => {
-      return await supabase.from('treatments').update(data).eq('id', id).select().single();
+      const result = await supabase.from('treatments').update(data).eq('id', id);
+      return result;
     },
     delete: async (id: string) => {
       return await supabase.from('treatments').delete().eq('id', id);
