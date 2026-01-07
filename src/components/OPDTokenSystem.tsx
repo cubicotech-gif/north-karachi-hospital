@@ -250,37 +250,17 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     setLoading(true);
     try {
       const currentUser = localStorage.getItem('currentUser') || 'system';
-      const reason = window.prompt('Please enter a reason for cancellation:');
 
-      if (!reason) {
-        toast.error('Cancellation reason is required');
+      // Cancel directly without asking for reason
+      const { error } = await db.opdTokens.update(tokenId, {
+        status: 'cancelled'
+      });
+
+      if (error) {
+        console.error('Error cancelling token:', error);
+        toast.error('Failed to cancel token');
         setLoading(false);
         return;
-      }
-
-      // Use the extended function if available, otherwise update directly
-      if (db.opdTokensExtended?.cancel) {
-        const { error } = await db.opdTokensExtended.cancel(tokenId, currentUser, reason);
-        if (error) {
-          console.error('Error cancelling token:', error);
-          toast.error('Failed to cancel token');
-          setLoading(false);
-          return;
-        }
-      } else {
-        const { error } = await db.opdTokens.update(tokenId, {
-          status: 'cancelled',
-          is_cancelled: true,
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: currentUser,
-          cancellation_reason: reason
-        });
-        if (error) {
-          console.error('Error cancelling token:', error);
-          toast.error('Failed to cancel token');
-          setLoading(false);
-          return;
-        }
       }
 
       toast.success('Token cancelled successfully');
@@ -1329,7 +1309,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                           </div>
                         )}
                         {/* Cancel Button */}
-                        {!token.is_cancelled && token.status !== 'cancelled' && (
+                        {token.status !== 'cancelled' && (
                           <Button
                             variant="destructive"
                             size="sm"
@@ -1341,7 +1321,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                             Cancel
                           </Button>
                         )}
-                        {(token.is_cancelled || token.status === 'cancelled') && (
+                        {token.status === 'cancelled' && (
                           <Badge variant="destructive" className="text-xs">CANCELLED</Badge>
                         )}
                         {/* Reprint Buttons */}
