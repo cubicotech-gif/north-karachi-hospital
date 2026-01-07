@@ -187,12 +187,43 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   };
 
   // ======= CANCELLATION FUNCTIONS =======
+  // Helper to log cancellation
+  const logCancellation = async (recordType: string, recordId: string, recordData: any) => {
+    try {
+      await supabase.from('cancelled_records').insert({
+        record_type: recordType,
+        record_id: recordId,
+        patient_id: recordData?.patient_id || selectedPatient?.id,
+        patient_name: recordData?.patient_name || selectedPatient?.name,
+        details: JSON.stringify(recordData),
+        cancelled_by: localStorage.getItem('currentUser') || 'system',
+        cancelled_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.log('Could not log cancellation:', e);
+    }
+  };
+
   const cancelOPDToken = async (tokenId: string) => {
     if (!window.confirm('Are you sure you want to cancel this OPD token?')) return;
 
     setCancellingId(tokenId);
     try {
-      await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
+      // Get record first
+      const { data: recordData } = await supabase.from('opd_tokens').select('*').eq('id', tokenId).single();
+
+      // Update status
+      const { error } = await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
+
+      if (error) {
+        console.error('Cancel error:', error);
+        toast.error('Failed to cancel: ' + error.message);
+        return;
+      }
+
+      // Log cancellation
+      await logCancellation('opd_token', tokenId, recordData);
+
       toast.success('OPD token cancelled successfully');
       loadPatientHistory();
     } catch (error) {
@@ -208,7 +239,18 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(orderId);
     try {
-      await supabase.from('lab_orders').update({ status: 'cancelled' }).eq('id', orderId);
+      const { data: recordData } = await supabase.from('lab_orders').select('*').eq('id', orderId).single();
+
+      const { error } = await supabase.from('lab_orders').update({ status: 'cancelled' }).eq('id', orderId);
+
+      if (error) {
+        console.error('Cancel error:', error);
+        toast.error('Failed to cancel: ' + error.message);
+        return;
+      }
+
+      await logCancellation('lab_order', orderId, recordData);
+
       toast.success('Lab order cancelled successfully');
       loadPatientHistory();
     } catch (error) {
@@ -224,7 +266,18 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(treatmentId);
     try {
-      await supabase.from('treatments').update({ status: 'cancelled' }).eq('id', treatmentId);
+      const { data: recordData } = await supabase.from('treatments').select('*').eq('id', treatmentId).single();
+
+      const { error } = await supabase.from('treatments').update({ status: 'cancelled' }).eq('id', treatmentId);
+
+      if (error) {
+        console.error('Cancel error:', error);
+        toast.error('Failed to cancel: ' + error.message);
+        return;
+      }
+
+      await logCancellation('treatment', treatmentId, recordData);
+
       toast.success('Treatment cancelled successfully');
       loadPatientHistory();
     } catch (error) {
@@ -240,7 +293,18 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
 
     setCancellingId(admissionId);
     try {
-      await supabase.from('admissions').update({ status: 'cancelled' }).eq('id', admissionId);
+      const { data: recordData } = await supabase.from('admissions').select('*').eq('id', admissionId).single();
+
+      const { error } = await supabase.from('admissions').update({ status: 'cancelled' }).eq('id', admissionId);
+
+      if (error) {
+        console.error('Cancel error:', error);
+        toast.error('Failed to cancel: ' + error.message);
+        return;
+      }
+
+      await logCancellation('admission', admissionId, recordData);
+
       toast.success('Admission cancelled successfully');
       loadPatientHistory();
     } catch (error) {

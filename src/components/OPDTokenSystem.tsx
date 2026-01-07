@@ -249,7 +249,36 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
     setLoading(true);
     try {
-      await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
+      // Get token details first for logging
+      const { data: tokenData } = await supabase
+        .from('opd_tokens')
+        .select('*')
+        .eq('id', tokenId)
+        .single();
+
+      // Update the status
+      const { error: updateError } = await supabase
+        .from('opd_tokens')
+        .update({ status: 'cancelled' })
+        .eq('id', tokenId);
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+        toast.error('Failed to cancel token: ' + updateError.message);
+        return;
+      }
+
+      // Log to cancelled_records table
+      await supabase.from('cancelled_records').insert({
+        record_type: 'opd_token',
+        record_id: tokenId,
+        patient_id: tokenData?.patient_id,
+        patient_name: tokenData?.patient_name,
+        details: JSON.stringify(tokenData),
+        cancelled_by: localStorage.getItem('currentUser') || 'system',
+        cancelled_at: new Date().toISOString()
+      });
+
       toast.success('Token cancelled successfully');
       fetchPatientTokens();
     } catch (error) {

@@ -68,6 +68,32 @@ ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS cancelled_by VARCHAR(100);
 
 -- =====================================================
+-- 2B. CANCELLED RECORDS LOG TABLE (Audit Trail)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS cancelled_records (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    record_type VARCHAR(50) NOT NULL, -- opd_token, lab_order, treatment, admission, patient
+    record_id UUID NOT NULL,
+    patient_id UUID,
+    patient_name VARCHAR(200),
+    details JSONB, -- Full record data at time of cancellation
+    cancelled_by VARCHAR(100),
+    cancelled_at TIMESTAMPTZ DEFAULT NOW(),
+    reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS on cancelled_records
+ALTER TABLE cancelled_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all cancelled_records" ON cancelled_records;
+CREATE POLICY "Allow all cancelled_records" ON cancelled_records FOR ALL USING (true) WITH CHECK (true);
+
+-- Indexes for cancelled_records
+CREATE INDEX IF NOT EXISTS idx_cancelled_records_type ON cancelled_records(record_type);
+CREATE INDEX IF NOT EXISTS idx_cancelled_records_patient ON cancelled_records(patient_id);
+CREATE INDEX IF NOT EXISTS idx_cancelled_records_date ON cancelled_records(cancelled_at);
+
+-- =====================================================
 -- 3. ADD COMMISSION FIELDS TO DOCTORS TABLE
 -- =====================================================
 
