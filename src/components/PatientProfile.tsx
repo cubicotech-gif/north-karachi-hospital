@@ -71,6 +71,9 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
   const [babyDeliveryRecord, setBabyDeliveryRecord] = useState<any>(null);
   const [loadingBabyData, setLoadingBabyData] = useState(false);
 
+  // Cancellation states
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   // Refs for patient file forms printing
   const birthCertificateRef = useRef<HTMLDivElement>(null);
   const coverSheetRef = useRef<HTMLDivElement>(null);
@@ -181,6 +184,162 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
     return babyNicuObservations.reduce((sum, obs) => {
       return sum + (obs.total_charge || 0);
     }, 0);
+  };
+
+  // ======= CANCELLATION FUNCTIONS =======
+  const cancelOPDToken = async (tokenId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this OPD token?')) return;
+
+    setCancellingId(tokenId);
+    try {
+      const { error } = await db.opdTokens.update(tokenId, {
+        status: 'cancelled',
+        is_cancelled: true,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: localStorage.getItem('currentUser') || 'system'
+      });
+
+      if (error) {
+        toast.error('Failed to cancel OPD token');
+        return;
+      }
+
+      toast.success('OPD token cancelled successfully');
+      loadPatientHistory(); // Refresh data
+    } catch (error) {
+      console.error('Error cancelling OPD token:', error);
+      toast.error('Failed to cancel OPD token');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const cancelLabOrder = async (orderId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this lab order?')) return;
+
+    setCancellingId(orderId);
+    try {
+      const { error } = await db.labOrders.update(orderId, {
+        status: 'cancelled',
+        is_cancelled: true,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: localStorage.getItem('currentUser') || 'system'
+      });
+
+      if (error) {
+        toast.error('Failed to cancel lab order');
+        return;
+      }
+
+      toast.success('Lab order cancelled successfully');
+      loadPatientHistory();
+    } catch (error) {
+      console.error('Error cancelling lab order:', error);
+      toast.error('Failed to cancel lab order');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const cancelTreatment = async (treatmentId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this treatment?')) return;
+
+    setCancellingId(treatmentId);
+    try {
+      const { error } = await db.treatments.update(treatmentId, {
+        status: 'cancelled',
+        is_cancelled: true,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: localStorage.getItem('currentUser') || 'system'
+      });
+
+      if (error) {
+        toast.error('Failed to cancel treatment');
+        return;
+      }
+
+      toast.success('Treatment cancelled successfully');
+      loadPatientHistory();
+    } catch (error) {
+      console.error('Error cancelling treatment:', error);
+      toast.error('Failed to cancel treatment');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const cancelAdmission = async (admissionId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this admission?')) return;
+
+    setCancellingId(admissionId);
+    try {
+      const { error } = await db.admissions.update(admissionId, {
+        status: 'cancelled',
+        is_cancelled: true,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: localStorage.getItem('currentUser') || 'system'
+      });
+
+      if (error) {
+        toast.error('Failed to cancel admission');
+        return;
+      }
+
+      toast.success('Admission cancelled successfully');
+      loadPatientHistory();
+    } catch (error) {
+      console.error('Error cancelling admission:', error);
+      toast.error('Failed to cancel admission');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  // ======= ACCOUNTS CALCULATION =======
+  const calculatePatientAccounts = () => {
+    // OPD Fees
+    const opdData = history.opdTokens?.data || [];
+    const activeOPD = opdData.filter((t: any) => t.status !== 'cancelled' && !t.is_cancelled);
+    const totalOPDFees = activeOPD.reduce((sum: number, t: any) => sum + (t.fee || 0), 0);
+    const paidOPDFees = activeOPD.filter((t: any) => t.payment_status === 'paid').reduce((sum: number, t: any) => sum + (t.fee || 0), 0);
+
+    // Lab Fees
+    const labData = history.labOrders?.data || [];
+    const activeLabs = labData.filter((l: any) => l.status !== 'cancelled' && !l.is_cancelled);
+    const totalLabFees = activeLabs.reduce((sum: number, l: any) => sum + (l.total_amount || 0), 0);
+    const paidLabFees = activeLabs.filter((l: any) => l.payment_status === 'paid').reduce((sum: number, l: any) => sum + (l.total_amount || 0), 0);
+
+    // Treatment Fees
+    const treatmentData = history.treatments?.data || [];
+    const activeTreatments = treatmentData.filter((t: any) => t.status !== 'cancelled' && !t.is_cancelled);
+    const totalTreatmentFees = activeTreatments.reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+    const paidTreatmentFees = activeTreatments.filter((t: any) => t.payment_status === 'paid').reduce((sum: number, t: any) => sum + (t.price || 0), 0);
+
+    // Admission Deposits
+    const admissionData = history.admissions?.data || [];
+    const activeAdmissions = admissionData.filter((a: any) => a.status !== 'cancelled' && !a.is_cancelled);
+    const totalDeposits = activeAdmissions.reduce((sum: number, a: any) => sum + (a.deposit || 0), 0);
+
+    // Baby NICU charges (if mother)
+    let babyCharges = 0;
+    babyPatients.forEach((baby: any) => {
+      // Note: Baby NICU charges need to be fetched separately if not already loaded
+    });
+
+    const totalCharges = totalOPDFees + totalLabFees + totalTreatmentFees;
+    const totalPaid = paidOPDFees + paidLabFees + paidTreatmentFees;
+    const totalBalance = totalCharges - totalPaid;
+
+    return {
+      opd: { total: totalOPDFees, paid: paidOPDFees, count: activeOPD.length },
+      lab: { total: totalLabFees, paid: paidLabFees, count: activeLabs.length },
+      treatment: { total: totalTreatmentFees, paid: paidTreatmentFees, count: activeTreatments.length },
+      admission: { deposits: totalDeposits, count: activeAdmissions.length },
+      totalCharges,
+      totalPaid,
+      totalBalance,
+      depositsReceived: totalDeposits
+    };
   };
 
   const handleSearch = async () => {
@@ -1561,8 +1720,12 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="flex flex-wrap gap-1">
               <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
+              <TabsTrigger value="accounts" className="bg-green-50">
+                <DollarSign className="h-3 w-3 mr-1" />
+                Accounts
+              </TabsTrigger>
               <TabsTrigger value="opd">OPD ({history.opdTokens?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="admissions">Admissions ({history.admissions?.data?.length || 0})</TabsTrigger>
               <TabsTrigger value="treatments">Treatments ({history.treatments?.data?.length || 0})</TabsTrigger>
@@ -1658,6 +1821,151 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
               </div>
             </TabsContent>
 
+            {/* Accounts Tab - Complete Billing Summary */}
+            <TabsContent value="accounts">
+              <div className="space-y-4 mt-4">
+                {(() => {
+                  const accounts = calculatePatientAccounts();
+                  return (
+                    <>
+                      {/* Summary Cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Card className="bg-blue-50 border-blue-200">
+                          <CardContent className="p-4 text-center">
+                            <DollarSign className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                            <p className="text-2xl font-bold text-blue-700">{formatCurrency(accounts.totalCharges)}</p>
+                            <p className="text-sm text-blue-600">Total Charges</p>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-green-50 border-green-200">
+                          <CardContent className="p-4 text-center">
+                            <CheckCircle className="h-8 w-8 mx-auto text-green-600 mb-2" />
+                            <p className="text-2xl font-bold text-green-700">{formatCurrency(accounts.totalPaid)}</p>
+                            <p className="text-sm text-green-600">Total Paid</p>
+                          </CardContent>
+                        </Card>
+                        <Card className={`${accounts.totalBalance > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <CardContent className="p-4 text-center">
+                            <AlertCircle className={`h-8 w-8 mx-auto mb-2 ${accounts.totalBalance > 0 ? 'text-red-600' : 'text-gray-600'}`} />
+                            <p className={`text-2xl font-bold ${accounts.totalBalance > 0 ? 'text-red-700' : 'text-gray-700'}`}>{formatCurrency(accounts.totalBalance)}</p>
+                            <p className={`text-sm ${accounts.totalBalance > 0 ? 'text-red-600' : 'text-gray-600'}`}>Balance Due</p>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-yellow-50 border-yellow-200">
+                          <CardContent className="p-4 text-center">
+                            <CreditCard className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
+                            <p className="text-2xl font-bold text-yellow-700">{formatCurrency(accounts.depositsReceived)}</p>
+                            <p className="text-sm text-yellow-600">Deposits</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Detailed Breakdown */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Charges Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {/* OPD Fees */}
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-5 w-5 text-blue-600" />
+                                <div>
+                                  <p className="font-semibold">OPD Consultations</p>
+                                  <p className="text-sm text-gray-600">{accounts.opd.count} visits</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold">{formatCurrency(accounts.opd.total)}</p>
+                                <p className="text-sm text-green-600">Paid: {formatCurrency(accounts.opd.paid)}</p>
+                              </div>
+                            </div>
+
+                            {/* Lab Fees */}
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <TestTube className="h-5 w-5 text-purple-600" />
+                                <div>
+                                  <p className="font-semibold">Laboratory Tests</p>
+                                  <p className="text-sm text-gray-600">{accounts.lab.count} orders</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold">{formatCurrency(accounts.lab.total)}</p>
+                                <p className="text-sm text-green-600">Paid: {formatCurrency(accounts.lab.paid)}</p>
+                              </div>
+                            </div>
+
+                            {/* Treatment Fees */}
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <Activity className="h-5 w-5 text-orange-600" />
+                                <div>
+                                  <p className="font-semibold">Treatments & Procedures</p>
+                                  <p className="text-sm text-gray-600">{accounts.treatment.count} treatments</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold">{formatCurrency(accounts.treatment.total)}</p>
+                                <p className="text-sm text-green-600">Paid: {formatCurrency(accounts.treatment.paid)}</p>
+                              </div>
+                            </div>
+
+                            {/* Admission Deposits */}
+                            {accounts.admission.count > 0 && (
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <Bed className="h-5 w-5 text-teal-600" />
+                                  <div>
+                                    <p className="font-semibold">Admission Deposits</p>
+                                    <p className="text-sm text-gray-600">{accounts.admission.count} admissions</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold">{formatCurrency(accounts.admission.deposits)}</p>
+                                  <p className="text-sm text-yellow-600">Deposit received</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Baby Expenses (if mother with babies) */}
+                            {babyPatients.length > 0 && (
+                              <div className="mt-4 pt-4 border-t">
+                                <h4 className="font-semibold text-pink-700 mb-3 flex items-center gap-2">
+                                  <Baby className="h-4 w-4" />
+                                  Baby Expenses (Linked to Mother)
+                                </h4>
+                                {babyPatients.map((baby: any) => (
+                                  <div key={baby.id} className="flex items-center justify-between p-3 bg-pink-50 rounded-lg mb-2">
+                                    <div className="flex items-center gap-3">
+                                      <Baby className="h-5 w-5 text-pink-600" />
+                                      <div>
+                                        <p className="font-semibold">{baby.name}</p>
+                                        <p className="text-sm text-gray-600">MR#: {baby.mr_number}</p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openBabyActions(baby)}
+                                    >
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      View Billing
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  );
+                })()}
+              </div>
+            </TabsContent>
+
             {/* OPD Tab */}
             <TabsContent value="opd">
               <div className="space-y-3 mt-4">
@@ -1668,27 +1976,46 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.opdTokens?.data?.map((opd: any) => (
-                    <Card key={opd.id} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={opd.id} className={`p-4 hover:shadow-md transition-shadow ${opd.status === 'cancelled' || opd.is_cancelled ? 'opacity-60 bg-red-50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-lg">Token #{opd.token_number}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-lg">Token #{opd.token_number}</p>
+                            {(opd.status === 'cancelled' || opd.is_cancelled) && (
+                              <Badge variant="destructive">CANCELLED</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">Doctor: {opd.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Fee: {formatCurrency(opd.fee || 0)}</p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-sm text-gray-600">{formatDateTime(opd.created_at || opd.date)}</p>
-                          <Badge className={opd.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
-                            {opd.payment_status}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedOPDDetail(opd)}
-                            className="mt-2"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
+                          {opd.status !== 'cancelled' && !opd.is_cancelled && (
+                            <Badge className={opd.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                              {opd.payment_status}
+                            </Badge>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOPDDetail(opd)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            {opd.status !== 'cancelled' && !opd.is_cancelled && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => cancelOPDToken(opd.id)}
+                                disabled={cancellingId === opd.id}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                {cancellingId === opd.id ? 'Cancelling...' : 'Cancel'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Card>
@@ -1707,12 +2034,17 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.admissions?.data?.map((admission: any) => (
-                    <Card key={admission.id} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={admission.id} className={`p-4 hover:shadow-md transition-shadow ${admission.status === 'cancelled' || admission.is_cancelled ? 'opacity-60 bg-red-50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-lg">
-                            Room {admission.rooms?.room_number} - {admission.rooms?.type}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-lg">
+                              Room {admission.rooms?.room_number} - {admission.rooms?.type}
+                            </p>
+                            {(admission.status === 'cancelled' || admission.is_cancelled) && (
+                              <Badge variant="destructive">CANCELLED</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">Type: {admission.admission_type}</p>
                           <p className="text-sm text-gray-600">Doctor: {admission.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Deposit: {formatCurrency(admission.deposit || 0)}</p>
@@ -1722,18 +2054,32 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-sm text-gray-600">{formatDateTime(admission.created_at || admission.admission_date)}</p>
-                          <Badge className={admission.status === 'active' ? 'bg-green-500' : admission.status === 'discharged' ? 'bg-blue-500' : 'bg-gray-500'}>
-                            {admission.status}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedAdmissionDetail(admission)}
-                            className="mt-2"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
+                          {admission.status !== 'cancelled' && !admission.is_cancelled && (
+                            <Badge className={admission.status === 'active' ? 'bg-green-500' : admission.status === 'discharged' ? 'bg-blue-500' : 'bg-gray-500'}>
+                              {admission.status}
+                            </Badge>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedAdmissionDetail(admission)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            {admission.status !== 'cancelled' && !admission.is_cancelled && admission.status !== 'discharged' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => cancelAdmission(admission.id)}
+                                disabled={cancellingId === admission.id}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                {cancellingId === admission.id ? 'Cancelling...' : 'Cancel'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Card>
@@ -1752,10 +2098,15 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.treatments?.data?.map((treatment: any) => (
-                    <Card key={treatment.id} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={treatment.id} className={`p-4 hover:shadow-md transition-shadow ${treatment.status === 'cancelled' || treatment.is_cancelled ? 'opacity-60 bg-red-50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-lg">{treatment.treatment_name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-lg">{treatment.treatment_name}</p>
+                            {(treatment.status === 'cancelled' || treatment.is_cancelled) && (
+                              <Badge variant="destructive">CANCELLED</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">Type: {treatment.treatment_type}</p>
                           <p className="text-sm text-gray-600">Doctor: {treatment.doctors?.name || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Price: {formatCurrency(treatment.price || 0)}</p>
@@ -1765,18 +2116,32 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-sm text-gray-600">{formatDateTime(treatment.created_at || treatment.date)}</p>
-                          <Badge className={treatment.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
-                            {treatment.payment_status}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedTreatmentDetail(treatment)}
-                            className="mt-2"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
+                          {treatment.status !== 'cancelled' && !treatment.is_cancelled && (
+                            <Badge className={treatment.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}>
+                              {treatment.payment_status}
+                            </Badge>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedTreatmentDetail(treatment)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            {treatment.status !== 'cancelled' && !treatment.is_cancelled && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => cancelTreatment(treatment.id)}
+                                disabled={cancellingId === treatment.id}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                {cancellingId === treatment.id ? 'Cancelling...' : 'Cancel'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Card>
@@ -1795,25 +2160,44 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                   </div>
                 ) : (
                   history.labOrders?.data?.map((lab: any) => (
-                    <Card key={lab.id} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={lab.id} className={`p-4 hover:shadow-md transition-shadow ${lab.status === 'cancelled' || lab.is_cancelled ? 'opacity-60 bg-red-50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-lg">{lab.tests?.length || 0} Tests Ordered</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-lg">{lab.tests?.length || 0} Tests Ordered</p>
+                            {(lab.status === 'cancelled' || lab.is_cancelled) && (
+                              <Badge variant="destructive">CANCELLED</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">Tests: {lab.tests?.join(', ') || 'N/A'}</p>
                           <p className="text-sm text-gray-600">Amount: {formatCurrency(lab.total_amount || 0)}</p>
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                           <p className="text-sm text-gray-600">{formatDateTime(lab.created_at || lab.order_date)}</p>
-                          <Badge>{lab.status}</Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedLabDetail(lab)}
-                            className="mt-2"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
+                          {lab.status !== 'cancelled' && !lab.is_cancelled && (
+                            <Badge>{lab.status}</Badge>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedLabDetail(lab)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            {lab.status !== 'cancelled' && !lab.is_cancelled && lab.status !== 'completed' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => cancelLabOrder(lab.id)}
+                                disabled={cancellingId === lab.id}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                {cancellingId === lab.id ? 'Cancelling...' : 'Cancel'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Card>

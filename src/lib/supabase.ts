@@ -548,7 +548,9 @@ export const db = {
         ...data,
         patient_type: 'newborn',
         is_external_admission: true,
-        age: 0
+        age: 0,
+        problem: 'External newborn - NICU/Treatment',
+        department: 'Pediatrics'
       }]).select().single();
     }
   },

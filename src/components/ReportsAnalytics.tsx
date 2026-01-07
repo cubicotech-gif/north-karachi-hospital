@@ -11,7 +11,7 @@ import {
   Users, DollarSign, Bed, TestTube, Calendar, TrendingUp,
   Activity, Stethoscope, Building, FileText, Clock, Printer,
   Receipt, CreditCard, Calculator, FileSpreadsheet, Download,
-  PlusCircle, CheckCircle, AlertCircle, RefreshCw
+  PlusCircle, CheckCircle, AlertCircle, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -124,6 +124,9 @@ export default function ReportsAnalytics() {
   // Raw data for calculations
   const [doctors, setDoctors] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
+
+  // Expandable doctor list state
+  const [expandedDoctorId, setExpandedDoctorId] = useState<string | null>(null);
 
   useEffect(() => {
     updateDateRange(filterMode);
@@ -340,11 +343,21 @@ export default function ReportsAnalytics() {
     }
   };
 
+  // Generate voucher number manually
+  const generateVoucherNumber = () => {
+    const prefix = 'VDC';
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${prefix}-${timestamp}${random}`;
+  };
+
   // Create voucher for doctor
   const createVoucherForDoctor = async (doctor: DoctorStats) => {
     setVoucherLoading(true);
     try {
+      const voucherNumber = generateVoucherNumber();
       const voucherData = {
+        voucher_number: voucherNumber,
         voucher_type: 'doctor_commission',
         doctor_id: doctor.id,
         amount: doctor.commissionAmount,
@@ -363,7 +376,7 @@ export default function ReportsAnalytics() {
 
       if (error) {
         console.error('Error creating voucher:', error);
-        toast.error('Failed to create voucher');
+        toast.error('Failed to create voucher. Please ensure the database migration has been run.');
         return;
       }
 
@@ -382,9 +395,12 @@ export default function ReportsAnalytics() {
     setVoucherLoading(true);
     try {
       const doctorsWithCommission = doctorStats.filter(d => d.commissionAmount > 0);
+      let successCount = 0;
 
       for (const doctor of doctorsWithCommission) {
+        const voucherNumber = generateVoucherNumber();
         const voucherData = {
+          voucher_number: voucherNumber,
           voucher_type: 'doctor_commission',
           doctor_id: doctor.id,
           amount: doctor.commissionAmount,
@@ -399,10 +415,15 @@ export default function ReportsAnalytics() {
           created_by: localStorage.getItem('currentUser') || 'system'
         };
 
-        await db.vouchers.create(voucherData);
+        const { error } = await db.vouchers.create(voucherData);
+        if (!error) successCount++;
       }
 
-      toast.success(`Created vouchers for ${doctorsWithCommission.length} doctors`);
+      if (successCount > 0) {
+        toast.success(`Created vouchers for ${successCount} doctors`);
+      } else {
+        toast.error('Failed to create vouchers. Please ensure the database migration has been run.');
+      }
       fetchAllStats();
     } catch (error) {
       console.error('Error creating vouchers:', error);
@@ -842,6 +863,16 @@ export default function ReportsAnalytics() {
     }
   };
 
+  // Get tokens for a specific doctor
+  const getDoctorTokens = (doctorId: string) => {
+    return opdTokens.filter(token => token.doctor_id === doctorId);
+  };
+
+  // Toggle doctor expansion
+  const toggleDoctorExpansion = (doctorId: string) => {
+    setExpandedDoctorId(expandedDoctorId === doctorId ? null : doctorId);
+  };
+
   const occupancyPercentage = stats.totalBeds > 0
     ? ((stats.occupiedBeds / stats.totalBeds) * 100).toFixed(1)
     : 0;
@@ -1061,46 +1092,118 @@ export default function ReportsAnalytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="text-sm text-gray-500 mb-4">Click on a doctor to view their patient list</p>
               <div className="space-y-3">
                 {doctorStats
                   .sort((a, b) => b.totalRevenue - a.totalRevenue)
-                  .map(doctor => (
-                    <Card key={doctor.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-lg">Dr. {doctor.name}</h4>
-                          <p className="text-sm text-gray-600">{doctor.department}</p>
-                          <div className="flex gap-4 mt-2 text-sm">
-                            <span className="text-blue-600">
-                              <strong>Patients:</strong> {doctor.totalPatients}
-                            </span>
-                            <span className="text-green-600">
-                              <strong>Revenue:</strong> {formatCurrency(doctor.totalRevenue)}
-                            </span>
-                            <span className="text-gray-600">
-                              <strong>Rate:</strong> {doctor.commissionType === 'percentage' ? `${doctor.commissionRate}%` : `${formatCurrency(doctor.commissionRate)}/patient`}
-                            </span>
+                  .map(doctor => {
+                    const isExpanded = expandedDoctorId === doctor.id;
+                    const doctorTokens = isExpanded ? getDoctorTokens(doctor.id) : [];
+
+                    return (
+                      <Card key={doctor.id} className="overflow-hidden">
+                        {/* Doctor Summary Row - Clickable */}
+                        <div
+                          className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => toggleDoctorExpansion(doctor.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 flex items-center gap-3">
+                              <div className={`p-1 rounded transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-lg">Dr. {doctor.name}</h4>
+                                <p className="text-sm text-gray-600">{doctor.department}</p>
+                                <div className="flex gap-4 mt-2 text-sm">
+                                  <span className="text-blue-600">
+                                    <strong>Patients:</strong> {doctor.totalPatients}
+                                  </span>
+                                  <span className="text-green-600">
+                                    <strong>Revenue:</strong> {formatCurrency(doctor.totalRevenue)}
+                                  </span>
+                                  <span className="text-gray-600">
+                                    <strong>Rate:</strong> {doctor.commissionType === 'percentage' ? `${doctor.commissionRate}%` : `${formatCurrency(doctor.commissionRate)}/patient`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <p className="text-2xl font-bold text-yellow-600">{formatCurrency(doctor.commissionAmount)}</p>
+                              <p className="text-xs text-gray-500">Commission</p>
+                              {doctor.commissionAmount > 0 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-2"
+                                  onClick={() => createVoucherForDoctor(doctor)}
+                                  disabled={voucherLoading}
+                                >
+                                  <Receipt className="h-3 w-3 mr-1" />
+                                  Create Voucher
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-yellow-600">{formatCurrency(doctor.commissionAmount)}</p>
-                          <p className="text-xs text-gray-500">Commission</p>
-                          {doctor.commissionAmount > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-2"
-                              onClick={() => createVoucherForDoctor(doctor)}
-                              disabled={voucherLoading}
-                            >
-                              <Receipt className="h-3 w-3 mr-1" />
-                              Create Voucher
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+
+                        {/* Expandable Patient List */}
+                        {isExpanded && (
+                          <div className="border-t bg-gray-50 p-4">
+                            <h5 className="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              Patients Consulted ({doctorTokens.length})
+                            </h5>
+                            {doctorTokens.length === 0 ? (
+                              <p className="text-sm text-gray-500 text-center py-4">No patients found for this period</p>
+                            ) : (
+                              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                {doctorTokens.map((token, idx) => (
+                                  <div
+                                    key={token.id}
+                                    className={`flex items-center justify-between p-3 rounded-lg ${
+                                      token.payment_status === 'paid' ? 'bg-green-50' : 'bg-red-50'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-sm font-mono text-gray-500">#{idx + 1}</span>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-xs">Token #{token.token_number}</Badge>
+                                          <span className="font-medium">{token.patient_name}</span>
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          MR#: {token.patient_mr} | {new Date(token.date).toLocaleDateString('en-PK')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <p className="font-semibold">{formatCurrency(token.fee)}</p>
+                                        <Badge className={`text-xs ${token.payment_status === 'paid' ? 'bg-green-500' : 'bg-red-500'}`}>
+                                          {token.payment_status.toUpperCase()}
+                                        </Badge>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          printPatientReceipt(token);
+                                        }}
+                                      >
+                                        <Printer className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
                 {doctorStats.length === 0 && (
                   <p className="text-center text-gray-500 py-8">No doctor data available</p>
                 )}
