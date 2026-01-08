@@ -1,218 +1,375 @@
-import React, { forwardRef, useEffect, useState } from 'react';
-import { db } from '@/lib/supabase';
-
-interface HospitalInfo {
-  hospital_name: string;
-  address: string;
-  city: string;
-  phone: string;
-  phone2: string;
-}
+import React, { forwardRef, useState, useImperativeHandle } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Printer } from 'lucide-react';
 
 interface BirthCertificateData {
-  serialNumber: string;
-  date: string;
-  babyGender: 'Male' | 'Female';
-  weightKg: number;
-  weightGrams: number;
-  motherName: string;
-  fatherName: string;  // W/o (Wife of)
-  address: string;
-  birthDay: string;
-  birthMonth: string;
-  birthYear: string;
+  serialNumber?: string;
+  date?: string;
+  babyGender?: 'Male' | 'Female';
+  weightKg?: number;
+  weightGrams?: number;
+  motherName?: string;
+  fatherName?: string;
+  address?: string;
+  birthDay?: string;
+  birthMonth?: string;
+  birthYear?: string;
   birthTime?: string;
-  attendingObstetrician: string;
+  attendingObstetrician?: string;
 }
 
 interface BirthCertificateTemplateProps {
-  data: BirthCertificateData;
+  data?: BirthCertificateData;
+}
+
+export interface BirthCertificateRef {
+  print: () => void;
 }
 
 const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemplateProps>(
   ({ data }, ref) => {
-    const [hospitalInfo, setHospitalInfo] = useState<HospitalInfo | null>(null);
+    // Editable form fields - start empty for manual input
+    const [formData, setFormData] = useState({
+      serialNumber: '',
+      date: '',
+      babyGender: '' as '' | 'Male' | 'Female',
+      weightKg: '',
+      weightGrams: '',
+      motherName: '',
+      fatherName: '',
+      address: '',
+      birthDay: '',
+      birthMonth: '',
+      birthYear: '',
+      birthTime: '',
+      attendingObstetrician: '',
+    });
 
-    useEffect(() => {
-      loadHospitalInfo();
-    }, []);
-
-    const loadHospitalInfo = async () => {
-      try {
-        const { data: settings, error } = await db.hospitalSettings.get();
-        if (!error && settings) {
-          setHospitalInfo(settings);
-        }
-      } catch (error) {
-        console.error('Error loading hospital info:', error);
-      }
+    const handleInputChange = (field: string, value: string) => {
+      setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    // Format the birth month name
-    const getMonthName = (month: string) => {
-      const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      const monthNum = parseInt(month, 10);
-      return months[monthNum - 1] || month;
+    const handlePrint = () => {
+      window.print();
     };
+
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
     return (
-      <div ref={ref} className="bg-white p-8 max-w-4xl mx-auto">
+      <div className="bg-white">
         <style>
           {`
             @media print {
               @page {
                 size: A4;
-                margin: 15mm;
+                margin: 0;
               }
+
               body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                margin: 0;
+                padding: 0;
               }
+
               .no-print {
                 display: none !important;
               }
+
+              .print-container {
+                padding-top: 2in !important;
+                padding-bottom: 1in !important;
+                padding-left: 0.75in !important;
+                padding-right: 0.75in !important;
+                min-height: 100vh;
+                box-sizing: border-box;
+              }
+
+              .birth-input {
+                border: none !important;
+                border-bottom: 1px solid #000 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
+                padding: 2px 8px !important;
+                font-size: 14px !important;
+                height: auto !important;
+                min-height: 24px !important;
+              }
+
+              .birth-input:focus {
+                outline: none !important;
+                box-shadow: none !important;
+              }
+
+              .gender-box {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #000;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 4px;
+                font-weight: bold;
+              }
             }
 
-            .birth-cert-field {
+            @media screen {
+              .print-container {
+                padding: 2in 0.75in 1in 0.75in;
+                max-width: 8.5in;
+                margin: 0 auto;
+                min-height: calc(11in - 3in);
+                background: #fff;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+            }
+
+            .birth-input {
+              border: none;
               border-bottom: 1px solid #333;
-              min-width: 150px;
-              display: inline-block;
-              padding: 0 8px;
+              background: transparent;
+              padding: 2px 8px;
+              font-size: 14px;
               text-align: center;
+              min-width: 80px;
+              outline: none;
             }
 
-            .birth-cert-checkbox {
-              width: 18px;
-              height: 18px;
-              border: 2px solid #333;
-              display: inline-block;
-              margin: 0 4px;
-              text-align: center;
-              line-height: 14px;
-              font-weight: bold;
+            .birth-input:focus {
+              border-bottom: 2px solid #2563eb;
+              outline: none;
             }
 
-            .birth-cert-title {
-              font-family: 'Times New Roman', serif;
+            .birth-input::placeholder {
+              color: #999;
               font-style: italic;
-              font-size: 28px;
-              color: #1e40af;
+            }
+
+            .gender-box {
+              width: 20px;
+              height: 20px;
+              border: 2px solid #333;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 4px;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+
+            .gender-box:hover {
+              background: #f0f0f0;
+            }
+
+            .gender-box.selected {
+              background: #2563eb;
+              color: white;
+              border-color: #2563eb;
+            }
+
+            .field-row {
+              display: flex;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-bottom: 20px;
+              line-height: 2;
+            }
+
+            .field-label {
+              font-style: italic;
+              color: #333;
             }
           `}
         </style>
 
-        {/* Hospital Header */}
-        <div className="text-center mb-6 border-b-2 border-blue-800 pb-4">
-          <h1 className="text-xl font-bold text-blue-800">
-            {hospitalInfo?.hospital_name || 'NORTH KARACHI HOSPITAL'}
-          </h1>
-          <p className="text-sm text-gray-700">
-            {hospitalInfo?.address || '122-C, Sector 11-B North Karachi Township'}, {hospitalInfo?.city || 'Karachi'}
+        {/* Print Button - Hidden when printing */}
+        <div className="no-print p-4 bg-gray-100 border-b flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            Fill in all fields below, then click Print
           </p>
-          <p className="text-sm text-gray-700">
-            {hospitalInfo?.phone || '021-36989080'} Cell: {hospitalInfo?.phone2 || '03362609360'}
-          </p>
+          <Button onClick={handlePrint} className="flex items-center gap-2">
+            <Printer className="h-4 w-4" />
+            Print Certificate
+          </Button>
         </div>
 
-        {/* Serial Number and Date Row */}
-        <div className="flex justify-between items-start mb-6">
-          <div className="text-sm">
-            <p>
+        {/* Certificate Content - Centered for pre-printed template */}
+        <div ref={ref} className="print-container">
+          {/* Serial Number and Date Row */}
+          <div className="flex justify-between items-start mb-8">
+            <div className="flex items-center gap-2">
               <span className="font-semibold">No.</span>
-              <span className="birth-cert-field ml-2 min-w-[80px]">{data.serialNumber}</span>
-            </p>
-            <p className="mt-1 text-xs text-gray-600">Series D</p>
+              <input
+                type="text"
+                className="birth-input w-24"
+                placeholder="Serial #"
+                value={formData.serialNumber}
+                onChange={(e) => handleInputChange('serialNumber', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Date:</span>
+              <input
+                type="text"
+                className="birth-input w-32"
+                placeholder="DD/MM/YYYY"
+                value={formData.date}
+                onChange={(e) => handleInputChange('date', e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-sm">
-              <span className="font-semibold">Date :</span>
-              <span className="birth-cert-field ml-2">{data.date}</span>
-            </p>
+          {/* Certificate Body */}
+          <div className="space-y-6 text-base">
+            {/* Baby Gender Row */}
+            <div className="field-row">
+              <span className="field-label">This is to certify that</span>
+              <span className="font-semibold ml-2">BABY</span>
+              <div
+                className={`gender-box ${formData.babyGender === 'Female' ? 'selected' : ''}`}
+                onClick={() => handleInputChange('babyGender', 'Female')}
+              >
+                {formData.babyGender === 'Female' ? '✓' : ''}
+              </div>
+              <span>GIRL</span>
+              <div
+                className={`gender-box ml-2 ${formData.babyGender === 'Male' ? 'selected' : ''}`}
+                onClick={() => handleInputChange('babyGender', 'Male')}
+              >
+                {formData.babyGender === 'Male' ? '✓' : ''}
+              </div>
+              <span>BOY</span>
+            </div>
+
+            {/* Weight Row */}
+            <div className="field-row">
+              <span className="field-label">Wt</span>
+              <input
+                type="text"
+                className="birth-input w-16"
+                placeholder="Kg"
+                value={formData.weightKg}
+                onChange={(e) => handleInputChange('weightKg', e.target.value)}
+              />
+              <span>Kg</span>
+              <input
+                type="text"
+                className="birth-input w-20"
+                placeholder="Grams"
+                value={formData.weightGrams}
+                onChange={(e) => handleInputChange('weightGrams', e.target.value)}
+              />
+              <span>Grams</span>
+            </div>
+
+            {/* Mother Name Row */}
+            <div className="field-row">
+              <span className="field-label">was born to</span>
+              <input
+                type="text"
+                className="birth-input flex-1 min-w-[200px]"
+                placeholder="Mother's Name"
+                value={formData.motherName}
+                onChange={(e) => handleInputChange('motherName', e.target.value)}
+              />
+            </div>
+
+            {/* Father Name Row */}
+            <div className="field-row">
+              <span className="field-label">W/o</span>
+              <input
+                type="text"
+                className="birth-input flex-1 min-w-[200px]"
+                placeholder="Father's Name"
+                value={formData.fatherName}
+                onChange={(e) => handleInputChange('fatherName', e.target.value)}
+              />
+            </div>
+
+            {/* Address Row */}
+            <div className="field-row">
+              <span className="field-label">Address</span>
+              <input
+                type="text"
+                className="birth-input flex-1"
+                placeholder="Complete Address"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+              />
+            </div>
+
+            {/* Hospital Statement */}
+            <div className="field-row">
+              <span className="field-label">in this hospital</span>
+            </div>
+
+            {/* Date of Birth Row */}
+            <div className="field-row">
+              <span className="field-label">the</span>
+              <input
+                type="text"
+                className="birth-input w-16"
+                placeholder="Day"
+                value={formData.birthDay}
+                onChange={(e) => handleInputChange('birthDay', e.target.value)}
+              />
+              <span className="field-label">day of</span>
+              <select
+                className="birth-input w-32 cursor-pointer"
+                value={formData.birthMonth}
+                onChange={(e) => handleInputChange('birthMonth', e.target.value)}
+              >
+                <option value="">Month</option>
+                {months.map((month, index) => (
+                  <option key={month} value={month}>{month}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                className="birth-input w-20"
+                placeholder="Year"
+                value={formData.birthYear}
+                onChange={(e) => handleInputChange('birthYear', e.target.value)}
+              />
+            </div>
+
+            {/* Time Row */}
+            <div className="field-row">
+              <span className="field-label">at</span>
+              <input
+                type="text"
+                className="birth-input w-28"
+                placeholder="Time (e.g. 10:30 AM)"
+                value={formData.birthTime}
+                onChange={(e) => handleInputChange('birthTime', e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Birth Certificate Title */}
-        <div className="text-center mb-8">
-          <h2 className="birth-cert-title">Birth Certificate</h2>
-        </div>
-
-        {/* Certificate Content */}
-        <div className="text-base leading-loose space-y-4">
-          {/* Baby Gender Row */}
-          <p className="flex items-center flex-wrap gap-2">
-            <span className="italic">This is to certify that</span>
-            <span className="font-semibold ml-4">BABY</span>
-            <span className="birth-cert-checkbox">{data.babyGender === 'Female' ? '✓' : ''}</span>
-            <span>GIRL</span>
-            <span className="birth-cert-checkbox ml-4">{data.babyGender === 'Male' ? '✓' : ''}</span>
-            <span>BOY</span>
-          </p>
-
-          {/* Weight Row */}
-          <p className="flex items-center flex-wrap gap-2">
-            <span className="italic">Wt</span>
-            <span className="birth-cert-field min-w-[60px]">{data.weightKg || ''}</span>
-            <span>Kg</span>
-            <span className="birth-cert-field min-w-[80px]">{data.weightGrams || ''}</span>
-            <span>Grams</span>
-          </p>
-
-          {/* Born to Row */}
-          <p className="flex items-center flex-wrap gap-2">
-            <span className="italic">was born to</span>
-            <span className="birth-cert-field flex-1 min-w-[200px]">{data.motherName}</span>
-            <span className="ml-4">W/o</span>
-            <span className="birth-cert-field flex-1 min-w-[200px]">{data.fatherName}</span>
-          </p>
-
-          {/* Address Row */}
-          <p className="flex items-center flex-wrap gap-2">
-            <span className="italic">Address</span>
-            <span className="birth-cert-field flex-1">{data.address}</span>
-          </p>
-
-          {/* Hospital Statement */}
-          <p className="italic">in this hospital</p>
-
-          {/* Date of Birth Row */}
-          <p className="flex items-center flex-wrap gap-2">
-            <span className="italic">the</span>
-            <span className="birth-cert-field min-w-[60px]">{data.birthDay}</span>
-            <span className="italic">day of</span>
-            <span className="birth-cert-field min-w-[120px]">{getMonthName(data.birthMonth)}</span>
-            <span className="birth-cert-field min-w-[80px]">{data.birthYear}</span>
-            {data.birthTime && (
-              <>
-                <span className="italic ml-4">at</span>
-                <span className="birth-cert-field min-w-[80px]">{data.birthTime}</span>
-              </>
-            )}
-          </p>
-        </div>
-
-        {/* Attending Obstetrician Section */}
-        <div className="mt-16 flex justify-end">
-          <div className="text-right">
-            <div className="border-t-2 border-gray-600 pt-2 min-w-[280px]">
-              <p className="font-semibold text-sm">Attending Obstetrician</p>
-              <div className="mt-6">
-                <p className="text-sm">Name</p>
-                <p className="birth-cert-field min-w-[250px] mt-1 font-semibold">
-                  {data.attendingObstetrician}
-                </p>
+          {/* Attending Obstetrician Section */}
+          <div className="mt-16 flex justify-end">
+            <div className="text-right">
+              <div className="border-t-2 border-gray-600 pt-2 min-w-[280px]">
+                <p className="font-semibold text-sm">Attending Obstetrician</p>
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    className="birth-input w-full text-center"
+                    placeholder="Doctor's Name"
+                    value={formData.attendingObstetrician}
+                    onChange={(e) => handleInputChange('attendingObstetrician', e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer Note */}
-        <div className="mt-12 pt-4 border-t border-gray-300 text-xs text-gray-500 text-center">
-          <p>This is an official birth certificate issued by {hospitalInfo?.hospital_name || 'North Karachi Hospital'}</p>
-          <p className="mt-1">Document Generated: {new Date().toLocaleString('en-GB')}</p>
         </div>
       </div>
     );

@@ -708,26 +708,8 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
 
       {/* Birth Certificate Print Dialog */}
       <Dialog open={showBirthCertificate} onOpenChange={setShowBirthCertificate}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Birth Certificate Preview</DialogTitle>
-          </DialogHeader>
-
-          {birthCertificateData && (
-            <div className="border rounded-lg overflow-hidden">
-              <BirthCertificateTemplate ref={birthCertificateRef} data={birthCertificateData} />
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBirthCertificate(false)}>
-              Close
-            </Button>
-            <Button onClick={() => handlePrintBirthCertificate()}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print Certificate
-            </Button>
-          </DialogFooter>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <BirthCertificateTemplate ref={birthCertificateRef} />
         </DialogContent>
       </Dialog>
     </>
