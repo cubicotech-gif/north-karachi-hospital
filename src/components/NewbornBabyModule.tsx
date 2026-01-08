@@ -874,25 +874,10 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
       )}
 
       {/* Birth Certificate Template (Hidden for printing) */}
-      {showBirthCertificate && selectedBaby && getBirthCertificateData() && (
+      {showBirthCertificate && selectedBaby && (
         <Dialog open={showBirthCertificate} onOpenChange={setShowBirthCertificate}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>Birth Certificate</DialogTitle>
-            </DialogHeader>
-            <BirthCertificateTemplate
-              ref={birthCertificateRef}
-              data={getBirthCertificateData()!}
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setShowBirthCertificate(false)}>
-                Close
-              </Button>
-              <Button onClick={() => handlePrintBirthCertificate()} className="bg-green-600 hover:bg-green-700">
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-            </div>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
+            <BirthCertificateTemplate ref={birthCertificateRef} />
           </DialogContent>
         </Dialog>
       )}

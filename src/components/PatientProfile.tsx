@@ -3247,25 +3247,13 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
       {/* Birth Certificate Print Dialog */}
       {showBirthCertificate && birthCertificateData && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Birth Certificate Preview</h2>
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex justify-end p-2 no-print">
               <Button variant="ghost" size="sm" onClick={() => setShowBirthCertificate(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="border rounded-lg overflow-hidden">
-              <BirthCertificateTemplate ref={birthCertificateRef} data={birthCertificateData} />
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setShowBirthCertificate(false)}>
-                Close
-              </Button>
-              <Button onClick={() => handlePrintBirthCertificate()}>
-                <Printer className="h-4 w-4 mr-2" />
-                Print Certificate
-              </Button>
-            </div>
+            <BirthCertificateTemplate ref={birthCertificateRef} />
           </div>
         </div>
       )}
