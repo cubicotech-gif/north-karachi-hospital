@@ -144,21 +144,40 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       return;
     }
 
-    // Determine the token number to use
-    let tokenNumber: number;
-    if (useManualToken && manualTokenNumber) {
-      tokenNumber = parseInt(manualTokenNumber, 10);
-      if (isNaN(tokenNumber) || tokenNumber < 1) {
-        toast.error('Please enter a valid token number');
-        return;
-      }
-    } else {
-      tokenNumber = nextTokenNumber;
-    }
-
     setLoading(true);
 
     try {
+      // Determine the token number to use
+      let tokenNumber: number;
+      if (useManualToken && manualTokenNumber) {
+        tokenNumber = parseInt(manualTokenNumber, 10);
+        if (isNaN(tokenNumber) || tokenNumber < 1) {
+          toast.error('Please enter a valid token number');
+          setLoading(false);
+          return;
+        }
+      } else {
+        // IMPORTANT: Fetch fresh token data right before creating to prevent sequence skipping
+        const today = new Date().toISOString().split('T')[0];
+        const { data: freshTokens, error: fetchError } = await db.opdTokens.getAll();
+
+        if (fetchError) {
+          console.error('Error fetching fresh tokens:', fetchError);
+          toast.error('Failed to get token number');
+          setLoading(false);
+          return;
+        }
+
+        // Get all tokens from today to find the max
+        const todayTokens = freshTokens?.filter(token => token.date === today) || [];
+        const maxTokenNumber = todayTokens.reduce((max, token) => {
+          const tokenNum = parseInt(token.token_number) || 0;
+          return Math.max(max, tokenNum);
+        }, 0);
+
+        tokenNumber = maxTokenNumber + 1;
+      }
+
       const { finalFee } = calculateDiscountedFee(selectedDoctor.opd_fee);
       const tokenData = {
         token_number: tokenNumber,
@@ -180,10 +199,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       }
 
       setGeneratedToken(data);
-      // Reset manual token input and refresh next token number
+      // Reset manual token input and refresh next token number for display
       setManualTokenNumber('');
       setUseManualToken(false);
-      fetchNextTokenNumber();
+      setNextTokenNumber(tokenNumber + 1);
       toast.success('OPD Token generated successfully!');
     } catch (error) {
       console.error('Error creating token:', error);
@@ -296,29 +315,40 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       <html>
         <head>
           <title>OPD Token - ${generatedToken.token_number}</title>
+          <meta name="viewport" content="width=80mm, initial-scale=1.0">
           <style>
-            @page { size: 80mm auto; margin: 0; }
+            @page { size: 80mm auto; margin: 0 !important; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html {
+              width: 80mm;
+              margin: 0;
+              padding: 0;
+            }
             body {
               font-family: 'Arial', sans-serif;
               width: 80mm;
+              max-width: 80mm;
+              min-width: 80mm;
               padding: 3mm;
-              font-size: 11px;
+              font-size: 12px;
+              margin: 0 auto;
+              line-height: 1.4;
             }
             .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
-            .hospital-name { font-size: 14px; font-weight: bold; }
-            .hospital-urdu { font-size: 12px; }
-            .subtitle { font-size: 10px; margin-top: 2px; }
-            .queue-box { background: #000; color: white; padding: 3mm; text-align: center; margin: 3mm 0; }
-            .queue-number { font-size: 36px; font-weight: bold; }
-            .queue-label { font-size: 10px; }
-            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
-            .info-section { margin: 2mm 0; font-size: 10px; line-height: 1.4; }
+            .hospital-name { font-size: 16px; font-weight: bold; }
+            .hospital-urdu { font-size: 14px; }
+            .subtitle { font-size: 11px; margin-top: 2px; }
+            .queue-box { background: #000; color: white; padding: 4mm; text-align: center; margin: 3mm 0; }
+            .queue-number { font-size: 42px; font-weight: bold; }
+            .queue-label { font-size: 11px; }
+            .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 2mm 0; }
+            .info-section { margin: 2mm 0; font-size: 11px; line-height: 1.5; }
             .info-label { font-weight: bold; }
             .mr-number { font-weight: bold; }
             .divider { border-top: 1px dashed #000; margin: 2mm 0; }
-            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            .footer { text-align: center; font-size: 10px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
             @media print {
+              html, body { width: 80mm !important; max-width: 80mm !important; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
@@ -413,31 +443,42 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       <html>
         <head>
           <title>OPD Receipt - ${receiptNumber}</title>
+          <meta name="viewport" content="width=80mm, initial-scale=1.0">
           <style>
-            @page { size: 80mm auto; margin: 0; }
+            @page { size: 80mm auto; margin: 0 !important; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html {
+              width: 80mm;
+              margin: 0;
+              padding: 0;
+            }
             body {
               font-family: 'Arial', sans-serif;
               width: 80mm;
+              max-width: 80mm;
+              min-width: 80mm;
               padding: 3mm;
-              font-size: 10px;
+              font-size: 11px;
+              margin: 0 auto;
+              line-height: 1.4;
             }
             .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
-            .hospital-name { font-size: 13px; font-weight: bold; }
-            .hospital-urdu { font-size: 11px; }
-            .address { font-size: 8px; margin-top: 1mm; }
-            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 12px; font-weight: bold; margin: 2mm 0; }
-            .info-row { display: flex; justify-content: space-between; font-size: 9px; margin: 1mm 0; }
+            .hospital-name { font-size: 15px; font-weight: bold; }
+            .hospital-urdu { font-size: 13px; }
+            .address { font-size: 9px; margin-top: 1mm; }
+            .receipt-title { background: #000; color: white; padding: 2mm; text-align: center; font-size: 13px; font-weight: bold; margin: 2mm 0; }
+            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 1mm 0; }
             .divider { border-top: 1px dashed #000; margin: 2mm 0; }
-            .patient-section { font-size: 9px; line-height: 1.4; margin: 2mm 0; }
-            .item-row { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
+            .patient-section { font-size: 10px; line-height: 1.5; margin: 2mm 0; }
+            .item-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1mm 0; border-bottom: 1px dotted #ccc; }
             .total-section { margin: 2mm 0; padding: 2mm; background: #f0f0f0; }
-            .total-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
-            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 11px; }
+            .total-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
+            .status { text-align: center; padding: 2mm; margin-top: 2mm; font-weight: bold; font-size: 12px; }
             .status.paid { background: #000; color: white; }
             .status.unpaid { border: 2px solid #000; }
-            .footer { text-align: center; font-size: 8px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
             @media print {
+              html, body { width: 80mm !important; max-width: 80mm !important; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
@@ -692,30 +733,41 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
       <html>
         <head>
           <title>OPD Token - ${token.token_number}</title>
+          <meta name="viewport" content="width=80mm, initial-scale=1.0">
           <style>
-            @page { size: 80mm auto; margin: 0; }
+            @page { size: 80mm auto; margin: 0 !important; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html {
+              width: 80mm;
+              margin: 0;
+              padding: 0;
+            }
             body {
               font-family: 'Arial', sans-serif;
               width: 80mm;
+              max-width: 80mm;
+              min-width: 80mm;
               padding: 3mm;
-              font-size: 11px;
+              font-size: 12px;
+              margin: 0 auto;
+              line-height: 1.4;
             }
             .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
-            .hospital-name { font-size: 14px; font-weight: bold; }
-            .hospital-urdu { font-size: 12px; }
-            .subtitle { font-size: 10px; margin-top: 2px; }
-            .reprint-badge { background: #ff9800; color: white; padding: 1mm 3mm; font-size: 8px; border-radius: 2mm; display: inline-block; margin-top: 2mm; }
-            .queue-box { background: #000; color: white; padding: 3mm; text-align: center; margin: 3mm 0; }
-            .queue-number { font-size: 36px; font-weight: bold; }
-            .queue-label { font-size: 10px; }
-            .info-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2mm 0; }
-            .info-section { margin: 2mm 0; font-size: 10px; line-height: 1.4; }
+            .hospital-name { font-size: 16px; font-weight: bold; }
+            .hospital-urdu { font-size: 14px; }
+            .subtitle { font-size: 11px; margin-top: 2px; }
+            .reprint-badge { background: #ff9800; color: white; padding: 1mm 3mm; font-size: 9px; border-radius: 2mm; display: inline-block; margin-top: 2mm; }
+            .queue-box { background: #000; color: white; padding: 4mm; text-align: center; margin: 3mm 0; }
+            .queue-number { font-size: 42px; font-weight: bold; }
+            .queue-label { font-size: 11px; }
+            .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 2mm 0; }
+            .info-section { margin: 2mm 0; font-size: 11px; line-height: 1.5; }
             .info-label { font-weight: bold; }
             .mr-number { font-weight: bold; }
             .divider { border-top: 1px dashed #000; margin: 2mm 0; }
-            .footer { text-align: center; font-size: 9px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+            .footer { text-align: center; font-size: 10px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
             @media print {
+              html, body { width: 80mm !important; max-width: 80mm !important; }
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
