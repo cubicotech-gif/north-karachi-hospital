@@ -91,7 +91,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
     }
   };
 
-  const fetchNextTokenNumber = async () => {
+  const fetchNextTokenNumber = async (doctorId?: string) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await db.opdTokens.getAll();
@@ -101,22 +101,22 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
         return;
       }
 
-      // Get all tokens from today (any doctor) for daily reset
+      // Get all tokens from today FOR THIS SPECIFIC DOCTOR for per-doctor daily reset
       // IMPORTANT: Include ALL tokens (even deleted/cancelled) to prevent number skipping
-      const todayTokens = data?.filter(
-        token => token.date === today
+      const todayDoctorTokens = data?.filter(
+        token => token.date === today && (!doctorId || token.doctor_id === doctorId)
       ) || [];
 
-      // Find the max token number from today
+      // Find the max token number from today for this doctor
       // This ensures we never skip numbers even if tokens are deleted or cancelled
-      const maxTokenNumber = todayTokens.reduce((max, token) => {
+      const maxTokenNumber = todayDoctorTokens.reduce((max, token) => {
         const tokenNum = parseInt(token.token_number) || 0;
         return Math.max(max, tokenNum);
       }, 0);
 
       // Calculate next available number
       // Check for gaps in the sequence (optional: fill gaps or continue from max)
-      const usedNumbers = new Set(todayTokens.map(t => parseInt(t.token_number) || 0));
+      const usedNumbers = new Set(todayDoctorTokens.map(t => parseInt(t.token_number) || 0));
       let nextNum = maxTokenNumber + 1;
 
       // If you want to fill gaps, uncomment the following:
@@ -136,6 +136,10 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
   const handleDoctorSelect = (doctorId: string) => {
     const doctor = doctors.find(d => d.id === doctorId);
     setSelectedDoctor(doctor || null);
+    // Fetch next token number for this specific doctor
+    if (doctor) {
+      fetchNextTokenNumber(doctor.id);
+    }
   };
 
   const generateOPDToken = async () => {
@@ -168,9 +172,12 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
           return;
         }
 
-        // Get all tokens from today to find the max
-        const todayTokens = freshTokens?.filter(token => token.date === today) || [];
-        const maxTokenNumber = todayTokens.reduce((max, token) => {
+        // Get all tokens from today FOR THIS SPECIFIC DOCTOR to find the max
+        // Each doctor has their own independent token sequence
+        const todayDoctorTokens = freshTokens?.filter(
+          token => token.date === today && token.doctor_id === selectedDoctor.id
+        ) || [];
+        const maxTokenNumber = todayDoctorTokens.reduce((max, token) => {
           const tokenNum = parseInt(token.token_number) || 0;
           return Math.max(max, tokenNum);
         }, 0);
@@ -1078,7 +1085,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
               <p className="text-sm text-gray-600">{selectedDoctor.department}</p>
               <p className="text-sm text-gray-600">{selectedDoctor.specialization}</p>
               <p className="font-medium mt-2">OPD Fee: {formatCurrency(selectedDoctor.opd_fee)}</p>
-              <p className="text-sm text-blue-600 mt-1">Next Token Number: {nextTokenNumber}</p>
+              <p className="text-sm text-blue-600 mt-1">Next Token Number for this Doctor: {nextTokenNumber}</p>
             </div>
           )}
         </CardContent>
@@ -1151,7 +1158,7 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
                 <p className="text-xs text-blue-600 mt-2">
                   {useManualToken
                     ? 'Enter custom token number to skip or use specific number'
-                    : `Token resets daily. Today's next token: ${nextTokenNumber}`}
+                    : `Token resets daily per doctor. Next token for this doctor: ${nextTokenNumber}`}
                 </p>
               </div>
 
