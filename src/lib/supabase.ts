@@ -548,13 +548,21 @@ export const db = {
       referral_notes?: string;
       medical_history?: string;
     }) => {
+      // Generate MR number for external newborn
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const mrNumber = `MR-${dateStr}-${randomNum}`;
+
       return await supabase.from('patients').insert([{
         ...data,
+        mr_number: mrNumber,
         patient_type: 'newborn',
         is_external_admission: true,
         age: 0,
         problem: 'External newborn - NICU/Treatment',
-        department: 'Pediatrics'
+        department: 'Pediatrics',
+        mother_patient_id: null // External babies don't have mother in the system
       }]).select().single();
     }
   },
