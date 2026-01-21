@@ -560,8 +560,6 @@ export const db = {
         patient_type: 'newborn',
         is_external_admission: true,
         age: 0,
-        problem: 'External newborn - NICU/Treatment',
-        department: 'Pediatrics',
         mother_patient_id: null // External babies don't have mother in the system
       }]).select().single();
     }
