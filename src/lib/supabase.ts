@@ -548,15 +548,9 @@ export const db = {
       referral_notes?: string;
       medical_history?: string;
     }) => {
-      // Generate MR number for external newborn
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      const mrNumber = `MR-${dateStr}-${randomNum}`;
-
+      // Don't provide mr_number - let database trigger auto-generate NB-XXXX for newborns
       return await supabase.from('patients').insert([{
         ...data,
-        mr_number: mrNumber,
         patient_type: 'newborn',
         is_external_admission: true,
         age: 0,
