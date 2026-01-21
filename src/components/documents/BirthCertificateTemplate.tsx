@@ -60,7 +60,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
     ];
 
     return (
-      <div className="bg-white">
+      <div>
         <style>
           {`
             @media print {
@@ -69,11 +69,16 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 margin: 0;
               }
 
-              body {
+              * {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                margin: 0;
-                padding: 0;
+              }
+
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: transparent !important;
+                border: none !important;
               }
 
               .no-print {
@@ -81,12 +86,14 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
               }
 
               .print-container {
-                padding-top: 2in !important;
-                padding-bottom: 1in !important;
-                padding-left: 0.75in !important;
-                padding-right: 0.75in !important;
-                min-height: 100vh;
+                padding-top: 2.5in !important;
+                padding-bottom: 0.5in !important;
+                padding-left: 1in !important;
+                padding-right: 1in !important;
                 box-sizing: border-box;
+                background: transparent !important;
+                border: none !important;
+                page-break-after: avoid;
               }
 
               .birth-input {
@@ -120,10 +127,9 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
 
             @media screen {
               .print-container {
-                padding: 2in 0.75in 1in 0.75in;
-                max-width: 8.5in;
+                padding: 2.5in 1in 0.5in 1in;
+                max-width: 8.27in;
                 margin: 0 auto;
-                min-height: calc(11in - 3in);
                 background: #fff;
                 box-shadow: 0 0 10px rgba(0,0,0,0.1);
               }
