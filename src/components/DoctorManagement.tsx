@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Stethoscope, Plus, TrendingUp, Users, DollarSign, Edit, Trash2, X } from 'lucide-react';
-import { Doctor, formatCurrency, validateCNIC, formatCNIC, calculateAge } from '@/lib/hospitalData';
+import { Doctor, formatCurrency, validateCNIC, formatCNIC, calculateAge, toDoctorName } from '@/lib/hospitalData';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -188,7 +188,7 @@ export default function EnhancedDoctorManagement() {
     // Convert to snake_case for database
     // IMPORTANT: Send null for empty fields, not undefined
     const doctorData: any = {
-      name: newDoctor.name,
+      name: toDoctorName(newDoctor.name),
       cnic_number: newDoctor.cnicNumber ? formatCNIC(newDoctor.cnicNumber) : null,
       date_of_birth: newDoctor.dateOfBirth || null,
       gender: newDoctor.gender || null,
@@ -431,7 +431,8 @@ export default function EnhancedDoctorManagement() {
                     id="doctorName"
                     value={newDoctor.name}
                     onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                    placeholder="Dr. John Doe"
+                    onBlur={(e) => setNewDoctor({ ...newDoctor, name: toDoctorName(e.target.value) })}
+                    placeholder="John Doe"
                     required
                   />
                 </div>

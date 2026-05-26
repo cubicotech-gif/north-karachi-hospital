@@ -186,6 +186,27 @@ export const formatCurrency = (amount: number | undefined | null): string => {
   return `Rs ${amount.toLocaleString('en-PK')}`;
 };
 
+// Title-case a name regardless of how it was typed (ALL CAPS, lower, mixed).
+// "jOhN  doe" -> "John Doe". Collapses extra spaces.
+export const toTitleCase = (value: string | undefined | null): string => {
+  if (!value) return '';
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word)
+    .join(' ');
+};
+
+// For doctor names: drop a leading "Dr"/"Dr." (the UI already renders "Dr.")
+// then title-case. "dr farooq" / "DR.FAROOQ" -> "Farooq".
+export const toDoctorName = (value: string | undefined | null): string => {
+  if (!value) return '';
+  const stripped = value.trim().replace(/^dr\b\.?\s*/i, '');
+  return toTitleCase(stripped);
+};
+
+
 export const formatDate = (date: string | undefined | null): string => {
   if (!date) return 'N/A';
   try {

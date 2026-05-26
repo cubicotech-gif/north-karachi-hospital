@@ -818,6 +818,7 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
                     id="patientName"
                     value={newPatient.name}
                     onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                    onBlur={(e) => setNewPatient({ ...newPatient, name: capitalizeName(e.target.value) })}
                     placeholder="John Doe"
                     required
                   />
