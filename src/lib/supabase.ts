@@ -5,6 +5,36 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Supabase/PostgREST returns at most 1000 rows per request (server-enforced).
+// fetchAllRows pages through a table in 1000-row batches and returns every row,
+// so views that need the full dataset (e.g. billing) are not silently truncated.
+export const fetchAllRows = async (
+  table: string,
+  options: { select?: string; orderColumn?: string; ascending?: boolean } = {}
+) => {
+  const { select = '*', orderColumn = 'created_at', ascending = false } = options;
+  const pageSize = 1000;
+  let from = 0;
+  const all: any[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(select)
+      .order(orderColumn, { ascending })
+      .range(from, from + pageSize - 1);
+
+    if (error) return { data: null, error };
+
+    all.push(...(data || []));
+
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return { data: all, error: null };
+};
+
 // ✅ SIMPLIFIED DATABASE HELPERS - No complex conversions!
 // Just simple, direct database calls that work
 
