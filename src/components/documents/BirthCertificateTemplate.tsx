@@ -76,11 +76,10 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 border: none !important;
               }
 
-              /* Hide the whole app and the dialog's dark overlay so ONLY the
-                 certificate prints (the dialog is portaled to <body> next to #root).
-                 The overlay is hidden explicitly because other screens inject a
-                 global print-color-adjust: exact that would otherwise force its
-                 black background to print. */
+              /* Hide the whole app, all dialog overlays, and toasts. Also hide
+                 any OTHER dialog (e.g. the delivery-record form the certificate
+                 is opened from) so only the certificate's own dialog prints.
+                 The dialogs are portaled to <body>, next to #root. */
               #root {
                 display: none !important;
               }
@@ -89,12 +88,21 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 display: none !important;
               }
 
+              [data-sonner-toaster] {
+                display: none !important;
+              }
+
+              [role="dialog"]:not(:has(.print-container)) {
+                display: none !important;
+              }
+
               .no-print {
                 display: none !important;
               }
 
-              /* Flatten the dialog box so it adds no border/shadow/scroll/centering */
-              [role="dialog"] {
+              /* Flatten ONLY the certificate's dialog so it flows from the top
+                 of the page with no border/shadow/scroll/centering */
+              [role="dialog"]:has(.print-container) {
                 position: static !important;
                 transform: none !important;
                 inset: auto !important;
