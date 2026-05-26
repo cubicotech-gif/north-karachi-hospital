@@ -709,7 +709,7 @@ const DeliveryRecordForm: React.FC<DeliveryRecordFormProps> = ({
       {/* Birth Certificate Print Dialog */}
       <Dialog open={showBirthCertificate} onOpenChange={setShowBirthCertificate}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-          <BirthCertificateTemplate ref={birthCertificateRef} />
+          <BirthCertificateTemplate ref={birthCertificateRef} data={birthCertificateData} />
         </DialogContent>
       </Dialog>
     </>

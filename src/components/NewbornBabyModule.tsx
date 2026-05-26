@@ -874,7 +874,20 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
       {showBirthCertificate && selectedBaby && (
         <Dialog open={showBirthCertificate} onOpenChange={setShowBirthCertificate}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
-            <BirthCertificateTemplate ref={birthCertificateRef} />
+            <BirthCertificateTemplate
+              ref={birthCertificateRef}
+              data={(selectedBaby as any).birth_certificate_data || getBirthCertificateData() || undefined}
+              onSave={async (values) => {
+                const { error } = await db.patients.update(selectedBaby.id, { birth_certificate_data: values });
+                if (error) {
+                  console.error('Error saving birth certificate:', error);
+                  toast.error('Failed to save birth certificate details');
+                  return;
+                }
+                setSelectedBaby({ ...selectedBaby, birth_certificate_data: values } as any);
+                toast.success('Birth certificate details saved');
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}
