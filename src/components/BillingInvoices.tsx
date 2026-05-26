@@ -9,7 +9,7 @@ import {
   Receipt, DollarSign, Printer, Search, Calendar, Filter,
   CheckCircle, XCircle, Clock, User, FileText
 } from 'lucide-react';
-import { db } from '@/lib/supabase';
+import { fetchAllRows } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/hospitalData';
 import { useReactToPrint } from 'react-to-print';
@@ -50,11 +50,11 @@ export default function BillingInvoices() {
     setLoading(true);
     try {
       const [opdTokensRes, admissionsRes, labOrdersRes, treatmentsRes, patientsRes] = await Promise.all([
-        db.opdTokens.getAll(),
-        db.admissions.getAll(),
-        db.labOrders.getAll(),
-        db.treatments.getAll(),
-        db.patients.getAll()
+        fetchAllRows('opd_tokens'),
+        fetchAllRows('admissions', { orderColumn: 'admission_date' }),
+        fetchAllRows('lab_orders'),
+        fetchAllRows('treatments'),
+        fetchAllRows('patients')
       ]);
 
       if (opdTokensRes.error) throw opdTokensRes.error;
