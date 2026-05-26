@@ -166,6 +166,7 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
       }
 
       setGeneratedOrder(data);
+      setPaymentStatus(data?.payment_status === 'paid' ? 'paid' : 'pending');
       toast.success('Lab order created successfully!');
     } catch (error) {
       console.error('Error creating lab order:', error);
@@ -226,10 +227,28 @@ export default function LabManagement({ selectedPatient }: LabManagementProps) {
     }
   };
 
-  const handlePayment = () => {
-    if (generatedOrder) {
+  const handlePayment = async () => {
+    if (!generatedOrder) return;
+    setLoading(true);
+    try {
+      const { error } = await db.labOrders.update(generatedOrder.id, {
+        payment_status: 'paid'
+      });
+
+      if (error) {
+        console.error('Error recording payment:', error);
+        toast.error('Failed to record payment');
+        return;
+      }
+
       setPaymentStatus('paid');
+      setGeneratedOrder({ ...generatedOrder, payment_status: 'paid' });
       toast.success('Payment recorded successfully!');
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setLoading(false);
     }
   };
 
