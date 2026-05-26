@@ -3253,7 +3253,7 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <BirthCertificateTemplate ref={birthCertificateRef} />
+            <BirthCertificateTemplate ref={birthCertificateRef} data={birthCertificateData} />
           </div>
         </div>
       )}

@@ -1,14 +1,14 @@
-import React, { forwardRef, useState, useImperativeHandle } from 'react';
+import React, { forwardRef, useState, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Printer } from 'lucide-react';
+import { Printer, Save } from 'lucide-react';
 
 interface BirthCertificateData {
   serialNumber?: string;
   date?: string;
-  babyGender?: 'Male' | 'Female';
-  weightKg?: number;
-  weightGrams?: number;
+  babyGender?: 'Male' | 'Female' | '';
+  weightKg?: number | string;
+  weightGrams?: number | string;
   motherName?: string;
   fatherName?: string;
   address?: string;
@@ -21,30 +21,38 @@ interface BirthCertificateData {
 
 interface BirthCertificateTemplateProps {
   data?: BirthCertificateData;
+  onSave?: (values: Record<string, string>) => void | Promise<void>;
 }
 
 export interface BirthCertificateRef {
   print: () => void;
 }
 
+const buildForm = (d?: BirthCertificateData) => ({
+  serialNumber: d?.serialNumber || '',
+  date: d?.date || '',
+  babyGender: (d?.babyGender as '' | 'Male' | 'Female') || '',
+  weightKg: d?.weightKg != null && d?.weightKg !== '' ? String(d.weightKg) : '',
+  weightGrams: d?.weightGrams != null && d?.weightGrams !== '' ? String(d.weightGrams) : '',
+  motherName: d?.motherName || '',
+  fatherName: d?.fatherName || '',
+  address: d?.address || '',
+  birthDay: d?.birthDay || '',
+  birthMonth: d?.birthMonth || '',
+  birthYear: d?.birthYear || '',
+  birthTime: d?.birthTime || '',
+  attendingObstetrician: d?.attendingObstetrician || '',
+});
+
 const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemplateProps>(
-  ({ data }, ref) => {
-    // Editable form fields - start empty for manual input
-    const [formData, setFormData] = useState({
-      serialNumber: '',
-      date: '',
-      babyGender: '' as '' | 'Male' | 'Female',
-      weightKg: '',
-      weightGrams: '',
-      motherName: '',
-      fatherName: '',
-      address: '',
-      birthDay: '',
-      birthMonth: '',
-      birthYear: '',
-      birthTime: '',
-      attendingObstetrician: '',
-    });
+  ({ data, onSave }, ref) => {
+    // Prefill from saved/derived data; stays in sync if it loads asynchronously.
+    const [formData, setFormData] = useState(buildForm(data));
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+      setFormData(buildForm(data));
+    }, [data]);
 
     const handleInputChange = (field: string, value: string) => {
       setFormData(prev => ({ ...prev, [field]: value }));
@@ -52,6 +60,16 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
 
     const handlePrint = () => {
       window.print();
+    };
+
+    const handleSave = async () => {
+      if (!onSave) return;
+      setSaving(true);
+      try {
+        await onSave(formData);
+      } finally {
+        setSaving(false);
+      }
     };
 
     const months = [
@@ -74,6 +92,8 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 padding: 0 !important;
                 background: #fff !important;
                 border: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
 
               /* Hide the whole app, all dialog overlays, and toasts. Also hide
@@ -117,7 +137,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
               }
 
               .print-container {
-                padding-top: 2.5in !important;
+                padding-top: 3in !important;
                 padding-bottom: 0.5in !important;
                 padding-left: 1in !important;
                 padding-right: 1in !important;
@@ -138,6 +158,8 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 font-size: 14px !important;
                 height: auto !important;
                 min-height: 24px !important;
+                color: #000 !important;
+                font-weight: 600 !important;
               }
 
               .birth-input:focus {
@@ -159,7 +181,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
 
             @media screen {
               .print-container {
-                padding: 2.5in 1in 0.5in 1in;
+                padding: 3in 1in 0.5in 1in;
                 max-width: 8.27in;
                 margin: 0 auto;
                 background: #fff;
@@ -222,24 +244,65 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
 
             .field-label {
               font-style: italic;
-              color: #333;
+              color: #000;
+            }
+
+            /* Classic, dark heading that prints clearly below the letterhead */
+            .cert-heading {
+              text-align: center;
+              font-family: Georgia, 'Times New Roman', 'Garamond', serif;
+              font-size: 34px;
+              font-weight: 700;
+              letter-spacing: 3px;
+              color: #000;
+              text-transform: uppercase;
+              margin: 0 0 6px 0;
+            }
+
+            .cert-subtitle {
+              text-align: center;
+              font-family: Georgia, 'Times New Roman', serif;
+              font-style: italic;
+              font-size: 13px;
+              color: #000;
+              margin-bottom: 6px;
+            }
+
+            .cert-heading-rule {
+              width: 260px;
+              margin: 0 auto 28px auto;
+              border: none;
+              border-top: 3px double #000;
             }
           `}
         </style>
 
-        {/* Print Button - Hidden when printing */}
+        {/* Action bar - Hidden when printing */}
         <div className="no-print p-4 bg-gray-100 border-b flex justify-between items-center">
           <p className="text-sm text-gray-600">
-            Fill in all fields below, then click Print
+            {onSave ? 'Fields auto-fill from the record. Edit if needed, Save to keep changes, then Print.' : 'Fill in all fields below, then click Print'}
           </p>
-          <Button onClick={handlePrint} className="flex items-center gap-2">
-            <Printer className="h-4 w-4" />
-            Print Certificate
-          </Button>
+          <div className="flex items-center gap-2">
+            {onSave && (
+              <Button variant="outline" onClick={handleSave} disabled={saving} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
+            <Button onClick={handlePrint} className="flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              Print Certificate
+            </Button>
+          </div>
         </div>
 
-        {/* Certificate Content - Centered for pre-printed template */}
+        {/* Certificate Content - Centered for pre-printed letterhead */}
         <div ref={ref} className="print-container">
+          {/* Heading (sits below the pre-printed hospital letterhead) */}
+          <div className="cert-heading">Birth Certificate</div>
+          <div className="cert-subtitle">Certificate of Live Birth</div>
+          <hr className="cert-heading-rule" />
+
           {/* Serial Number and Date Row */}
           <div className="flex justify-between items-start mb-8">
             <div className="flex items-center gap-2">
