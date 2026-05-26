@@ -282,7 +282,7 @@ export default function DischargeModule() {
         const labDate = new Date(lab.created_at);
         return labDate >= admissionDate;
       });
-      const labTotal = relevantLabs.reduce((sum: number, lab: any) => sum + (lab.total_cost || 0), 0);
+      const labTotal = relevantLabs.reduce((sum: number, lab: any) => sum + (lab.total_amount || 0), 0);
       setLabCharges({ total: labTotal, items: relevantLabs });
 
       // 2. Fetch treatments for this patient during admission
@@ -637,7 +637,7 @@ export default function DischargeModule() {
       })),
       labItems: labCharges.items.map(l => ({
         description: l.test_names || 'Lab Test',
-        amount: l.total_cost || 0
+        amount: l.total_amount || 0
       })),
       nicuItems: nicuCharges.items.map(n => ({
         description: `${n.babyName ? n.babyName + ' - ' : ''}${n.hours_charged || 0} hrs NICU`,
@@ -918,7 +918,7 @@ export default function DischargeModule() {
                                   {labCharges.items.map((lab: any, idx: number) => (
                                     <div key={idx} className="flex justify-between text-gray-600 pl-4">
                                       <span>{lab.test_names || 'Lab Order'}</span>
-                                      <span>{formatCurrency(lab.total_cost || 0)}</span>
+                                      <span>{formatCurrency(lab.total_amount || 0)}</span>
                                     </div>
                                   ))}
                                 </div>

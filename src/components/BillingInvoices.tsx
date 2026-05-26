@@ -111,7 +111,7 @@ export default function BillingInvoices() {
           type: 'Lab',
           patient_id: order.patient_id,
           patient_name: patient?.name || 'Unknown Patient',
-          amount: order.total_cost || 0,
+          amount: order.total_amount || 0,
           payment_status: order.payment_status || 'unpaid',
           date: order.order_date,
           created_at: order.created_at,
