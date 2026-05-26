@@ -69,20 +69,43 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 margin: 0;
               }
 
-              * {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-
               html, body {
                 margin: 0 !important;
                 padding: 0 !important;
-                background: transparent !important;
+                background: #fff !important;
                 border: none !important;
+              }
+
+              /* Hide the whole app and the dialog's dark overlay so ONLY the
+                 certificate prints (the dialog is portaled to <body> next to #root).
+                 The overlay is hidden explicitly because other screens inject a
+                 global print-color-adjust: exact that would otherwise force its
+                 black background to print. */
+              #root {
+                display: none !important;
+              }
+
+              .fixed.inset-0 {
+                display: none !important;
               }
 
               .no-print {
                 display: none !important;
+              }
+
+              /* Flatten the dialog box so it adds no border/shadow/scroll/centering */
+              [role="dialog"] {
+                position: static !important;
+                transform: none !important;
+                inset: auto !important;
+                max-width: none !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                overflow: visible !important;
               }
 
               .print-container {
@@ -93,6 +116,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
                 box-sizing: border-box;
                 background: transparent !important;
                 border: none !important;
+                box-shadow: none !important;
                 page-break-after: avoid;
               }
 
