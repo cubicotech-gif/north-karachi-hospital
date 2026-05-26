@@ -13,7 +13,7 @@ import {
   Receipt, CreditCard, Calculator, FileSpreadsheet, Download,
   PlusCircle, CheckCircle, AlertCircle, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { db } from '@/lib/supabase';
+import { db, fetchAllRows } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/hospitalData';
 
@@ -179,9 +179,9 @@ export default function ReportsAnalytics() {
         departmentsRes,
         vouchersRes
       ] = await Promise.all([
-        db.patients.getAll(),
+        fetchAllRows('patients'),
         db.doctors.getAll(),
-        db.opdTokens.getAll(),
+        fetchAllRows('opd_tokens'),
         db.appointments?.getAll() || Promise.resolve({ data: [], error: null }),
         db.admissions.getAll(),
         db.rooms.getAll(),
@@ -353,8 +353,22 @@ export default function ReportsAnalytics() {
     return `${prefix}-${timestamp}${random}`;
   };
 
+  // A doctor must not be voucher'd twice for the same period (double-payment).
+  const hasExistingCommissionVoucher = (doctorId: string) =>
+    vouchers.some((v: any) =>
+      v.voucher_type === 'doctor_commission' &&
+      v.doctor_id === doctorId &&
+      v.period_start === startDate &&
+      v.period_end === endDate &&
+      v.status !== 'cancelled'
+    );
+
   // Create voucher for doctor
   const createVoucherForDoctor = async (doctor: DoctorStats) => {
+    if (hasExistingCommissionVoucher(doctor.id)) {
+      toast.error(`A commission voucher for Dr. ${doctor.name} for ${startDate} to ${endDate} already exists.`);
+      return;
+    }
     setVoucherLoading(true);
     try {
       const voucherNumber = generateVoucherNumber();
@@ -396,7 +410,16 @@ export default function ReportsAnalytics() {
   const createVouchersForAllDoctors = async () => {
     setVoucherLoading(true);
     try {
-      const doctorsWithCommission = doctorStats.filter(d => d.commissionAmount > 0);
+      const doctorsWithCommission = doctorStats.filter(
+        d => d.commissionAmount > 0 && !hasExistingCommissionVoucher(d.id)
+      );
+
+      if (doctorsWithCommission.length === 0) {
+        toast.info('No new vouchers to create for this period (commissions are zero or already voucher’d).');
+        setVoucherLoading(false);
+        return;
+      }
+
       let successCount = 0;
 
       for (const doctor of doctorsWithCommission) {

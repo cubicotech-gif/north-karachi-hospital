@@ -541,8 +541,10 @@ export default function EnhancedDoctorManagement() {
                   <Input
                     id="commissionRate"
                     type="number"
+                    step="0.01"
+                    min="0"
                     value={newDoctor.commissionRate}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, commissionRate: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, commissionRate: parseFloat(e.target.value) || 0 })}
                     placeholder={newDoctor.commissionType === 'percentage' ? '30' : '200'}
                   />
                 </div>

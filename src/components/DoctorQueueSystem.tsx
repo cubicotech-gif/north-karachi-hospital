@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Users, Stethoscope, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { db } from '@/lib/supabase';
+import { db, fetchAllRows } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/useAuth';
 import { formatCurrency } from '@/lib/hospitalData';
@@ -65,8 +65,8 @@ export default function DoctorQueueSystem() {
     try {
       const [doctorsRes, patientsRes, tokensRes] = await Promise.all([
         db.doctors.getAll(),
-        db.patients.getAll(),
-        db.opdTokens.getAll()
+        fetchAllRows('patients'),
+        fetchAllRows('opd_tokens')
       ]);
 
       if (doctorsRes.error) throw doctorsRes.error;
