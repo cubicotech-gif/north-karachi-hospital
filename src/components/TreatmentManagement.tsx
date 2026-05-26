@@ -247,97 +247,92 @@ export default function TreatmentManagement({ selectedPatient }: TreatmentManage
       <html>
       <head>
         <title>Treatment Receipt - ${selectedPatient.name}</title>
+        <meta name="viewport" content="width=80mm, initial-scale=1.0">
         <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { text-align: center; border-bottom: 3px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
-          .header h1 { margin: 0; color: #333; font-size: 24px; }
-          .header p { margin: 5px 0; color: #666; font-size: 14px; }
-          .receipt-title { background: #2563eb; color: white; padding: 10px; text-align: center; font-size: 18px; font-weight: bold; margin: 15px 0; }
-          .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-          .info-box { background: #f5f5f5; padding: 15px; border-radius: 5px; }
-          .info-box p { margin: 5px 0; font-size: 14px; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th { background: #2563eb; color: white; padding: 12px; text-align: left; }
-          td { padding: 10px; border-bottom: 1px solid #ddd; }
-          .total-row { font-weight: bold; font-size: 16px; background: #f0f7ff; }
-          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-          .status-badge { display: inline-block; padding: 5px 15px; border-radius: 15px; font-weight: bold; }
-          .status-paid { background: #d4edda; color: #155724; }
-          .status-pending { background: #f8d7da; color: #721c24; }
-          .status-partial { background: #fff3cd; color: #856404; }
+          @page { size: 80mm auto; margin: 0 !important; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html { width: 80mm; margin: 0; padding: 0; }
+          body {
+            font-family: 'Arial', sans-serif;
+            width: 80mm;
+            max-width: 80mm;
+            min-width: 80mm;
+            padding: 3mm;
+            font-size: 12px;
+            margin: 0 auto;
+            line-height: 1.4;
+          }
+          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3mm; margin-bottom: 3mm; }
+          .hospital-name { font-size: 16px; font-weight: bold; }
+          .hospital-urdu { font-size: 14px; }
+          .subtitle { font-size: 10px; margin-top: 2px; }
+          .receipt-title { background: #000; color: #fff; padding: 2mm; text-align: center; font-size: 13px; font-weight: bold; margin: 3mm 0; }
+          .info-row { display: flex; justify-content: space-between; font-size: 11px; margin: 1.5mm 0; }
+          .info-section { margin: 2mm 0; font-size: 11px; line-height: 1.5; }
+          .info-label { font-weight: bold; }
+          .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+          .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 2mm 0; }
+          .status { text-align: center; font-weight: bold; font-size: 12px; margin: 3mm 0; }
+          .footer { text-align: center; font-size: 10px; margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #000; }
+          @media print {
+            html, body { width: 80mm !important; max-width: 80mm !important; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>NORTH KARACHI HOSPITAL</h1>
-          <p>C-122, Sector 11-B, North Karachi Township, Karachi</p>
-          <p>Ph: 36989080</p>
+          <div class="hospital-name">North Karachi Hospital</div>
+          <div class="hospital-urdu">نارتھ کراچی ہسپتال</div>
+          <div class="subtitle">C-122, Sector 11-B, North Karachi Township<br>Ph: 36989080</div>
         </div>
 
         <div class="receipt-title">TREATMENT RECEIPT</div>
 
         <div class="info-section">
-          <div class="info-box">
-            <p><strong>Receipt No:</strong> TRT-${treatment.id.slice(-8).toUpperCase()}</p>
-            <p><strong>Date:</strong> ${new Date(treatment.date).toLocaleDateString('en-GB')}</p>
-            <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
-          </div>
-          <div class="info-box">
-            <p><strong>Patient:</strong> ${selectedPatient.name}</p>
-            ${selectedPatient.mrNumber ? `<p style="color: #1565c0; font-weight: bold;"><strong>MR#:</strong> ${selectedPatient.mrNumber}</p>` : ''}
-            <p><strong>Age/Gender:</strong> ${selectedPatient.age} yrs / ${selectedPatient.gender}</p>
-            ${referredBy ? `<p style="color: #d97706; font-weight: bold;"><strong>Referred By:</strong> ${referredBy}</p>` : ''}
-            <p><strong>Contact:</strong> ${selectedPatient.contact}</p>
-          </div>
+          <div class="info-row"><span class="info-label">Receipt #:</span><span>TRT-${treatment.id.slice(-8).toUpperCase()}</span></div>
+          <div class="info-row"><span class="info-label">Date:</span><span>${new Date(treatment.date).toLocaleDateString('en-GB')}</span></div>
+          <div class="info-row"><span class="info-label">Time:</span><span>${new Date().toLocaleTimeString()}</span></div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th style="text-align: right;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <strong>${treatment.treatment_type}</strong> - ${treatment.treatment_name}
-                ${treatment.description ? `<br><span style="font-size: 13px; color: #666;">${treatment.description}</span>` : ''}
-                ${doctor ? `<br><span style="font-size: 13px; color: #666;">Doctor: Dr. ${doctor.name}</span>` : ''}
-              </td>
-              <td style="text-align: right;">${formatCurrency(treatment.original_price || treatment.price)}</td>
-            </tr>
-            ${treatment.discount_amount && treatment.discount_amount > 0 ? `
-            <tr style="color: green;">
-              <td style="text-align: right;">
-                <strong>Discount (${treatment.discount_type === 'percentage' ? treatment.discount_value + '%' : 'Fixed'}) / رعایت:</strong>
-              </td>
-              <td style="text-align: right;">-${formatCurrency(treatment.discount_amount)}</td>
-            </tr>
-            ` : ''}
-            <tr class="total-row">
-              <td style="text-align: right;"><strong>TOTAL:</strong></td>
-              <td style="text-align: right;"><strong>${formatCurrency(treatment.price)}</strong></td>
-            </tr>
-            ${treatment.discount_amount && treatment.discount_amount > 0 ? `
-            <tr>
-              <td colspan="2" style="text-align: right; color: green; font-size: 12px;">
-                You saved ${formatCurrency(treatment.discount_amount)}!
-              </td>
-            </tr>
-            ` : ''}
-          </tbody>
-        </table>
+        <div class="divider"></div>
 
-        <div style="text-align: center; margin: 20px 0;">
-          <span class="status-badge status-${treatment.payment_status}">
-            ${treatment.payment_status === 'paid' ? 'PAID' : treatment.payment_status === 'partial' ? 'PARTIAL PAYMENT' : 'PAYMENT PENDING'}
-          </span>
+        <div class="info-section">
+          <div class="info-label">Patient:</div>
+          <div>${selectedPatient.name}</div>
+          ${selectedPatient.mrNumber ? `<div><strong>MR#:</strong> ${selectedPatient.mrNumber}</div>` : ''}
+          <div>${selectedPatient.age}Y / ${selectedPatient.gender} | ${selectedPatient.contact}</div>
+          ${referredBy ? `<div><strong>Ref:</strong> ${referredBy}</div>` : ''}
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="info-section">
+          <div class="info-label">Treatment:</div>
+          <div>${treatment.treatment_type} - ${treatment.treatment_name}</div>
+          ${treatment.description ? `<div>${treatment.description}</div>` : ''}
+          ${doctor ? `<div>Doctor: Dr. ${doctor.name}</div>` : ''}
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="info-section">
+          ${treatment.discount_amount && treatment.discount_amount > 0 ? `
+            <div class="info-row"><span>Original:</span><span style="text-decoration: line-through;">${formatCurrency(treatment.original_price || treatment.price)}</span></div>
+            <div class="info-row"><span>Discount (${treatment.discount_type === 'percentage' ? treatment.discount_value + '%' : 'Fixed'}):</span><span>-${formatCurrency(treatment.discount_amount)}</span></div>
+          ` : `
+            <div class="info-row"><span>Amount:</span><span>${formatCurrency(treatment.price)}</span></div>
+          `}
+          <div class="total-row"><span>TOTAL:</span><span>${formatCurrency(treatment.price)}</span></div>
+        </div>
+
+        <div class="status">
+          ${treatment.payment_status === 'paid' ? 'PAID' : treatment.payment_status === 'partial' ? 'PARTIAL PAYMENT' : 'PAYMENT PENDING'}
         </div>
 
         <div class="footer">
-          <p>Thank you for choosing North Karachi Hospital</p>
-          <p>This is a computer generated receipt</p>
+          Thank you for choosing North Karachi Hospital<br>
+          This is a computer generated receipt
         </div>
       </body>
       </html>
