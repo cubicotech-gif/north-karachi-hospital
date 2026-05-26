@@ -41,7 +41,11 @@ export default function EnhancedDoctorManagement() {
     experience: 0,
     consultationHours: '',
     roomNumber: '',
-    available: true
+    available: true,
+    referralShareRate: 0,
+    referralRecipientType: 'none',
+    referralRecipientDoctorId: '',
+    referralRecipientName: ''
   });
 
   useEffect(() => {
@@ -95,7 +99,10 @@ export default function EnhancedDoctorManagement() {
         joiningDate: d.joining_date,
         available: d.available,
         consultationHours: d.consultation_hours,
-        roomNumber: d.room_number
+        roomNumber: d.room_number,
+        referralShareRate: d.referral_share_rate,
+        referralRecipientDoctorId: d.referral_recipient_doctor_id,
+        referralRecipientName: d.referral_recipient_name
       })) || [];
 
       setDoctors(doctorsData);
@@ -126,7 +133,13 @@ export default function EnhancedDoctorManagement() {
       experience: doctor.experience,
       consultationHours: doctor.consultationHours,
       roomNumber: doctor.roomNumber,
-      available: doctor.available
+      available: doctor.available,
+      referralShareRate: doctor.referralShareRate || 0,
+      referralRecipientDoctorId: doctor.referralRecipientDoctorId || '',
+      referralRecipientName: doctor.referralRecipientName || '',
+      referralRecipientType: doctor.referralRecipientDoctorId
+        ? 'doctor'
+        : (doctor.referralRecipientName ? 'external' : 'none')
     });
     setShowAddForm(true);
   };
@@ -174,7 +187,7 @@ export default function EnhancedDoctorManagement() {
 
     // Convert to snake_case for database
     // IMPORTANT: Send null for empty fields, not undefined
-    const doctorData = {
+    const doctorData: any = {
       name: newDoctor.name,
       cnic_number: newDoctor.cnicNumber ? formatCNIC(newDoctor.cnicNumber) : null,
       date_of_birth: newDoctor.dateOfBirth || null,
@@ -193,6 +206,21 @@ export default function EnhancedDoctorManagement() {
       room_number: newDoctor.roomNumber || null,
       available: newDoctor.available !== undefined ? newDoctor.available : true
     };
+
+    // Only write the referral columns when a referral is being set or cleared.
+    // This keeps saving a normal doctor working even if the referral migration
+    // has not been applied yet (the columns simply are not touched).
+    const referralConfigured = !!newDoctor.referralRecipientType && newDoctor.referralRecipientType !== 'none';
+    const referralWasSet = !!(editingDoctor && (editingDoctor.referralRecipientDoctorId || editingDoctor.referralRecipientName));
+    if (referralConfigured || referralWasSet) {
+      doctorData.referral_share_rate = referralConfigured ? (newDoctor.referralShareRate || null) : null;
+      doctorData.referral_recipient_doctor_id = newDoctor.referralRecipientType === 'doctor'
+        ? (newDoctor.referralRecipientDoctorId || null)
+        : null;
+      doctorData.referral_recipient_name = newDoctor.referralRecipientType === 'doctor'
+        ? (doctors.find(d => d.id === newDoctor.referralRecipientDoctorId)?.name || null)
+        : (newDoctor.referralRecipientType === 'external' ? (newDoctor.referralRecipientName || null) : null);
+    }
 
     try {
       if (editingDoctor) {
@@ -225,7 +253,10 @@ export default function EnhancedDoctorManagement() {
           joiningDate: data.joining_date,
           available: data.available,
           consultationHours: data.consultation_hours,
-          roomNumber: data.room_number
+          roomNumber: data.room_number,
+          referralShareRate: data.referral_share_rate,
+          referralRecipientDoctorId: data.referral_recipient_doctor_id,
+          referralRecipientName: data.referral_recipient_name
         };
 
         setDoctors(doctors.map(d => d.id === editingDoctor.id ? updatedDoctor : d));
@@ -265,7 +296,10 @@ export default function EnhancedDoctorManagement() {
           joiningDate: data.joining_date,
           available: data.available,
           consultationHours: data.consultation_hours,
-          roomNumber: data.room_number
+          roomNumber: data.room_number,
+          referralShareRate: data.referral_share_rate,
+          referralRecipientDoctorId: data.referral_recipient_doctor_id,
+          referralRecipientName: data.referral_recipient_name
         };
 
         setDoctors([createdDoctor, ...doctors]);
@@ -290,7 +324,11 @@ export default function EnhancedDoctorManagement() {
         experience: 0,
         consultationHours: '',
         roomNumber: '',
-        available: true
+        available: true,
+        referralShareRate: 0,
+        referralRecipientType: 'none',
+        referralRecipientDoctorId: '',
+        referralRecipientName: ''
       });
       setShowAddForm(false);
     } catch (error) {
@@ -354,7 +392,11 @@ export default function EnhancedDoctorManagement() {
                 experience: 0,
                 consultationHours: '',
                 roomNumber: '',
-                available: true
+                available: true,
+                referralShareRate: 0,
+                referralRecipientType: 'none',
+                referralRecipientDoctorId: '',
+                referralRecipientName: ''
               });
             }}>
               <Plus className="h-4 w-4 mr-2" />
@@ -548,6 +590,72 @@ export default function EnhancedDoctorManagement() {
                     placeholder={newDoctor.commissionType === 'percentage' ? '30' : '200'}
                   />
                 </div>
+              </div>
+
+              <div className="border rounded-md p-4 bg-gray-50 space-y-4">
+                <Label className="font-semibold">Referral Share (optional)</Label>
+                <p className="text-xs text-gray-500">
+                  Route part of this doctor's patient revenue to another party. It is taken from the hospital share; the doctor's own commission is unaffected.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="referralRecipientType">Referral To</Label>
+                    <Select
+                      value={newDoctor.referralRecipientType || 'none'}
+                      onValueChange={(value) => setNewDoctor({ ...newDoctor, referralRecipientType: value as any })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No referral</SelectItem>
+                        <SelectItem value="doctor">Existing doctor</SelectItem>
+                        <SelectItem value="external">External party</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newDoctor.referralRecipientType && newDoctor.referralRecipientType !== 'none' && (
+                    <div>
+                      <Label htmlFor="referralShareRate">Referral Share (%)</Label>
+                      <Input
+                        id="referralShareRate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newDoctor.referralShareRate}
+                        onChange={(e) => setNewDoctor({ ...newDoctor, referralShareRate: parseFloat(e.target.value) || 0 })}
+                        placeholder="10"
+                      />
+                    </div>
+                  )}
+                </div>
+                {newDoctor.referralRecipientType === 'doctor' && (
+                  <div>
+                    <Label htmlFor="referralRecipientDoctorId">Recipient Doctor</Label>
+                    <Select
+                      value={newDoctor.referralRecipientDoctorId || ''}
+                      onValueChange={(value) => setNewDoctor({ ...newDoctor, referralRecipientDoctorId: value })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select a doctor" /></SelectTrigger>
+                      <SelectContent>
+                        {doctors
+                          .filter(d => d.id !== editingDoctor?.id)
+                          .map(d => (
+                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {newDoctor.referralRecipientType === 'external' && (
+                  <div>
+                    <Label htmlFor="referralRecipientName">Recipient Name</Label>
+                    <Input
+                      id="referralRecipientName"
+                      value={newDoctor.referralRecipientName || ''}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, referralRecipientName: e.target.value })}
+                      placeholder="e.g. Dr. Mansoor (external)"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

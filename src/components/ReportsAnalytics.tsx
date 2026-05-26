@@ -31,6 +31,7 @@ interface Stats {
   pendingLabTests: number;
   completedLabTests: number;
   totalDoctorCommission: number;
+  totalReferralPayout: number;
   hospitalShare: number;
 }
 
@@ -44,6 +45,15 @@ interface DoctorStats {
   commissionType: string;
   commissionRate: number;
   commissionAmount: number;
+}
+
+interface ReferralStats {
+  key: string;
+  recipientDoctorId: string | null;
+  recipientName: string;
+  amount: number;
+  patientCount: number;
+  sources: { doctorName: string; rate: number; amount: number; patients: number }[];
 }
 
 interface DepartmentStats {
@@ -82,6 +92,7 @@ interface Voucher {
   commission_type: string;
   status: string;
   created_at: string;
+  recipient_name?: string;
   doctors?: { name: string };
 }
 
@@ -100,10 +111,12 @@ export default function ReportsAnalytics() {
     pendingLabTests: 0,
     completedLabTests: 0,
     totalDoctorCommission: 0,
+    totalReferralPayout: 0,
     hospitalShare: 0
   });
 
   const [doctorStats, setDoctorStats] = useState<DoctorStats[]>([]);
+  const [referralStats, setReferralStats] = useState<ReferralStats[]>([]);
   const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([]);
   const [opdTokens, setOpdTokens] = useState<OPDTokenWithDetails[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
@@ -241,7 +254,9 @@ export default function ReportsAnalytics() {
 
       // Calculate doctor commissions
       let totalDoctorCommission = 0;
+      let totalReferralPayout = 0;
       const doctorStatsMap = new Map<string, DoctorStats>();
+      const referralMap = new Map<string, ReferralStats>();
 
       doctorsData.forEach((doctor: any) => {
         const doctorTokens = filteredTokens.filter((t: any) => t.doctor_id === doctor.id);
@@ -261,6 +276,28 @@ export default function ReportsAnalytics() {
 
         totalDoctorCommission += commissionAmount;
 
+        // Referral share: a cut of this doctor's paid revenue routed to another
+        // party, taken from the hospital share (the doctor's own commission is
+        // untouched). Grouped per recipient since one party may receive
+        // referrals from several doctors.
+        const referralRate = doctor.referral_share_rate || 0;
+        if (referralRate > 0 && (doctor.referral_recipient_doctor_id || doctor.referral_recipient_name)) {
+          const referralAmount = (doctorRevenue * referralRate) / 100;
+          const recipientDoctorId = doctor.referral_recipient_doctor_id || null;
+          const recipientName = recipientDoctorId
+            ? (doctorsData.find((d: any) => d.id === recipientDoctorId)?.name || doctor.referral_recipient_name || 'Unknown')
+            : (doctor.referral_recipient_name || 'Unknown');
+          const key = recipientDoctorId || `ext:${recipientName}`;
+          const existing = referralMap.get(key) || {
+            key, recipientDoctorId, recipientName, amount: 0, patientCount: 0, sources: []
+          };
+          existing.amount += referralAmount;
+          existing.patientCount += paidDoctorTokens.length;
+          existing.sources.push({ doctorName: doctor.name, rate: referralRate, amount: referralAmount, patients: paidDoctorTokens.length });
+          referralMap.set(key, existing);
+          totalReferralPayout += referralAmount;
+        }
+
         const todayDoctorTokens = todayTokens.filter((t: any) => t.doctor_id === doctor.id);
 
         doctorStatsMap.set(doctor.id, {
@@ -276,7 +313,7 @@ export default function ReportsAnalytics() {
         });
       });
 
-      const hospitalShare = totalRevenue - totalDoctorCommission;
+      const hospitalShare = totalRevenue - totalDoctorCommission - totalReferralPayout;
 
       // Prepare OPD tokens with details
       const opdTokensWithDetails: OPDTokenWithDetails[] = filteredTokens.map((token: any) => {
@@ -314,10 +351,12 @@ export default function ReportsAnalytics() {
         pendingLabTests,
         completedLabTests,
         totalDoctorCommission,
+        totalReferralPayout,
         hospitalShare
       });
 
       setDoctorStats(Array.from(doctorStatsMap.values()));
+      setReferralStats(Array.from(referralMap.values()));
 
       // Calculate department-wise stats
       const deptStatsMap = new Map<string, DepartmentStats>();
@@ -458,6 +497,54 @@ export default function ReportsAnalytics() {
     }
   };
 
+  // A referral recipient must not be voucher'd twice for the same period.
+  const hasExistingReferralVoucher = (key: string) =>
+    vouchers.some((v: any) =>
+      v.voucher_type === 'referral_commission' &&
+      (v.doctor_id ? v.doctor_id === key : `ext:${v.recipient_name}` === key) &&
+      v.period_start === startDate &&
+      v.period_end === endDate &&
+      v.status !== 'cancelled'
+    );
+
+  const createReferralVoucher = async (ref: ReferralStats) => {
+    if (hasExistingReferralVoucher(ref.key)) {
+      toast.error(`A referral voucher for ${ref.recipientName} for ${startDate} to ${endDate} already exists.`);
+      return;
+    }
+    setVoucherLoading(true);
+    try {
+      const voucherData = {
+        voucher_number: generateVoucherNumber(),
+        voucher_type: 'referral_commission',
+        doctor_id: ref.recipientDoctorId || null,
+        recipient_name: ref.recipientName,
+        amount: ref.amount,
+        description: `Referral payout for ${ref.recipientName} from ${startDate} to ${endDate}`,
+        period_start: startDate,
+        period_end: endDate,
+        patient_count: ref.patientCount,
+        status: 'pending',
+        created_by: localStorage.getItem('currentUser') || 'system'
+      };
+
+      const { error } = await db.vouchers.create(voucherData);
+      if (error) {
+        console.error('Error creating referral voucher:', error);
+        toast.error('Failed to create referral voucher. Please ensure the database migration has been run.');
+        return;
+      }
+
+      toast.success(`Referral voucher created for ${ref.recipientName}`);
+      fetchAllStats();
+    } catch (error) {
+      console.error('Error creating referral voucher:', error);
+      toast.error('Failed to create referral voucher');
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
   // Mark voucher as paid
   const markVoucherPaid = async (voucherId: string, paymentMethod: string) => {
     try {
@@ -482,7 +569,7 @@ export default function ReportsAnalytics() {
 
   // Print voucher
   const printVoucher = (voucher: Voucher) => {
-    const doctorName = voucher.doctors?.name || 'Unknown Doctor';
+    const doctorName = voucher.doctors?.name || voucher.recipient_name || 'Unknown';
 
     const printContent = `
       <html>
@@ -983,7 +1070,7 @@ export default function ReportsAnalytics() {
       </Card>
 
       {/* Revenue Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -1020,6 +1107,18 @@ export default function ReportsAnalytics() {
           </CardContent>
         </Card>
 
+        <Card className="bg-orange-50 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-600">Referral Payouts</p>
+                <p className="text-3xl font-bold text-orange-700">{formatCurrency(stats.totalReferralPayout)}</p>
+              </div>
+              <Stethoscope className="h-10 w-10 text-orange-400" />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="bg-purple-50 border-purple-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -1035,9 +1134,10 @@ export default function ReportsAnalytics() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="patients" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="patients">Patient List</TabsTrigger>
           <TabsTrigger value="doctors">Doctor Commission</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
           <TabsTrigger value="vouchers">Vouchers</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -1237,6 +1337,71 @@ export default function ReportsAnalytics() {
           </Card>
         </TabsContent>
 
+        {/* Referral Payouts Tab */}
+        <TabsContent value="referrals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Referral Payouts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 mb-4">
+                Shares routed from a doctor's patients to another party for the selected period. Taken from the hospital share.
+              </p>
+              {referralStats.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No referral payouts for this period</p>
+              ) : (
+                <div className="space-y-3">
+                  {referralStats
+                    .sort((a, b) => b.amount - a.amount)
+                    .map(ref => (
+                      <Card key={ref.key} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">
+                              {ref.recipientName}
+                              <span className="ml-2 text-xs font-normal text-gray-500">
+                                {ref.recipientDoctorId ? '(doctor)' : '(external)'}
+                              </span>
+                            </h4>
+                            <div className="flex gap-4 mt-1 text-sm">
+                              <span className="text-blue-600"><strong>Patients:</strong> {ref.patientCount}</span>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                              {ref.sources.map((s, i) => (
+                                <div key={i}>
+                                  From Dr. {s.doctorName}: {s.rate}% of their revenue → {formatCurrency(s.amount)} ({s.patients} patients)
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-orange-600">{formatCurrency(ref.amount)}</p>
+                            <p className="text-xs text-gray-500">Referral payout</p>
+                            {ref.amount > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => createReferralVoucher(ref)}
+                                disabled={voucherLoading}
+                              >
+                                <Receipt className="h-3 w-3 mr-1" />
+                                Create Voucher
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Vouchers Tab */}
         <TabsContent value="vouchers" className="space-y-4">
           <Card>
@@ -1257,11 +1422,16 @@ export default function ReportsAnalytics() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="outline">{voucher.voucher_number}</Badge>
+                            <Badge variant="secondary">
+                              {voucher.voucher_type === 'referral_commission' ? 'Referral' : voucher.voucher_type === 'doctor_commission' ? 'Commission' : voucher.voucher_type}
+                            </Badge>
                             <Badge className={voucher.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}>
                               {voucher.status.toUpperCase()}
                             </Badge>
                           </div>
-                          <p className="font-semibold">Dr. {voucher.doctors?.name || 'Unknown'}</p>
+                          <p className="font-semibold">
+                            {voucher.doctors?.name ? `Dr. ${voucher.doctors.name}` : (voucher.recipient_name || 'Unknown')}
+                          </p>
                           <div className="text-sm text-gray-600">
                             <p>Period: {new Date(voucher.period_start).toLocaleDateString()} - {new Date(voucher.period_end).toLocaleDateString()}</p>
                             <p>Patients: {voucher.patient_count} | Revenue: {formatCurrency(voucher.total_opd_revenue)}</p>
