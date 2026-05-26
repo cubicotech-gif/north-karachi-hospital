@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Activity, Plus, Edit, Trash2, X, Search } from 'lucide-react';
 import { db } from '@/lib/supabase';
+import { toTitleCase } from '@/lib/hospitalData';
 import { toast } from 'sonner';
 
 interface TreatmentType {
@@ -125,7 +126,7 @@ export default function TreatmentTypesManagement() {
     setIsLoading(true);
     try {
       const treatmentData = {
-        name: formData.name.trim(),
+        name: toTitleCase(formData.name),
         category: formData.category || null,
         description: formData.description?.trim() || null,
         default_price: formData.default_price,
@@ -281,6 +282,7 @@ export default function TreatmentTypesManagement() {
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onBlur={(e) => setFormData({ ...formData, name: toTitleCase(e.target.value) })}
                         placeholder="e.g., Normal Delivery"
                       />
                     </div>

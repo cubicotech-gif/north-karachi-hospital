@@ -267,6 +267,20 @@ const App = () => {
     }
   }, [currentModule, user, hasPermission]);
 
+  // Stop number inputs from changing when the wheel/trackpad is scrolled over a
+  // focused field (this was quietly turning 18000 into 17999). Blurring lets the
+  // page scroll normally without altering the value.
+  useEffect(() => {
+    const handleWheel = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'number') {
+        el.blur();
+      }
+    };
+    document.addEventListener('wheel', handleWheel, { passive: true });
+    return () => document.removeEventListener('wheel', handleWheel);
+  }, []);
+
   const handlePatientSelect = (patient: Patient) => {
     setSelectedPatient(patient);
     if (currentModule === 'patients' && hasPermission('opd')) {
