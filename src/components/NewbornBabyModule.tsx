@@ -293,9 +293,6 @@ const NewbornBabyModule: React.FC<NewbornBabyModuleProps> = ({ onNavigateToPatie
 
   const openBirthCertificate = () => {
     setShowBirthCertificate(true);
-    setTimeout(() => {
-      handlePrintBirthCertificate();
-    }, 500);
   };
 
   const getBirthCertificateData = () => {
