@@ -275,7 +275,9 @@ export default function OPDTokenSystem({ selectedPatient }: OPDTokenSystemProps)
 
     setLoading(true);
     try {
-      await supabase.from('opd_tokens').update({ status: 'cancelled' }).eq('id', tokenId);
+      await supabase.from('opd_tokens')
+        .update({ status: 'cancelled', is_cancelled: true, cancelled_at: new Date().toISOString() })
+        .eq('id', tokenId);
       toast.success('Token cancelled successfully');
       fetchPatientTokens();
     } catch (error) {

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { Users, Stethoscope, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { db } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ export default function DoctorQueueSystem() {
   const [tokens, setTokens] = useState<OPDToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchAllData();
@@ -74,12 +76,9 @@ export default function DoctorQueueSystem() {
       setDoctors(doctorsRes.data || []);
       setPatients(patientsRes.data || []);
 
-      // Filter today's tokens
-      const today = new Date().toISOString().split('T')[0];
-      const todayTokens = (tokensRes.data || []).filter(
-        (token: OPDToken) => token.date === today
-      );
-      setTokens(todayTokens);
+      // Keep all tokens; the visible day is chosen via selectedDate so past
+      // days remain viewable while each day still starts fresh.
+      setTokens(tokensRes.data || []);
 
       // If doctor role, auto-select their own queue
       if (user?.role === 'Doctor' && doctorsRes.data) {
@@ -100,10 +99,18 @@ export default function DoctorQueueSystem() {
 
   const updateTokenStatus = async (tokenId: string, status: OPDToken['status']) => {
     try {
-      const { error } = await db.opdTokens.update(tokenId, { status });
+      // Keep the two cancellation indicators in sync so reports and totals
+      // (which key off is_cancelled) actually exclude cancelled tokens.
+      const updates: Record<string, any> = { status };
+      if (status === 'cancelled') {
+        updates.is_cancelled = true;
+        updates.cancelled_at = new Date().toISOString();
+      }
+
+      const { error } = await db.opdTokens.update(tokenId, updates);
       if (error) throw error;
 
-      setTokens(tokens.map(t => t.id === tokenId ? { ...t, status } : t));
+      setTokens(tokens.map(t => t.id === tokenId ? { ...t, ...updates } : t));
       toast.success(`Token status updated to ${status}`);
     } catch (error) {
       console.error('Error updating token status:', error);
@@ -113,7 +120,7 @@ export default function DoctorQueueSystem() {
 
   const getDoctorQueue = (doctorId: string): QueueItem[] => {
     return tokens
-      .filter(token => token.doctor_id === doctorId)
+      .filter(token => token.doctor_id === doctorId && token.date === selectedDate)
       .sort((a, b) => a.token_number - b.token_number)
       .map(token => ({
         token,
@@ -125,7 +132,9 @@ export default function DoctorQueueSystem() {
   const getDoctorStats = (doctorId: string) => {
     const queue = getDoctorQueue(doctorId);
     return {
-      total: queue.length,
+      // "Total" counts active patients only; cancelled are tracked separately
+      // so end-of-day sums are not padded by cancellations.
+      total: queue.filter(q => q.token.status !== 'cancelled').length,
       waiting: queue.filter(q => q.token.status === 'waiting').length,
       inConsultation: queue.filter(q => q.token.status === 'in-consultation').length,
       completed: queue.filter(q => q.token.status === 'completed').length,
@@ -150,12 +159,21 @@ export default function DoctorQueueSystem() {
 
   const renderDoctorOverview = () => (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h3 className="text-lg font-semibold">All Doctors Queue Overview</h3>
-        <Button onClick={fetchAllData} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={selectedDate}
+            max={new Date().toISOString().split('T')[0]}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-40"
+          />
+          <Button onClick={fetchAllData} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -219,7 +237,14 @@ export default function DoctorQueueSystem() {
             <h3 className="text-lg font-semibold">Queue for Dr. {doctor.name}</h3>
             <p className="text-sm text-gray-600">{doctor.specialization} - {doctor.department}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Input
+              type="date"
+              value={selectedDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-40"
+            />
             <Button onClick={() => setSelectedDoctorId(null)} variant="outline" size="sm">
               Back to Overview
             </Button>
@@ -260,17 +285,18 @@ export default function DoctorQueueSystem() {
 
         {/* Queue List */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
             <TabsTrigger value="waiting">Waiting ({stats.waiting})</TabsTrigger>
             <TabsTrigger value="in-consultation">Consulting ({stats.inConsultation})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({stats.completed})</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled ({stats.cancelled})</TabsTrigger>
           </TabsList>
 
-          {['all', 'waiting', 'in-consultation', 'completed'].map(status => (
+          {['all', 'waiting', 'in-consultation', 'completed', 'cancelled'].map(status => (
             <TabsContent key={status} value={status} className="space-y-2">
               {queue
-                .filter(item => status === 'all' || item.token.status === status)
+                .filter(item => status === 'all' ? item.token.status !== 'cancelled' : item.token.status === status)
                 .map(item => (
                   <Card key={item.token.id}>
                     <CardContent className="p-4">
