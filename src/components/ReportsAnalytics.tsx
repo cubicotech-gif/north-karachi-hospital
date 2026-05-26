@@ -212,18 +212,20 @@ export default function ReportsAnalytics() {
       setPatients(patientsData);
       setVouchers(vouchersData);
 
-      // Filter tokens by date range (exclude deleted/cancelled)
+      // Filter tokens by date range (exclude deleted/cancelled). Check both the
+      // is_cancelled flag and status === 'cancelled', since cancellations were
+      // historically written only to status.
       const filteredTokens = allOpdTokens.filter((t: any) => {
         const tokenDate = t.date;
         const isInRange = tokenDate >= startDate && tokenDate <= endDate;
         const isNotDeleted = !t.is_deleted;
-        const isNotCancelled = !t.is_cancelled;
+        const isNotCancelled = !t.is_cancelled && t.status !== 'cancelled';
         return isInRange && isNotDeleted && isNotCancelled;
       });
 
       // Today's tokens
       const todayTokens = allOpdTokens.filter((t: any) => {
-        return t.date === today && !t.is_deleted && !t.is_cancelled;
+        return t.date === today && !t.is_deleted && !t.is_cancelled && t.status !== 'cancelled';
       });
 
       const todayAppointments = appointments.filter((a: any) => a.appointment_date === today);
