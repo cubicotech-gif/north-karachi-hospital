@@ -137,7 +137,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
               }
 
               .print-container {
-                padding-top: 3in !important;
+                padding-top: 1.5in !important;
                 padding-bottom: 0.5in !important;
                 padding-left: 1in !important;
                 padding-right: 1in !important;
@@ -181,7 +181,7 @@ const BirthCertificateTemplate = forwardRef<HTMLDivElement, BirthCertificateTemp
 
             @media screen {
               .print-container {
-                padding: 3in 1in 0.5in 1in;
+                padding: 1.5in 1in 0.5in 1in;
                 max-width: 8.27in;
                 margin: 0 auto;
                 background: #fff;
