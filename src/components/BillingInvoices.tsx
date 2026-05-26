@@ -27,7 +27,7 @@ interface Invoice {
   description: string;
 }
 
-export default function BillingInvoices() {
+export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToPatient?: (patientId: string) => void }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -399,6 +399,16 @@ export default function BillingInvoices() {
                               <Printer className="h-4 w-4 mr-2" />
                               Print Receipt
                             </Button>
+                            {onNavigateToPatient && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onNavigateToPatient(invoice.patient_id)}
+                              >
+                                <User className="h-4 w-4 mr-2" />
+                                Patient File
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>

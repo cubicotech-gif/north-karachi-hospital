@@ -481,7 +481,18 @@ const App = () => {
       case 'lab':
         return <LabManagement selectedPatient={selectedPatient} />;
       case 'billing':
-        return <BillingInvoices />;
+        return (
+          <BillingInvoices
+            onNavigateToPatient={(patientId) => {
+              db.patients.getById(patientId).then(({ data }) => {
+                if (data) {
+                  setSelectedPatient(data as Patient);
+                  setCurrentModule('allpatients');
+                }
+              });
+            }}
+          />
+        );
       case 'doctors':
         return <DoctorManagement />;
       case 'rooms':
