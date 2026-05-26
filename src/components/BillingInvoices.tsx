@@ -21,7 +21,9 @@ interface Invoice {
   patient_id: string;
   patient_name: string;
   amount: number;
-  payment_status: 'paid' | 'unpaid' | 'partial';
+  amountPaid: number;
+  balanceDue: number;
+  payment_status: 'paid' | 'unpaid' | 'partial' | 'pending';
   date: string;
   created_at?: string;
   description: string;
@@ -49,11 +51,12 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
   const fetchAllInvoices = async () => {
     setLoading(true);
     try {
-      const [opdTokensRes, admissionsRes, labOrdersRes, treatmentsRes, patientsRes] = await Promise.all([
+      const [opdTokensRes, admissionsRes, labOrdersRes, treatmentsRes, dischargesRes, patientsRes] = await Promise.all([
         fetchAllRows('opd_tokens'),
         fetchAllRows('admissions', { orderColumn: 'admission_date' }),
         fetchAllRows('lab_orders'),
         fetchAllRows('treatments'),
+        fetchAllRows('discharges', { orderColumn: 'discharge_date' }),
         fetchAllRows('patients')
       ]);
 
@@ -68,34 +71,45 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
       const admissions = admissionsRes.data || [];
       const labOrders = labOrdersRes.data || [];
       const treatments = treatmentsRes.data || [];
+      // Discharges are optional: the screen still works if the table is absent.
+      const discharges = dischargesRes.data || [];
 
       const allInvoices: Invoice[] = [];
 
       // OPD Invoices
       opdTokens.forEach((token: any) => {
         const patient = patients.find((p: any) => p.id === token.patient_id);
+        const amount = token.fee || 0;
+        const status = token.payment_status || 'unpaid';
         allInvoices.push({
           id: `opd-${token.id}`,
           type: 'OPD',
           patient_id: token.patient_id,
           patient_name: patient?.name || 'Unknown Patient',
-          amount: token.fee || 0,
-          payment_status: token.payment_status || 'unpaid',
+          amount,
+          amountPaid: status === 'paid' ? amount : 0,
+          balanceDue: status === 'paid' ? 0 : amount,
+          payment_status: status,
           date: token.date,
           created_at: token.created_at,
           description: `OPD Token #${token.token_number}`
         });
       });
 
-      // Admission Invoices
+      // Admission Invoices: this line is the deposit collected at admission.
+      // The full admission bill is settled separately via the Discharge invoice,
+      // so only the deposit (already-received money) counts as revenue here.
       admissions.forEach((admission: any) => {
         const patient = patients.find((p: any) => p.id === admission.patient_id);
+        const deposit = admission.deposit || 0;
         allInvoices.push({
           id: `admission-${admission.id}`,
           type: 'Admission',
           patient_id: admission.patient_id,
           patient_name: patient?.name || 'Unknown Patient',
-          amount: admission.deposit || 0,
+          amount: deposit,
+          amountPaid: deposit,
+          balanceDue: 0,
           payment_status: 'paid',
           date: admission.admission_date,
           created_at: admission.created_at,
@@ -106,13 +120,17 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
       // Lab Order Invoices
       labOrders.forEach((order: any) => {
         const patient = patients.find((p: any) => p.id === order.patient_id);
+        const amount = order.total_amount || 0;
+        const status = order.payment_status || 'unpaid';
         allInvoices.push({
           id: `lab-${order.id}`,
           type: 'Lab',
           patient_id: order.patient_id,
           patient_name: patient?.name || 'Unknown Patient',
-          amount: order.total_amount || 0,
-          payment_status: order.payment_status || 'unpaid',
+          amount,
+          amountPaid: status === 'paid' ? amount : 0,
+          balanceDue: status === 'paid' ? 0 : amount,
+          payment_status: status,
           date: order.order_date,
           created_at: order.created_at,
           description: `Lab Order - ${order.tests?.length || 0} tests`
@@ -122,16 +140,44 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
       // Treatment Invoices
       treatments.forEach((treatment: any) => {
         const patient = patients.find((p: any) => p.id === treatment.patient_id);
+        const amount = treatment.price || 0;
+        const status = treatment.payment_status || 'unpaid';
         allInvoices.push({
           id: `treatment-${treatment.id}`,
           type: 'Treatment',
           patient_id: treatment.patient_id,
           patient_name: patient?.name || 'Unknown Patient',
-          amount: treatment.price || 0,
-          payment_status: treatment.payment_status || 'unpaid',
+          amount,
+          amountPaid: status === 'paid' ? amount : 0,
+          balanceDue: status === 'paid' ? 0 : amount,
+          payment_status: status,
           date: treatment.date,
           created_at: treatment.created_at,
           description: `${treatment.treatment_type} - ${treatment.treatment_name}`
+        });
+      });
+
+      // Discharge Invoices: the final admission bill. The deposit was already
+      // counted on the Admission line, so only the payment collected at
+      // discharge (additional_payment) is added as new revenue here; any
+      // unpaid remainder is the balance due.
+      discharges.forEach((discharge: any) => {
+        const patient = patients.find((p: any) => p.id === discharge.patient_id);
+        const total = discharge.total_charges || 0;
+        const additional = discharge.additional_payment || 0;
+        const balance = discharge.balance_due || 0;
+        allInvoices.push({
+          id: `discharge-${discharge.id}`,
+          type: 'Discharge',
+          patient_id: discharge.patient_id,
+          patient_name: patient?.name || 'Unknown Patient',
+          amount: total,
+          amountPaid: additional,
+          balanceDue: balance,
+          payment_status: discharge.payment_status || 'pending',
+          date: discharge.discharge_date,
+          created_at: discharge.created_at,
+          description: `Discharge ${discharge.discharge_number || ''}`.trim()
         });
       });
 
@@ -178,18 +224,16 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
   };
 
   const getStats = () => {
-    const totalRevenue = invoices
-      .filter(i => i.payment_status === 'paid')
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    const pending = invoices
-      .filter(i => i.payment_status === 'unpaid')
-      .reduce((sum, i) => sum + i.amount, 0);
+    // Revenue = money actually collected; pending = outstanding balance. Using
+    // per-invoice paid/balance amounts so partially-paid invoices contribute to
+    // both (their paid portion to revenue, their remainder to pending).
+    const totalRevenue = invoices.reduce((sum, i) => sum + i.amountPaid, 0);
+    const pending = invoices.reduce((sum, i) => sum + i.balanceDue, 0);
 
     return {
       total: invoices.length,
       paid: invoices.filter(i => i.payment_status === 'paid').length,
-      unpaid: invoices.filter(i => i.payment_status === 'unpaid').length,
+      unpaid: invoices.filter(i => i.payment_status !== 'paid').length,
       totalRevenue,
       pending
     };
@@ -202,6 +246,7 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
       case 'unpaid':
         return 'bg-red-100 text-red-800';
       case 'partial':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -325,6 +370,7 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
                 <option value="paid">Paid</option>
                 <option value="unpaid">Unpaid</option>
                 <option value="partial">Partial</option>
+                <option value="pending">Pending</option>
               </select>
             </div>
             <div>
@@ -446,8 +492,8 @@ export default function BillingInvoices({ onNavigateToPatient }: { onNavigateToP
               ],
               total: selectedInvoice.amount,
               paymentStatus: selectedInvoice.payment_status,
-              amountPaid: selectedInvoice.payment_status === 'paid' ? selectedInvoice.amount : 0,
-              balanceDue: selectedInvoice.payment_status === 'paid' ? 0 : selectedInvoice.amount,
+              amountPaid: selectedInvoice.amount - selectedInvoice.balanceDue,
+              balanceDue: selectedInvoice.balanceDue,
             }}
           />
         </div>
