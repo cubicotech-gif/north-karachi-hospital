@@ -364,8 +364,8 @@ export default function PatientProfile({ selectedPatient: initialPatient }: Pati
         <style>
           @page { size: 85mm 54mm; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Tahoma', 'Arial', sans-serif; background: #fff; }
-          .card { width: 85mm; height: 54mm; padding: 4mm; border: 2px solid #1a5f2a; border-radius: 3mm; background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%); }
+          html, body { width: 85mm; height: 54mm; overflow: hidden; font-family: 'Tahoma', 'Arial', sans-serif; background: #fff; }
+          .card { width: 85mm; height: 54mm; padding: 4mm; border: 2px solid #1a5f2a; border-radius: 3mm; background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%); overflow: hidden; page-break-inside: avoid; page-break-after: avoid; }
           .header { display: flex; align-items: center; gap: 3mm; border-bottom: 1px solid #1a5f2a; padding-bottom: 2mm; margin-bottom: 2mm; }
           .logo { width: 12mm; height: 12mm; object-fit: contain; }
           .hospital-name { font-size: 10pt; font-weight: bold; color: #1a5f2a; }
