@@ -401,7 +401,10 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
         <style>
           @page { size: 85mm 54mm; margin: 0; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
+          html, body {
+            width: 85mm;
+            height: 54mm;
+            overflow: hidden;
             font-family: 'Tahoma', 'Arial', sans-serif;
             background: #fff;
           }
@@ -412,6 +415,9 @@ export default function PatientRegistration({ onPatientSelect, onNewPatient }: P
             border: 2px solid #1a5f2a;
             border-radius: 3mm;
             background: linear-gradient(135deg, #f0f9f0 0%, #ffffff 100%);
+            overflow: hidden;
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
           .header {
             display: flex;
